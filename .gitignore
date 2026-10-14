@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.astro/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+.cursor/mcp.json
+
+# live site (Next.js copy)
+apps/live-site/.next
+apps/live-site/node_modules
+apps/live-site/.vercel
+
+# generated tokens (rerun npm run tokens:sync)
+tokens/dist
+
+storybook-static
+*storybook.log

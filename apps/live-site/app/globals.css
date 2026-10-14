@@ -1,0 +1,1479 @@
+@import './lumen.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* BOL homepage used --ds-* ; map them onto Lumen tokens so copied UI stays on-system. */
+:root,
+[data-brand],
+.dark {
+  --ds-page-bg: var(--background);
+  --ds-nav-bg: var(--header);
+  --ds-sidebar-bg: var(--sidebar);
+  --ds-surface: var(--card);
+  --ds-surface-raised: var(--popover);
+  --ds-surface-muted: var(--muted);
+  --ds-border: var(--border);
+  --ds-border-strong: var(--border);
+  --ds-fg: var(--foreground);
+  --ds-fg-muted: var(--muted-foreground);
+  --ds-fg-subtle: var(--muted-foreground);
+  --ds-control-bg: var(--secondary);
+  --ds-control-hover: var(--accent);
+  --ds-primary: var(--primary);
+  --ds-on-primary: var(--primary-foreground);
+  --ds-vip-gold: var(--vip-rewards);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.shell-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.shell-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.shell-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.shell-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+.shell-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.36);
+}
+
+@keyframes shell-b-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.shell-chrome-btn,
+[data-name='header-brand'] button,
+[data-name='sidebar-container'] button,
+[data-name='sidebar-container'] a,
+[data-name='nav-menu-icon-solid'] a {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.shell-chrome-btn:focus,
+.shell-chrome-btn:focus-visible,
+.shell-chrome-btn:active,
+[data-name='header-brand'] button:focus,
+[data-name='header-brand'] button:focus-visible,
+[data-name='sidebar-container'] button:focus,
+[data-name='sidebar-container'] button:focus-visible,
+[data-name='sidebar-container'] a:focus,
+[data-name='sidebar-container'] a:focus-visible,
+[data-name='sidebar-container'] a:active,
+[data-name='nav-menu-icon-solid'] a:focus,
+[data-name='nav-menu-icon-solid'] a:focus-visible,
+[data-name='nav-menu-icon-solid'] a:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+@keyframes hero-ember-rise {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  15% { opacity: 0.7; }
+  100% { transform: translateY(-140px) translateX(var(--ember-drift, 0px)); opacity: 0; }
+}
+.hero-ember { will-change: transform, opacity; }
+
+.tile-shimmer {
+  background: linear-gradient(90deg, transparent 0%, color-mix(in oklch, var(--foreground) 12%, transparent) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: tile-shimmer 1.5s ease-in-out infinite;
+}
+@keyframes tile-shimmer {
+  0% { background-position: -100% 0; }
+  100% { background-position: 100% 0; }
+}
+
+.lm-shimmer-wrap {
+  position: relative;
+  display: inline-flex;
+  overflow: hidden;
+}
+.lm-shimmer-wrap::after {
+  content: '';
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+}
+.lm-shimmer-wrap[data-tint='foreground']::after {
+  background: linear-gradient(90deg, transparent, var(--foreground), transparent);
+  opacity: 0.18;
+}
+.lm-shimmer-wrap[data-tint='primary']::after {
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  opacity: 0.28;
+}
+.lm-shimmer-wrap[data-tint='muted']::after {
+  background: linear-gradient(90deg, transparent, var(--surface-muted-2), transparent);
+}
+@keyframes lm-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.lm-shimmer-wrap[data-active][data-trigger='always']::after {
+  animation: lm-shimmer 1.6s infinite;
+}
+.lm-shimmer-wrap[data-active][data-trigger='hover']:hover::after {
+  animation: lm-shimmer 1.2s infinite;
+}
+@keyframes lm-confetti {
+  0% { transform: translateY(-10%) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(260px) rotate(540deg); opacity: 0; }
+}
+.lm-confetti { animation: lm-confetti 2.4s linear infinite; }
+@keyframes lm-particle {
+  0% { transform: translate(-50%, -50%) rotate(var(--lm-angle)) translateX(0); opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--lm-angle)) translateX(90px); opacity: 0; }
+}
+.lm-particle { animation: lm-particle 0.9s ease-out forwards; }
+@keyframes lm-shimmer-text {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.lm-shimmer-text {
+  background-image: linear-gradient(90deg, var(--foreground) 0%, var(--primary) 40%, var(--foreground) 80%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: lm-shimmer-text 2.8s linear infinite;
+}
+@keyframes lm-tile-shimmer {
+  0% { background-position: -100% 0; }
+  100% { background-position: 100% 0; }
+}
+.lm-tile-shimmer {
+  background-image: linear-gradient(90deg, transparent 0%, var(--foreground) 50%, transparent 100%);
+  background-size: 200% 100%;
+  opacity: 0.08;
+  animation: lm-tile-shimmer 1.5s ease-in-out infinite;
+}
+.lm-slide-pill { transition: left 280ms cubic-bezier(0.2, 0.8, 0.2, 1), width 280ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+.twitter-heart-sprite {
+  background-image: url('/animations/twitter-heart-sprite.png');
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 2900px 100px;
+  -webkit-mask-image: radial-gradient(circle at center, transparent 0 20px, #000 22px);
+  mask-image: radial-gradient(circle at center, transparent 0 20px, #000 22px);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)) hue-rotate(-22deg) saturate(1.2) brightness(1.05);
+}
+.twitter-heart-sprite.is-animating {
+  animation: twitter-heart-burst 0.8s steps(28) forwards;
+}
+@keyframes twitter-heart-burst {
+  from { background-position: 0 0; }
+  to { background-position: -2800px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .twitter-heart-sprite.is-animating {
+    animation: none;
+    background-position: -2800px 0;
+  }
+}
+
+/* Theme tokens live in ./lumen.css (generated from the Lumen Figma exports). Brand via <html data-brand>, dark via .dark */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  overflow-x: clip;
+  overflow-y: auto;
+  background-color: var(--background);
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-figtree), var(--font-family-font-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  padding: 0;
+}
+
+/* Mobile: Allow vertical scrolling */
+@media (max-width: 768px) {
+  html, body {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    background-color: var(--background) !important;
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: none;
+  }
+
+  body {
+    overflow-y: auto;
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior-y: contain;
+    overscroll-behavior-x: none;
+    background-color: var(--background) !important;
+  }
+
+  /* CRITICAL: On mobile, ensure main container allows vertical scrolling */
+  main[data-sidebar="inset"] {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    position: relative !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Ensure all parent containers allow scrolling on mobile */
+  main[data-sidebar="inset"] > div,
+  main[data-sidebar="inset"] > div > div {
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    touch-action: pan-y !important;
+  }
+
+  /* Sports page: ensure the flex container allows scrolling */
+  div.flex.w-full.min-h-screen.bg-background {
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+
+  /* Sports page: ensure SidebarInset scrolls on mobile */
+  div.flex.w-full.min-h-screen.bg-background > main[data-sidebar="inset"],
+  div.flex.w-full.min-h-screen.bg-background main[data-sidebar="inset"] {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+  }
+}
+
+/* SF Sans font for titles */
+.sf-title {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', sans-serif;
+  font-weight: 700;
+}
+
+/* Neumorphic effects - dark black */
+.neu-soft {
+  background: var(--background);
+  box-shadow: 
+    8px 8px 16px rgba(0, 0, 0, 0.8),
+    -8px -8px 16px rgba(20, 20, 20, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.neu-inset {
+  background: var(--background);
+  box-shadow: 
+    inset 4px 4px 8px rgba(0, 0, 0, 0.9),
+    inset -4px -4px 8px rgba(20, 20, 20, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.neu-flat {
+  background: var(--background);
+  box-shadow: 
+    2px 2px 4px rgba(0, 0, 0, 0.6),
+    -2px -2px 4px rgba(20, 20, 20, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Soft glass */
+.glass-soft {
+  background: rgba(10, 10, 10, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Agency font */
+.agency-font {
+  font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  letter-spacing: 0.02em;
+}
+
+/* Sprite animation */
+.sprite-container {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Shimmer button animation */
+@keyframes shimmer-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Text shimmer animation */
+@keyframes shimmer-text {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+/* Subtle tile shimmer on hover */
+@keyframes tile-shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 100% 0;
+  }
+}
+
+.tile-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: tile-shimmer 1.5s ease-in-out infinite;
+}
+
+@layer base {
+  :root {
+    --background-image-lp-controls-fade: linear-gradient(
+          to bottom,
+          hsla(0, 0%, 91%, 0) 0%,
+          hsla(0, 0%, 91%, 0.002) 10.6%,
+          hsla(0, 0%, 91%, 0.008) 19.7%,
+          hsla(0, 0%, 91%, 0.019) 27.6%,
+          hsla(0, 0%, 91%, 0.035) 34.4%,
+          hsla(0, 0%, 91%, 0.057) 40.4%,
+          hsla(0, 0%, 91%, 0.086) 45.7%,
+          hsla(0, 0%, 91%, 0.122) 50.6%,
+          hsla(0, 0%, 91%, 0.165) 55.3%,
+          hsla(0, 0%, 91%, 0.217) 60%,
+          hsla(0, 0%, 91%, 0.278) 65%,
+          hsla(0, 0%, 91%, 0.349) 70.3%,
+          hsla(0, 0%, 91%, 0.43) 76.3%,
+          hsla(0, 0%, 91%, 0.522) 83.1%,
+          hsla(0, 0%, 91%, 0.625) 90.9%,
+          hsla(0, 0%, 91%, 0.74) 100%
+        );
+    --lp-accent: oklch(0.269 0 0);
+    --lp-primary: oklch(0.205 0 0);
+    --lp-primary-foreground: oklch(0.985 0 0);
+    --lp-timeline-buffered-color: oklch(0.985 0 0 / 0.4);
+  }
+  .dark {
+    --background-image-lp-controls-fade:  linear-gradient(
+          to bottom,
+          hsla(0, 0%, 0%, 0) 0%,
+          hsla(0, 0%, 0%, 0.009) 8.1%,
+          hsla(0, 0%, 0%, 0.035) 15.5%,
+          hsla(0, 0%, 0%, 0.074) 22.5%,
+          hsla(0, 0%, 0%, 0.125) 29%,
+          hsla(0, 0%, 0%, 0.184) 35.3%,
+          hsla(0, 0%, 0%, 0.25) 41.2%,
+          hsla(0, 0%, 0%, 0.32) 47.1%,
+          hsla(0, 0%, 0%, 0.39) 52.9%,
+          hsla(0, 0%, 0%, 0.46) 58.8%,
+          hsla(0, 0%, 0%, 0.526) 64.7%,
+          hsla(0, 0%, 0%, 0.585) 71%,
+          hsla(0, 0%, 0%, 0.636) 77.5%,
+          hsla(0, 0%, 0%, 0.675) 84.5%,
+          hsla(0, 0%, 0%, 0.701) 91.9%,
+          hsla(0, 0%, 0%, 0.71) 100%
+        );
+    --lp-accent: oklch(0.97 0 0);
+    --lp-primary: oklch(0.205 0 0);
+    --lp-primary-foreground: oklch(0.985 0 0);
+    --lp-timeline-buffered-color: oklch(0.985 0 0 / 0.4);
+  }
+  .theme {
+    --lp-timeline-track-height: 4px;
+    --lp-timeline-track-height-active: 7px;
+  }
+}
+
+@layer base {
+          * {
+            @apply border-border;
+          }
+          body {
+            @apply bg-background text-foreground;
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            height: auto !important;
+          }
+          html {
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            height: auto !important;
+          }
+        }
+
+        /* View Transition API timing function */
+        :root {
+          --expo-out: cubic-bezier(0.16, 1, 0.3, 1);
+          --expo-in: cubic-bezier(0.7, 0, 0.84, 0);
+        }
+
+/* Position sidebar below header - Always grey in both themes */
+[data-sidebar="sidebar"] {
+  background-color: var(--popover) !important;
+}
+
+/* Ensure header stays grey in both light and dark modes */
+header.bg-popover {
+  background-color: var(--popover) !important;
+}
+
+/* Ensure sidebar stays grey in both light and dark modes */
+[data-sidebar="sidebar"],
+[data-sidebar="sidebar"] > div,
+.bg-sidebar {
+  background-color: var(--popover) !important;
+}
+
+/* Adjust sidebar fixed positioning to start below fixed header */
+.group.peer > div.fixed {
+  top: 64px !important;
+  height: calc(100vh - 64px) !important;
+}
+
+/* Ensure sidebar content is dark */
+[data-sidebar="sidebar"],
+[data-sidebar="sidebar"] > div,
+.bg-sidebar {
+  background-color: var(--popover) !important;
+}
+
+/* Make "Other" navigation menu red when open */
+[data-state="open"] button[class*="NavigationMenuTrigger"] {
+  background-color: var(--primary) !important;
+}
+
+/* Fix banner and tabs scrolling - allow natural page scroll */
+/* Remove viewport height constraint from SidebarProvider to allow natural page scroll */
+.group\/sidebar-wrapper {
+  min-height: auto !important;
+  height: auto !important;
+  overflow: visible !important;
+  overflow-x: hidden !important;
+  position: relative !important;
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+}
+
+/* CRITICAL: Ensure SidebarInset is properly constrained to visible width */
+.group\/sidebar-wrapper {
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.group\/sidebar-wrapper > main[data-sidebar="inset"] {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  width: auto !important; /* Use auto instead of 0 */
+  flex-basis: 0 !important; /* CRITICAL: Use flex-basis to allow proper flex shrinking */
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+/* CRITICAL: Override the w-full class from SidebarInset component - use flex-basis instead */
+main[data-sidebar="inset"].w-full,
+main[data-sidebar="inset"][class*="w-full"],
+main[data-sidebar="inset"] {
+  width: auto !important; /* Override w-full class */
+  flex-basis: 0 !important; /* Use flex-basis to allow proper flex shrinking */
+  flex: 1 1 0% !important; /* Ensure flex takes remaining space */
+  min-width: 0 !important; /* Allow shrinking below content size */
+  max-width: 100% !important; /* Don't exceed parent */
+}
+
+/* Ensure SidebarInset doesn't create a scroll container but allows sticky to work */
+main[data-sidebar="inset"] {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 100vh !important;
+  position: relative !important;
+  display: flex !important;
+  flex: 1 1 0% !important;
+  flex-direction: column !important;
+  width: auto !important; /* Use auto */
+  flex-basis: 0 !important; /* CRITICAL: Use flex-basis to allow proper flex shrinking */
+  max-width: none !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+}
+
+/* CRITICAL: Ensure content doesn't extend beyond viewport - constrain to visible area */
+main[data-sidebar="inset"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+main[data-sidebar="inset"] > div {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+/* Ensure parent containers allow sticky positioning - no overflow hidden on parents */
+main[data-sidebar="inset"] > * {
+  overflow: visible !important;
+  overflow-x: visible !important; /* Changed to visible for arrows */
+  position: relative !important;
+}
+
+/* Lock horizontal scroll on body and html */
+html, body {
+  overflow-x: hidden !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+}
+
+/* Ensure header stays fixed at top */
+header[class*="z-\[100\]"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 100 !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure header buttons are always clickable */
+header[class*="z-\[100\]"] button,
+header[class*="z-\[100\]"] [role="button"] {
+  pointer-events: auto !important;
+  z-index: 101 !important;
+  position: relative !important;
+  cursor: pointer !important;
+}
+
+/* Ensure dropdown menus and sheets appear above sub-nav */
+[data-radix-dropdown-menu-content],
+[data-radix-popper-content-wrapper],
+[data-radix-dropdown-menu-content][data-state="open"] {
+  z-index: 120 !important;
+  position: fixed !important;
+}
+
+/* Ensure dropdown portal appears above sub-nav */
+[data-radix-portal] [data-radix-dropdown-menu-content] {
+  z-index: 120 !important;
+  position: fixed !important;
+}
+
+/* Ensure carousel arrows are ALWAYS visible and NEVER clipped */
+button[class*="CarouselPrevious"],
+button[class*="CarouselNext"] {
+  z-index: 30 !important;
+  position: absolute !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  margin: 0 !important;
+}
+
+/* Ensure ALL parent containers allow overflow for arrows - CRITICAL */
+/* SidebarInset should scroll vertically but allow horizontal overflow for carousels */
+main[data-sidebar="inset"] {
+  overflow-x: visible !important;
+  overflow-y: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  position: relative !important;
+}
+
+main[data-sidebar="inset"] > div,
+main[data-sidebar="inset"] > div > div,
+div[class*="relative"][class*="px-6"],
+div[class*="relative"][class*="px-6"] > *,
+[role="region"][aria-roledescription="carousel"],
+[role="region"][aria-roledescription="carousel"] > * {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+/* Ensure carousel container doesn't clip arrows */
+[role="region"][aria-roledescription="carousel"] {
+  position: relative !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+/* The inner scroll container can have overflow-hidden, but arrows must be outside */
+[role="region"][aria-roledescription="carousel"] > div:first-child {
+  overflow: hidden !important; /* This is the scroll container - keep hidden */
+}
+
+/* But arrows are siblings, so they should be visible */
+[role="region"][aria-roledescription="carousel"] > button {
+  overflow: visible !important;
+  position: absolute !important;
+}
+
+/* Ensure carousel arrows are positioned correctly within content area */
+main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure carousel wrapper doesn't extend beyond viewport */
+main[data-sidebar="inset"] div.relative.px-6 {
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+/* CRITICAL: Force carousel arrows to be visible and positioned correctly - use viewport-relative positioning */
+main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+/* CRITICAL: Position carousel arrows at the edges of the visible content area - ensure they stay within viewport */
+main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* CRITICAL: Ensure ALL containers in the content area respect the visible width - target all nested divs */
+main[data-sidebar="inset"] > div,
+main[data-sidebar="inset"] > div > div,
+main[data-sidebar="inset"] > div > div > div,
+main[data-sidebar="inset"] > div > div > div > div,
+main[data-sidebar="inset"] > div > div > div > div > div,
+main[data-sidebar="inset"] div.flex.flex-col.gap-6,
+main[data-sidebar="inset"] div.space-y-8 {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+  min-width: 0 !important;
+  position: relative !important;
+}
+
+/* CRITICAL: Ensure carousel container respects parent width and doesn't overflow */
+main[data-sidebar="inset"] div.relative.px-6 {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  overflow-x: visible !important;
+  min-width: 0 !important;
+  position: relative !important;
+  padding-right: 2.5rem !important; /* Add padding for arrow */
+}
+
+/* CRITICAL: Force RIGHT carousel arrow to be visible and positioned correctly - use container-relative positioning */
+main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] {
+  position: relative !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important; /* Allow carousel to shrink */
+}
+
+main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] button[class*="CarouselNext"] {
+  right: 0 !important;
+  left: auto !important;
+  position: absolute !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  z-index: 30 !important;
+  transform: translate(50%, -50%) !important;
+  pointer-events: auto !important;
+  top: 50% !important;
+  max-width: none !important;
+  width: 2rem !important;
+  height: 2rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Ensure carousel wrapper doesn't clip the arrow */
+main[data-sidebar="inset"] div.relative.px-6[style*="overflow"] {
+  overflow: visible !important;
+  overflow-x: visible !important;
+  overflow-y: visible !important;
+}
+
+main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] button[class*="CarouselPrevious"] {
+  left: 1.5rem !important;
+  right: auto !important;
+  position: absolute !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  z-index: 30 !important;
+  transform: translateY(-50%) !important;
+  pointer-events: auto !important;
+  top: 50% !important;
+  max-width: none !important;
+}
+
+/* Ensure ALL GAMES buttons are visible */
+div.flex.items-center.justify-between button {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: inline-flex !important;
+  z-index: 10 !important;
+  position: relative !important;
+}
+
+/* Ensure section headers with ALL GAMES buttons are visible and responsive */
+main[data-sidebar="inset"] div.flex.items-center.justify-between.mb-4 {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  position: relative !important;
+  z-index: 5 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important; /* Changed to visible so buttons aren't clipped */
+  box-sizing: border-box !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+
+/* CRITICAL: Ensure ALL GAMES buttons are always visible and within viewport - account for sidebar width */
+main[data-sidebar="inset"] div.flex.items-center.justify-between.mb-4 {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-width: 0 !important; /* Critical: allows flex container to shrink */
+}
+
+/* CRITICAL: Prevent tiles from resizing when sidebar opens/closes */
+[role="region"][aria-roledescription="carousel"] [class*="CarouselItem"] {
+  flex-shrink: 0 !important;
+  min-width: 0 !important;
+}
+
+[role="region"][aria-roledescription="carousel"] [data-content-item] {
+  flex-shrink: 0 !important;
+}
+
+/* Ensure tiles maintain their fixed widths */
+[role="region"][aria-roledescription="carousel"] [data-content-item][style*="width"] {
+  flex-shrink: 0 !important;
+}
+
+/* CRITICAL: Ensure banner cards maintain their exact width (320px) when sidebar opens/closes */
+div[class*="flex"][class*="gap-4"][class*="pl-6"] > div[style*="320px"],
+div[class*="flex"][class*="gap-4"][class*="pl-6"] > div[style*="width: '320px'"],
+div[class*="flex"][class*="gap-4"][class*="pl-6"] img[width="320"] {
+  width: 320px !important;
+  min-width: 320px !important;
+  max-width: 320px !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+}
+
+/* Ensure banner container allows horizontal scroll if needed */
+div[class*="flex"][class*="gap-4"][class*="pl-6"][style*="flexWrap"] {
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+
+/* CRITICAL: Force ALL GAMES button to be visible - ensure it stays within container */
+main[data-sidebar="inset"] div.flex.items-center.justify-between.mb-4 {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+
+main[data-sidebar="inset"] div.flex.items-center.justify-between.mb-4 h2 {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  margin-right: 1rem !important;
+}
+
+main[data-sidebar="inset"] div.flex.items-center.justify-between.mb-4 button {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  white-space: nowrap !important;
+  max-width: fit-content !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: inline-flex !important;
+  position: relative !important;
+  z-index: 10 !important;
+  min-width: auto !important;
+  width: auto !important;
+}
+
+/* FORCE ALL GAMES buttons to be visible - override any hiding */
+main[data-sidebar="inset"] button:has-text("ALL GAMES"),
+main[data-sidebar="inset"] button[class*="text-white/70"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: inline-flex !important;
+  position: relative !important;
+}
+
+/* Ensure buttons don't get pushed off screen - use flex to keep them visible */
+main[data-sidebar="inset"] div.flex.items-center.justify-between.mb-4 > h2 {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+main[data-sidebar="inset"] div.flex.items-center.justify-between.mb-4 > div:last-child {
+  flex-shrink: 0 !important;
+  margin-left: 1rem !important; /* Add spacing between title and button */
+}
+
+/* Ensure Sheet overlays and content are properly layered - above header and sub-nav */
+[data-radix-sheet-overlay] {
+  z-index: 150 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+}
+
+[data-radix-sheet-overlay][data-state="open"] {
+  z-index: 150 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+[data-radix-sheet-content] {
+  z-index: 160 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+}
+
+[data-radix-sheet-content][data-state="open"] {
+  z-index: 160 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+}
+
+/* Ensure Sheet/Modal overlays appear above everything */
+[data-radix-dialog-overlay],
+[data-radix-sheet-overlay] {
+  z-index: 150 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+[data-radix-dialog-content],
+[data-radix-sheet-content] {
+  z-index: 160 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+/* Override aria-hidden for Sheet portals - they should always be visible when open */
+[data-radix-portal] [data-radix-sheet-overlay][data-state="open"],
+[data-radix-portal] [data-radix-sheet-content][data-state="open"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure Sheet portals are not affected by aria-hidden on parent elements */
+[data-radix-portal] {
+  pointer-events: auto !important;
+}
+
+[data-radix-portal] [data-radix-sheet-overlay],
+[data-radix-portal] [data-radix-sheet-content] {
+  pointer-events: auto !important;
+  visibility: visible !important;
+}
+
+/* Ensure dropdown portal appears above sub-nav */
+[data-radix-portal] [data-radix-dropdown-menu-content] {
+  z-index: 120 !important;
+}
+
+/* Ensure Drawer (vaul) overlays and content are properly layered - above everything */
+[data-vaul-overlay] {
+  z-index: 9998 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+}
+
+[data-vaul-drawer-wrapper] {
+  z-index: 9999 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+}
+
+/* Ensure vaul drawer content appears above everything */
+[data-vaul-drawer-direction] {
+  z-index: 9999 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+}
+
+/* Ensure sub nav is fixed - positioned right below the header at 64px, after sidebar */
+[data-sub-nav] {
+  position: fixed !important;
+  /* top is controlled by framer-motion, don't force it */
+  right: 0 !important;
+  z-index: 90 !important;
+  display: block !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+/* Desktop: Keep transition for sidebar movement */
+@media (min-width: 769px) {
+  [data-sub-nav] {
+    transition: left 0.2s ease-linear !important;
+  }
+}
+
+/* Mobile: Full width sub nav, no left clipping, swipeable */
+@media (max-width: 768px) {
+  [data-sub-nav] {
+    left: 0 !important;
+    right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  
+  [data-sub-nav] > div {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scroll-snap-type: x mandatory !important;
+    touch-action: pan-x !important;
+    overscroll-behavior-x: auto !important;
+    padding-left: 0 !important;
+  }
+}
+
+/* Light mode: semi-transparent white background with blur */
+[data-sub-nav] {
+  background: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Dark mode: semi-transparent dark background with blur */
+.dark [data-sub-nav] {
+  background: rgba(26, 26, 26, 0.6) !important;
+}
+
+/* Enhanced blur effect for content items when scrolling under sub-nav */
+[data-content-item] {
+  transition: filter 0.3s ease-out, opacity 0.3s ease-out !important;
+}
+
+/* Apply blur to content items that are positioned under the fixed sub-nav */
+main[data-sidebar="inset"] [data-content-item] {
+  position: relative;
+}
+
+/* When content scrolls under sub-nav, apply stronger blur via JavaScript state */
+
+/* CRITICAL: Ensure body/html is the scrolling container, not any parent */
+html {
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+}
+
+body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+}
+
+/* Ensure no parent creates a scroll container that prevents sticky */
+.group\/sidebar-wrapper {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 100vh !important;
+  width: 100% !important;
+}
+
+.group\/sidebar-wrapper > * {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+
+main[data-sidebar="inset"] > * {
+  overflow: visible !important;
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* Ensure all parent containers up to body allow sticky */
+body > div:not([data-shell-drawer]):not([data-ubc-root]),
+body > div > div,
+body > div > div > div[class*="flex"] {
+  overflow: visible !important;
+  overflow-x: hidden !important;
+  position: relative !important;
+  height: auto !important;
+}
+
+/* Ensure content items don't overlap and flow properly - banners should be visible below sub nav */
+[data-content-item] {
+  position: relative !important;
+  z-index: 1 !important;
+  margin-top: 0 !important;
+  filter: none !important; /* Remove any blur from content items - rely on sub-nav backdrop-blur */
+}
+
+/* Ensure content flows below sticky nav - content should start after sub nav in normal flow */
+main[data-sidebar="inset"] [data-sub-nav] ~ * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Add blur effect to content when scrolling under sub nav */
+main[data-sidebar="inset"] > div > div:not(:first-child) {
+  position: relative;
+}
+
+/* Ensure content doesn't overlap sticky elements */
+main[data-sidebar="inset"] > div > div:first-child + div {
+  margin-top: 0;
+}
+
+/* Sports Page Sidebar Styling */
+/* Ensure Sports page sidebar is positioned correctly below header */
+div.flex.w-full.min-h-screen.bg-background [data-sidebar="sidebar"] {
+  position: fixed !important;
+  top: 64px !important;
+  left: 0 !important;
+  height: calc(100vh - 64px) !important;
+  background-color: var(--popover) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+  z-index: 80 !important;
+}
+
+/* Sports page sidebar when collapsed */
+div.flex.w-full.min-h-screen.bg-background [data-sidebar="sidebar"][data-state="collapsed"] {
+  width: 3rem !important;
+}
+
+/* Sports page sidebar when expanded */
+div.flex.w-full.min-h-screen.bg-background [data-sidebar="sidebar"]:not([data-state="collapsed"]) {
+  width: 16rem !important;
+}
+
+/* Sports page SidebarInset should adjust based on sidebar state */
+div.flex.w-full.min-h-screen.bg-background main[data-sidebar="inset"] {
+  margin-left: 16rem !important;
+  transition: margin-left 0.2s ease-in-out !important;
+}
+
+div.flex.w-full.min-h-screen.bg-background [data-sidebar="sidebar"][data-state="collapsed"] ~ main[data-sidebar="inset"] {
+  margin-left: 3rem !important;
+}
+
+/* Ensure Sports page content is properly positioned */
+div.flex.w-full.min-h-screen.bg-background {
+  margin-top: 64px !important;
+  min-height: calc(100vh - 64px) !important;
+}
+
+/* Toast Notification - Ensure it's at the top right */
+[data-toast-notification] {
+  position: fixed !important;
+  top: 80px !important;
+  right: 24px !important;
+  left: auto !important;
+  bottom: auto !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+}
+
+/* Hide scrollbars for horizontal scrollable sections */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile Sidebar Improvements for Safari */
+[data-mobile="true"][data-sidebar="sidebar"] {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
+}
+
+[data-mobile="true"][data-sidebar="sidebar"] > div {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Improve menu button styling on mobile */
+[data-mobile="true"] [data-sidebar="menu-button"] {
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  -webkit-transition: background-color 0.15s ease, -webkit-transform 0.1s ease;
+}
+
+[data-mobile="true"] [data-sidebar="menu-button"]:active {
+  transform: scale(0.98);
+  -webkit-transform: scale(0.98);
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Remove default margin for bottom drawers on mobile */
+[data-vaul-drawer-direction='bottom'][style*='top'] {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Ensure bottom drawers have fixed height and don't resize when switching tabs */
+@media (max-width: 768px) {
+  [data-vaul-drawer-direction='bottom'] {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    max-height: 90vh !important;
+    bottom: 0 !important;
+    top: auto !important;
+  }
+}
+
+/* Ensure drag handles are visible on ALL drawers */
+[data-drag-handle] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 0.6 !important;
+  z-index: 10000 !important;
+  position: relative !important;
+  pointer-events: auto !important;
+  min-height: 6px !important;
+  min-width: 64px !important;
+}
+
+[data-ubc-root='mobile'] [data-drag-handle] {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  justify-content: center !important;
+  align-items: center !important;
+  opacity: 1 !important;
+}
+
+[data-ubc-root='mobile'] [data-drag-handle] > span {
+  display: block !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  background: var(--surface-muted-2) !important;
+  opacity: 0.7 !important;
+}
+
+/* Ensure VIP tabs container is swipeable */
+[data-vaul-drawer-direction] [class*="overflow-x-auto"][class*="scrollbar-hide"] {
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x !important;
+  overscroll-behavior-x: auto !important;
+  scroll-snap-type: x mandatory !important;
+  overflow-x: auto !important;
+  pointer-events: auto !important;
+}
+
+[data-vaul-drawer-direction] > div[class*="rounded-full"][class*="mx-auto"][class*="h-1.5"],
+[data-vaul-drawer-direction] [class*="rounded-full"][class*="mx-auto"][class*="h-1.5"],
+[data-vaul-drawer-content] [class*="rounded-full"][class*="mx-auto"][class*="h-1.5"],
+div[class*="rounded-full"][class*="mx-auto"][class*="h-1.5"][class*="bg-gray"],
+div[class*="rounded-full"][class*="mx-auto"][class*="h-1.5"][class*="bg-white"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 0.4 !important;
+  z-index: 10000 !important;
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+/* Betslip - Force white background and black text */
+[data-vaul-drawer-content] {
+  background: #ffffff !important;
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+[data-vaul-drawer-content] * {
+  color: inherit;
+}
+
+[data-vaul-drawer-content] input {
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+[data-vaul-drawer-content] button {
+  color: rgba(0, 0, 0, 0.87) !important;
+}
+
+@utility -focus-area-x-* {
+    --x: --value(number) * -1;
+}
+
+@utility -focus-area-y-* {
+    --y: --value(number) * -1;
+}
+
+@utility focus-area {
+  &:before {
+    content: "";
+    inset: calc(var(--y) * 1px) calc(var(--x) * 1px);
+    position: absolute;
+  }
+    position: relative;
+}
+
+@utility focus-area-x-* {
+    --x: --value(number);
+}
+
+@utility focus-area-y-* {
+    --y: --value(number);
+}
+
+/* Override sidebar active state to use brand primary color */
+[data-sidebar="menu-button"][data-active="true"],
+button[data-active="true"][class*="SidebarMenuButton"],
+[data-active="true"][class*="SidebarMenuButton"] {
+  background-color: var(--brand-primary, var(--primary)) !important;
+  transition: background-color 0.2s ease-in-out !important;
+}
+
+/* Ensure smooth transition from default to active state - prevent black flash */
+[data-sidebar="menu-button"] {
+  transition: background-color 0.2s ease-in-out !important;
+  background-color: transparent !important;
+}
+
+/* Prevent black flash on hover/active before transition */
+[data-sidebar="menu-button"]:hover:not([data-active="true"]),
+[data-sidebar="menu-button"]:active:not([data-active="true"]) {
+  transition: background-color 0.2s ease-in-out !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/*
+ * Product shell must win over the older "body > div { position:relative; height:auto }"
+ * rules, which otherwise unstick the header, let the footer scroll away, and hide UBC.
+ */
+[data-name='Product Page'] {
+  position: fixed !important;
+  inset: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+[data-name='Product Page'] [data-shell-column] {
+  position: relative !important;
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+[data-name='Product Page'] [data-name='header-brand'] {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 60 !important;
+  flex-shrink: 0 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+[data-name='Product Page'] #shell-scroll {
+  position: relative !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+[data-ubc-root='desktop'] {
+  position: fixed !important;
+  top: 68px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  z-index: 40 !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+[data-ubc-root='mobile'] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+/* Mobile left nav — must beat the legacy `body > div { position:relative; height:auto }` rules. */
+[data-shell-drawer] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 180 !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}

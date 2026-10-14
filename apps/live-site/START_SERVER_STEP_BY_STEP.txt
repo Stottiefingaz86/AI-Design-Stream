@@ -1,0 +1,66 @@
+═══════════════════════════════════════════════════
+  START THE SERVER - COPY AND PASTE THESE COMMANDS
+═══════════════════════════════════════════════════
+
+STEP 1: Open Terminal
+  - Press: Cmd + Space
+  - Type: Terminal
+  - Press: Enter
+
+STEP 2: Copy this first command and press Enter:
+  cd /Users/christopherhunt/AIagency
+
+STEP 3: Copy this second command and press Enter:
+  npm run dev
+
+═══════════════════════════════════════════════════
+  WHAT YOU SHOULD SEE:
+═══════════════════════════════════════════════════
+
+You should see something like this:
+
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3000
+  - Ready in 2.5s
+
+OR it might show:
+
+  ▲ Next.js 14.2.5
+  ✓ Ready in Xms
+
+═══════════════════════════════════════════════════
+  IF YOU SEE ERRORS:
+═══════════════════════════════════════════════════
+
+1. "command not found: npm"
+   → Install Node.js from nodejs.org
+
+2. "Cannot find module"
+   → Run this first: npm install
+   → Then try: npm run dev
+
+3. "Port 3000 is already in use"
+   → Run this: lsof -ti:3000 | xargs kill
+   → Then try: npm run dev again
+
+4. TypeScript/Build errors
+   → Copy the error message
+   → Share it and we'll fix it
+
+═══════════════════════════════════════════════════
+  ONCE YOU SEE "Ready":
+═══════════════════════════════════════════════════
+
+1. Go to Chrome
+2. Type: localhost:3000
+3. Press Enter or click Reload
+
+═══════════════════════════════════════════════════
+  ⚠️ KEEP TERMINAL OPEN:
+═══════════════════════════════════════════════════
+
+- DO NOT close the terminal window
+- The server must keep running
+- You'll see request logs in the terminal
+
+═══════════════════════════════════════════════════

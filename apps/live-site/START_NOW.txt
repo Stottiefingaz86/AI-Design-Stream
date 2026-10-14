@@ -1,0 +1,18 @@
+🚨 START THE SERVER NOW - COPY THESE COMMANDS
+
+1. Open Terminal (Cmd+Space, type "Terminal", press Enter)
+
+2. Copy and paste this EXACT command:
+   cd /Users/christopherhunt/AIagency && npm run dev
+
+3. Wait for this message (takes 10-15 seconds):
+   ▲ Next.js 14.2.5
+   - Local:        http://localhost:3000
+   ✓ Ready in X.Xs
+
+4. KEEP THE TERMINAL WINDOW OPEN - Don't close it!
+
+5. Once you see "Ready", refresh your browser
+
+---
+If you see errors, copy the error message and share it.

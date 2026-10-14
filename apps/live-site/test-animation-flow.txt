@@ -1,0 +1,11 @@
+ANIMATION FLOW SHOULD BE:
+1. Start: animationState = 'walking', hasArrived = false
+2. Walk-in: Framer Motion animates x from -100vw to 0 (3 seconds)
+3. After 3s: hasArrived = true (via timer or onComplete)
+4. Transition: animationState changes from 'walking' to 'idle'
+5. Idle loop: currentFrame cycles 0-5 (shows images 5-10)
+
+KOOL SHOULD ONLY TRIGGER:
+- When triggerKoolAnimation = true (from chat)
+- AND hasArrived = true
+- AND animationState = 'idle'

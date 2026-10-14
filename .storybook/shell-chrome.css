@@ -1,0 +1,97 @@
+/* Live-site chrome rules the shell components depend on. Not a second design. */
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.shell-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.shell-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.shell-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.shell-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
+.shell-chrome-btn,
+[data-name='header-brand'] button,
+[data-name='sidebar-container'] button,
+[data-name='sidebar-container'] a,
+[data-name='nav-menu-icon-solid'] a {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+[data-ubc-root='mobile'] [data-drag-handle] {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  justify-content: center !important;
+  align-items: center !important;
+  opacity: 1 !important;
+}
+
+[data-ubc-root='mobile'] [data-drag-handle] > span {
+  display: block !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  background: var(--surface-muted-2) !important;
+  opacity: 0.7 !important;
+}
+
+/*
+ * Stories run in a desktop-wide canvas. Contain the live-site `fixed` / `lg:hidden`
+ * chrome inside the 375×667 [data-shell-story] frame without changing the source.
+ */
+[data-shell-story] [data-name='nav-menu-icon-solid'] {
+  position: absolute !important;
+  display: flex !important;
+}
+
+[data-shell-story] [data-shell-drawer] {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  z-index: 180 !important;
+}
+
+[data-shell-story] [data-ubc-root='mobile'] {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+}
+
+[data-shell-story] [data-ubc-root='desktop'] {
+  display: none !important;
+}
+
+/* Header chip strip + lettermark are `lg:hidden`; desktop/tablet navs are `lg:flex`. */
+[data-shell-story] [data-name='header-brand'] > div:first-child {
+  display: block !important;
+  max-height: 3rem !important;
+  opacity: 1 !important;
+  overflow: visible !important;
+  border-bottom-width: 1px !important;
+}
+[data-shell-story] [data-name='header-brand'] nav[aria-label='Main'] {
+  display: none !important;
+}
+[data-shell-story] [data-name='header-brand'] .lg\:hidden {
+  display: unset !important;
+}

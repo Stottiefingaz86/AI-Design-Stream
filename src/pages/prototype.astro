@@ -1,0 +1,8 @@
+---
+import LumenLayout from '@/layouts/LumenLayout.astro';
+import { MockPage } from '@/components/studio/mock/MockPage';
+---
+
+<LumenLayout title="Prototype — Design Studio">
+  <MockPage client:only="react" kind="prototype" />
+</LumenLayout>

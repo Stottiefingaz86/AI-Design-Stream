@@ -1,0 +1,13 @@
+@import "tailwindcss";
+/* Fonts are imported in Layout.astro (@fontsource) so url(./files/...) resolves. */
+
+@theme inline {
+  --font-sans: 'Geist Variable', system-ui, sans-serif;
+  --font-display: 'Staatliches', system-ui, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+}

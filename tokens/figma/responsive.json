@@ -1,0 +1,81 @@
+{
+  "$generatedAt": "2026-10-13T15:28:16.401Z",
+  "format": "hex",
+  "brands": {
+    "web": {
+      "light": {
+        "--screen-size": "1728px",
+        "--vertical-padding": "96px",
+        "--horizontal-padding": "32px",
+        "--font-size": "36px",
+        "--hero": "48px",
+        "--h1-font-size": "36px",
+        "--h2-font-size": "30px",
+        "--h3-font-size": "24px",
+        "--h4-font-size": "20px",
+        "--line-hight": "40px",
+        "--hero-hight": "40px",
+        "--h1-line-hight": "40px",
+        "--h2-line-hight": "36px",
+        "--h3-line-hight": "32px",
+        "--h4-line-hight": "28px",
+        "--section-spacing": "96px",
+        "--block-width": "1440px",
+        "--button-size": "lg",
+        "--avatar-carusal": "avatar-vertical",
+        "--number": "0",
+        "--boolean": "false"
+      }
+    },
+    "tablet": {
+      "light": {
+        "--screen-size": "1200px",
+        "--vertical-padding": "64px",
+        "--horizontal-padding": "24px",
+        "--font-size": "30px",
+        "--hero": "48px",
+        "--h1-font-size": "30px",
+        "--h2-font-size": "24px",
+        "--h3-font-size": "20px",
+        "--h4-font-size": "18px",
+        "--line-hight": "36px",
+        "--hero-hight": "36px",
+        "--h1-line-hight": "36px",
+        "--h2-line-hight": "32px",
+        "--h3-line-hight": "28px",
+        "--h4-line-hight": "28px",
+        "--section-spacing": "64px",
+        "--block-width": "768px",
+        "--button-size": "lg",
+        "--avatar-carusal": "avatar-horizontal",
+        "--number": "0",
+        "--boolean": "false"
+      }
+    },
+    "mobile": {
+      "light": {
+        "--screen-size": "390px",
+        "--vertical-padding": "32px",
+        "--horizontal-padding": "16px",
+        "--font-size": "24px",
+        "--hero": "36px",
+        "--h1-font-size": "24px",
+        "--h2-font-size": "20px",
+        "--h3-font-size": "18px",
+        "--h4-font-size": "16px",
+        "--line-hight": "40px",
+        "--hero-hight": "40px",
+        "--h1-line-hight": "32px",
+        "--h2-line-hight": "28px",
+        "--h3-line-hight": "28px",
+        "--h4-line-hight": "24px",
+        "--section-spacing": "48px",
+        "--block-width": "360px",
+        "--button-size": "lg",
+        "--avatar-carusal": "avatar-horizontal",
+        "--number": "0",
+        "--boolean": "false"
+      }
+    }
+  }
+}

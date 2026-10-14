@@ -1,0 +1,17 @@
+═══════════════════════════════════════════════════
+  COPY AND PASTE THIS COMMAND IN TERMINAL:
+═══════════════════════════════════════════════════
+
+cd /Users/christopherhunt/AIagency && npm run dev
+
+═══════════════════════════════════════════════════
+  THEN:
+═══════════════════════════════════════════════════
+
+1. Wait until you see: "✓ Ready in Xms"
+
+2. Open Chrome and go to: localhost:3000
+
+3. Press Cmd+R or F5 to refresh
+
+═══════════════════════════════════════════════════
