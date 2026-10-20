@@ -125,13 +125,7 @@ export function CasinoSlotsLobby() {
   const games = useMemo(() => sortSlots(SLOTS_WALLPAPER_GAMES, sort), [sort])
 
   return (
-    <div data-name="slot_content" className="w-full bg-background pb-8">
-      <div className="px-6 pt-2">
-        <Typography as="h1" shape="h3" weight="semibold" className="text-foreground">
-          Slots
-        </Typography>
-      </div>
-
+    <div data-name="slot_content" className="w-full bg-background pb-8 pt-2">
       <CasinoTop10
         title="Top 10 Slots"
         games={SLOTS_TOP10_GAMES}
