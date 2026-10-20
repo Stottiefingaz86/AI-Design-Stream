@@ -1,13 +1,13 @@
 'use client'
 
-import { CasinoLobby } from '@/components/site/casino-page'
+import { HomepageLobby } from '@/components/lumen/homepage-lobby-page'
 import { ShellFrame } from '@/components/site/shell-frame'
 
-/** Live casino at `/` — same shell + sub-nav + banner row as `/casino`. */
+/** Site landing — Homepage_SHADCN. Casino lobby lives at `/casino`. */
 export default function Page() {
   return (
     <ShellFrame loggedIn>
-      <CasinoLobby />
+      <HomepageLobby />
     </ShellFrame>
   )
 }

@@ -1,4 +1,5 @@
 import React from 'react'
+import Link from 'next/link'
 import { HomeIcon, LibraryIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -219,9 +220,12 @@ export function ShellIcon({
 export function ShellLogo({
   expanded,
   className,
+  onNavigate,
 }: {
   expanded: boolean
   className?: string
+  /** Fired when the home link is activated (e.g. close mobile drawer). */
+  onNavigate?: () => void
 }) {
   // Pop only when the rail collapses — not on mount / route changes.
   const prevExpanded = React.useRef(expanded)
@@ -239,7 +243,15 @@ export function ShellLogo({
   }, [expanded])
 
   return (
-    <span className={cn('relative flex h-8 w-full items-center justify-center', className)}>
+    <Link
+      href="/"
+      aria-label="BetOnline home"
+      className={cn('relative flex h-8 w-full items-center justify-center', className)}
+      onClick={(e) => {
+        e.stopPropagation()
+        onNavigate?.()
+      }}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/shell/figma/logos/wordmark.svg"
@@ -265,19 +277,59 @@ export function ShellLogo({
           pop && '[animation:shell-b-pop_280ms_cubic-bezier(0.2,1.4,0.3,1)]'
         )}
       />
-    </span>
+    </Link>
   )
 }
 
-export function ShellLettermark({ className }: { className?: string }) {
+export function ShellLettermark({
+  className,
+  onNavigate,
+}: {
+  className?: string
+  onNavigate?: () => void
+}) {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/shell/figma/header/lettermark.svg"
-      alt="BetOnline"
-      width={36}
-      height={26}
-      className={cn('h-[26px] w-9 max-w-none shrink-0 object-contain', className)}
-    />
+    <Link
+      href="/"
+      aria-label="BetOnline home"
+      className={cn('inline-flex shrink-0', className)}
+      onClick={() => onNavigate?.()}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/shell/figma/header/lettermark.svg"
+        alt="BetOnline"
+        width={36}
+        height={26}
+        className="h-[26px] w-9 max-w-none object-contain"
+      />
+    </Link>
+  )
+}
+
+/** Full BetOnline wordmark — used on homepage (no left rail). */
+export function ShellWordmark({
+  className,
+  onNavigate,
+}: {
+  className?: string
+  onNavigate?: () => void
+}) {
+  return (
+    <Link
+      href="/"
+      aria-label="BetOnline home"
+      className={cn('inline-flex shrink-0 items-center', className)}
+      onClick={() => onNavigate?.()}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/shell/figma/logos/wordmark.svg"
+        alt="BetOnline"
+        width={148}
+        height={20}
+        className="h-5 w-[148px] max-w-none object-contain"
+      />
+    </Link>
   )
 }

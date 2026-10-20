@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useShell } from './shell-context'
-import { ShellIcon, ShellLettermark } from './shell-icons'
+import { ShellIcon, ShellLettermark, ShellWordmark } from './shell-icons'
 import { HEADER_NAV, OTHER_NAV, TABLET_NAV, headerItemActive } from './shell-nav'
 import { ShellUbc } from './shell-ubc'
 import { cn } from '@/lib/utils'
@@ -21,24 +21,33 @@ export function ShellHeader() {
   const pathname = usePathname()
   const { toggle, loggedIn, setLoggedIn, navOpen, setNavOpen, startNavigating } = useShell()
   const [otherOpen, setOtherOpen] = useState(false)
+  const isHome = pathname === '/'
 
   return (
     <header data-name="header-brand" className="z-[60] w-full shrink-0 overflow-visible bg-[var(--header-inverted)]">
       <div data-header-bar="" className="grid h-[68px] w-full grid-cols-[minmax(0,1fr)_auto] items-center border-b border-[var(--border-inverted)] px-4 lg:px-6">
         <div className="flex min-w-0 items-center gap-2">
-          <button
-            type="button"
-            className="shell-chrome-btn inline-flex size-9 items-center justify-center rounded-lg border-0 bg-transparent text-[var(--foreground-inverted)] transition-colors duration-200 ease-in-out hover:bg-[var(--surface-muted-1-inverted)]"
-            aria-label="Toggle sidebar"
-            onClick={() => {
-              if (window.matchMedia('(min-width: 1024px)').matches) toggle()
-              else setNavOpen(!navOpen)
-            }}
-          >
-            <ShellIcon name="menu" className="size-4" />
-          </button>
-          <ShellLettermark className="lg:hidden" />
-          <span className="hidden h-8 w-px bg-[var(--border-inverted)] md:block lg:hidden" aria-hidden />
+          {isHome ? (
+            <ShellWordmark onNavigate={startNavigating} />
+          ) : (
+            <>
+              <button
+                type="button"
+                className="shell-chrome-btn inline-flex size-9 items-center justify-center rounded-lg border-0 bg-transparent text-[var(--foreground-inverted)] transition-colors duration-200 ease-in-out hover:bg-[var(--surface-muted-1-inverted)]"
+                aria-label="Toggle sidebar"
+                onClick={() => {
+                  if (window.matchMedia('(min-width: 1024px)').matches) toggle()
+                  else setNavOpen(!navOpen)
+                }}
+              >
+                <ShellIcon name="menu" className="size-4" />
+              </button>
+              <ShellLettermark className="lg:hidden" onNavigate={startNavigating} />
+            </>
+          )}
+          {!isHome ? (
+            <span className="hidden h-8 w-px bg-[var(--border-inverted)] md:block lg:hidden" aria-hidden />
+          ) : null}
           <nav className="hidden items-center gap-2 md:flex lg:hidden" aria-label="Main">
             {TABLET_NAV.map((item) => {
               const active = headerItemActive(item.label, pathname)
@@ -60,7 +69,13 @@ export function ShellHeader() {
               )
             })}
           </nav>
-          <span className="hidden h-8 w-px bg-[var(--border-inverted)] lg:block" aria-hidden />
+          <span
+            className={cn(
+              'hidden h-8 w-px bg-[var(--border-inverted)] lg:block',
+              isHome && 'ml-1',
+            )}
+            aria-hidden
+          />
           <nav className="hidden items-center gap-2 lg:flex" aria-label="Main">
             {HEADER_NAV.map((item) => {
               const active = headerItemActive(item.label, pathname)

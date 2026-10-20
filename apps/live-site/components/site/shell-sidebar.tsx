@@ -33,7 +33,7 @@ function useLocationHash() {
 export function ShellSidebar() {
   const pathname = usePathname()
   const hash = useLocationHash()
-  const { expanded, toggle, product, startNavigating, launchGame, setVipHubOpen } = useShell()
+  const { expanded, product, startNavigating, launchGame, setVipHubOpen } = useShell()
   const groups = withNavActive(navForProduct(product), pathname, hash)
 
   return (
@@ -46,14 +46,11 @@ export function ShellSidebar() {
       )}
     >
       <div className="flex h-16 w-full shrink-0 items-center justify-center p-2">
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
-          className="shell-chrome-btn flex h-8 items-center justify-center rounded-md border-0 bg-transparent"
-        >
-          <ShellLogo expanded={expanded} />
-        </button>
+        <ShellLogo
+          expanded={expanded}
+          onNavigate={startNavigating}
+          className="shell-chrome-btn rounded-md border-0 bg-transparent"
+        />
       </div>
 
       <nav

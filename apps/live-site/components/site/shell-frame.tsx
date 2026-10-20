@@ -15,6 +15,7 @@ import { VipHubSheet } from './vip-hub-sheet'
 import { VipClaimToastHost } from '@/components/lumen/vip-claim-toast'
 import { ShellMobileNav } from './shell-mobile-nav'
 import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
+import { HomepageLobbySkeleton } from '@/components/lumen/homepage-lobby-skeleton'
 import { PokerLandingSkeleton } from '@/components/lumen/poker-landing-skeleton'
 import { ContestsLobbySkeleton } from '@/components/lumen/contests-lobby-skeleton'
 import { MyBonusSkeleton } from '@/components/lumen/my-bonus-skeleton'
@@ -67,18 +68,22 @@ function ShellChrome({ children }: { children?: ReactNode }) {
     closeGameLauncher,
   } = useShell()
 
+  /** Homepage_SHADCN — full-bleed content, no left rail (Figma). */
+  const isHome = pathname === '/'
+
   return (
     <div
       data-name="Product Page"
       className="fixed inset-0 flex flex-col overflow-hidden bg-background font-sans text-foreground"
     >
-      <ShellSidebar />
+      {isHome ? null : <ShellSidebar />}
       <ShellDrawer />
       <div
         data-shell-column=""
         className={cn(
-          'flex h-full min-h-0 min-w-0 flex-1 flex-col transition-[padding] duration-300 ease-in-out lg:pl-24',
-          expanded && 'lg:pl-64'
+          'flex h-full min-h-0 min-w-0 flex-1 flex-col transition-[padding] duration-300 ease-in-out',
+          !isHome && 'lg:pl-24',
+          !isHome && expanded && 'lg:pl-64',
         )}
       >
         {/*
@@ -90,7 +95,7 @@ function ShellChrome({ children }: { children?: ReactNode }) {
           <ShellProductChips />
           <div data-shell-sticky-chrome="" className="sticky top-0 z-20">
             <ShellHeader />
-            {product === 'casino' ? <CasinoSubNav glass sticky={false} motion /> : null}
+            {pathname.startsWith('/casino') ? <CasinoSubNav glass sticky={false} motion /> : null}
           </div>
           {/* Full-width column so footer bg bleeds edge-to-edge; page body stays max 1440. */}
           <div className="flex min-h-full w-full flex-col">
@@ -106,6 +111,8 @@ function ShellChrome({ children }: { children?: ReactNode }) {
                   ) : (
                     <PromotionsLobbySkeleton />
                   )
+                ) : pathname === '/' ? (
+                  <HomepageLobbySkeleton />
                 ) : product === 'casino' ? (
                   <CasinoLobbySkeleton />
                 ) : (

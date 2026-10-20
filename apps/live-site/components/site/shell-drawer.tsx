@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 export function ShellDrawer() {
   const pathname = usePathname()
   const [hash, setHash] = useState('')
-  const { navOpen, setNavOpen, product, launchGame, setVipHubOpen } = useShell()
+  const { navOpen, setNavOpen, product, launchGame, setVipHubOpen, startNavigating } = useShell()
   const groups = withNavActive(navForProduct(product), pathname, hash)
   const tabsRef = useRef<HTMLElement>(null)
   const [mounted, setMounted] = useState(false)
@@ -79,14 +79,14 @@ export function ShellDrawer() {
         <div className="flex shrink-0 flex-col gap-2 pb-2 pt-3">
           <div className="flex h-9 items-center justify-between px-2">
             <span className="size-9" aria-hidden />
-            <button
-              type="button"
-              onClick={() => setNavOpen(false)}
-              aria-label="Close menu"
-              className="flex h-8 items-center justify-center rounded-md transition-colors duration-200 ease-in-out hover:bg-[var(--surface-muted-1-inverted)]"
-            >
-              <ShellLogo expanded />
-            </button>
+            <ShellLogo
+              expanded
+              onNavigate={() => {
+                setNavOpen(false)
+                startNavigating()
+              }}
+              className="rounded-md transition-colors duration-200 ease-in-out hover:bg-[var(--surface-muted-1-inverted)]"
+            />
             <button
               type="button"
               onClick={() => setNavOpen(false)}

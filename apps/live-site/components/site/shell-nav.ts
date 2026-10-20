@@ -105,7 +105,7 @@ export function productFromPath(pathname: string): ShellProduct {
 }
 
 export function headerItemActive(label: string, pathname: string) {
-  if (label === 'Casino') return pathname === '/' || pathname.startsWith('/casino')
+  if (label === 'Casino') return pathname.startsWith('/casino')
   if (label === 'Sports') return pathname.startsWith('/sports')
   if (label === 'Live Betting') return false
   if (label === 'Poker') return pathname.startsWith('/poker')
@@ -148,7 +148,7 @@ export function navItemActive(
   if (item.href === '/casino/category/favourites') {
     return pathname.startsWith('/casino/category/favourites')
   }
-  if (item.label === 'Casino Lobby') return pathname === '/casino' || pathname === '/'
+  if (item.label === 'Casino Lobby') return pathname === '/casino' || pathname === '/casino/'
   if (item.label === 'Sports Home') return pathname.startsWith('/sports')
   if (item.label === 'All Promotions') {
     return pathname === '/promotions' || pathname === '/promotions/'

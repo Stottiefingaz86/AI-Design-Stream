@@ -1,5 +1,10 @@
-import { ProductRouteLoading } from '@/components/site/product-route-loading'
+import { HomepageLobbySkeleton } from '@/components/lumen/homepage-lobby-skeleton'
+import { ShellFrame } from '@/components/site/shell-frame'
 
 export default function Loading() {
-  return <ProductRouteLoading product="casino" />
+  return (
+    <ShellFrame skeleton>
+      <HomepageLobbySkeleton />
+    </ShellFrame>
+  )
 }
