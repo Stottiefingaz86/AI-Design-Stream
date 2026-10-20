@@ -16,6 +16,7 @@ import { VipClaimToastHost } from '@/components/lumen/vip-claim-toast'
 import { ShellMobileNav } from './shell-mobile-nav'
 import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
 import { PokerLandingSkeleton } from '@/components/lumen/poker-landing-skeleton'
+import { ContestsLobbySkeleton } from '@/components/lumen/contests-lobby-skeleton'
 import { MyBonusSkeleton } from '@/components/lumen/my-bonus-skeleton'
 import { PromotionsLobbySkeleton } from '@/components/lumen/promotions-lobby-skeleton'
 import { CasinoSearchOverlay } from '@/components/lumen/casino-search-overlay'
@@ -100,6 +101,8 @@ function ShellChrome({ children }: { children?: ReactNode }) {
                 ) : product === 'promotions' ? (
                   pathname.startsWith('/promotions/my-bonus') ? (
                     <MyBonusSkeleton />
+                  ) : pathname.startsWith('/promotions/contest') ? (
+                    <ContestsLobbySkeleton />
                   ) : (
                     <PromotionsLobbySkeleton />
                   )

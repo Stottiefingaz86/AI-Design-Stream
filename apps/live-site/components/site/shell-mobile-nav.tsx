@@ -28,7 +28,7 @@ const PROMOTIONS_DOCK: DockItem[] = [
   { href: '/promotions', icon: 'promos', label: 'Promos' },
   { href: '/promotions/my-bonus', icon: 'bonus', label: 'My Bonus' },
   { href: '/promotions', icon: 'refer', label: 'Refer' },
-  { href: '/promotions', icon: 'contests', label: 'Contest' },
+  { href: '/promotions/contest', icon: 'contests', label: 'Contest' },
 ]
 
 function dockForProduct(product: ShellProduct): DockItem[] {
@@ -63,7 +63,8 @@ export function ShellMobileNav() {
             product === 'promotions' &&
             ((item.label === 'Promos' &&
               (pathname === '/promotions' || pathname === '/promotions/')) ||
-              (item.label === 'My Bonus' && pathname.startsWith('/promotions/my-bonus')))
+              (item.label === 'My Bonus' && pathname.startsWith('/promotions/my-bonus')) ||
+              (item.label === 'Contest' && pathname.startsWith('/promotions/contest')))
           const active = selected === item.label || (selected === null && routeActive)
           const openSearch = product === 'casino' && item.label === 'Search'
           const playRandom = product === 'casino' && item.label === 'Play Random'

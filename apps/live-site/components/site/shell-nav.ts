@@ -56,7 +56,7 @@ export const CHIP_NAV = [
   { label: 'Promos', href: '/promotions' },
   { label: 'Esports', href: '/sports' },
   { label: 'Racebook', href: '/sports' },
-  { label: 'Contests', href: '/promotions' },
+  { label: 'Contests', href: '/promotions/contest' },
 ] as const
 
 export const TABLET_NAV = [
@@ -68,7 +68,7 @@ export const TABLET_NAV = [
 
 export const OTHER_NAV = [
   { label: 'Racebook', href: '/sports' },
-  { label: 'Contests', href: '/promotions' },
+  { label: 'Contests', href: '/promotions/contest' },
   { label: 'Esports', href: '/sports' },
 ] as const
 
@@ -123,7 +123,12 @@ export function chipItemActive(label: string, pathname: string) {
   if (label === 'Sports') return pathname.startsWith('/sports')
   if (label === 'Live Betting') return false
   if (label === 'Poker') return pathname.startsWith('/poker')
-  if (label === 'Promos' || label === 'Contests') return pathname.startsWith('/promotions')
+  if (label === 'Promos') {
+    return pathname.startsWith('/promotions') && !pathname.startsWith('/promotions/contest')
+  }
+  if (label === 'Contests' || label === 'Contest') {
+    return pathname.startsWith('/promotions/contest')
+  }
   return false
 }
 
@@ -149,6 +154,7 @@ export function navItemActive(
     return pathname === '/promotions' || pathname === '/promotions/'
   }
   if (item.label === 'My Bonus') return pathname.startsWith('/promotions/my-bonus')
+  if (item.label === 'Contests') return pathname.startsWith('/promotions/contest')
 
   /* Poker landing section anchors — Promotions stays a real route.
      Emphasis CTAs (Play Online / Download) are never "active" from hash. */
@@ -246,7 +252,7 @@ export function navForProduct(product: ShellProduct): ShellNavGroup[] {
         items: [
           { label: 'All Promotions', href: '/promotions', icon: 'megaphone' },
           { label: 'My Bonus', href: '/promotions/my-bonus', icon: 'gift' },
-          { label: 'Contests', href: '/promotions', icon: 'contests' },
+          { label: 'Contests', href: '/promotions/contest', icon: 'contests' },
           { label: 'Refer A Friend', href: '/promotions', icon: 'refer' },
         ],
       },
