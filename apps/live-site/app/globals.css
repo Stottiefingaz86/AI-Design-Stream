@@ -80,25 +80,29 @@
 @keyframes must-drop-rumble {
   0%,
   100% {
-    transform: translate(0, 0) rotate(0deg);
+    transform: translate3d(0, 0, 0) rotate(0deg);
   }
   20% {
-    transform: translate(-0.6px, 0.4px) rotate(-0.35deg);
+    transform: translate3d(-0.4px, 0.3px, 0) rotate(-0.25deg);
   }
   40% {
-    transform: translate(0.6px, -0.4px) rotate(0.35deg);
+    transform: translate3d(0.4px, -0.3px, 0) rotate(0.25deg);
   }
   60% {
-    transform: translate(-0.4px, -0.6px) rotate(-0.25deg);
+    transform: translate3d(-0.3px, -0.4px, 0) rotate(-0.2deg);
   }
   80% {
-    transform: translate(0.5px, 0.5px) rotate(0.2deg);
+    transform: translate3d(0.35px, 0.35px, 0) rotate(0.15deg);
   }
 }
 
 .jackpot-must-drop-shake {
+  /* Keep rumble inside the segment — avoid breaking parent border-radius clip */
+  display: inline-flex;
+  max-width: 100%;
   animation: must-drop-rumble 0.32s ease-in-out infinite;
   transform-origin: center;
+  backface-visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -134,23 +134,24 @@ export type DailyRacesBannerProps = {
 
 export function DailyRacesBanner({
   countdown = '06 : 54 : 31',
-  position = '3th',
+  position = '3rd',
   wagered = '$80.000',
   prize = '$160.000',
   className,
 }: DailyRacesBannerProps) {
+  const { setVipHubOpen } = useShell();
   const cells: [string, string][] = [
     [position, 'Position'],
     [wagered, 'Wagered'],
     [prize, 'Current Prize'],
   ];
-  const { loading, launch } = useLaunchAction();
+  const { loading, launch } = useLaunchAction(() => setVipHubOpen(true, 'Daily Races'));
 
   return (
     <Card
       role="button"
       tabIndex={0}
-      aria-label="Open Daily Races"
+      aria-label="Open Daily Races in VIP Hub"
       aria-busy={loading}
       onClick={launch}
       onKeyDown={(e) => {

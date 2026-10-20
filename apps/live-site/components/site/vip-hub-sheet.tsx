@@ -164,8 +164,12 @@ function MobileVipHub({ open, onClose }: { open: boolean; onClose: () => void })
  * (Nested h-full panels were clipping content and blocking scroll.)
  */
 function VipHubChrome({ onClose }: { onClose: () => void }) {
-  const { vipRewards, claimVipReward } = useShell()
-  const [tab, setTab] = useState<VipHubTab>('VIP')
+  const { vipRewards, claimVipReward, vipHubOpen, vipHubTab } = useShell()
+  const [tab, setTab] = useState<VipHubTab>(vipHubTab)
+
+  useEffect(() => {
+    if (vipHubOpen) setTab(vipHubTab)
+  }, [vipHubOpen, vipHubTab])
 
   return (
     <>

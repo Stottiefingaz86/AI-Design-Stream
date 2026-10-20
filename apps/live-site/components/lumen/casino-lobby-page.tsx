@@ -147,13 +147,14 @@ const TIER_LABEL_CLASS: Record<(typeof JACKPOT_TIERS)[number]['tone'], string> =
 
 function JackpotAmount({ value, className }: { value: number; className?: string }) {
   return (
-    <span className={cn('inline-flex items-baseline tabular-nums', className)}>
+    <span className={cn('inline-flex shrink-0 items-baseline whitespace-nowrap tabular-nums', className)}>
       <span>$</span>
       <NumberFlow
         value={value}
         isolate
         format={{ minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true }}
         transformTiming={{ duration: 550, easing: 'ease-out' }}
+        className="inline-flex items-baseline"
       />
     </span>
   )
@@ -171,41 +172,55 @@ function JackpotTierLabel({
     <>
       {isMust ? (
         <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/casino/jackpot-fire.svg" alt="" width={16} height={16} className="size-4 shrink-0" />
-          <span className={TIER_LABEL_CLASS.must}>{item.label}</span>
-          <JackpotAmount value={amount} className="text-white" />
+          <span className={cn(TIER_LABEL_CLASS.must, 'shrink-0')}>{item.label}</span>
+          <JackpotAmount value={amount} className="shrink-0 text-white" />
           {'countdown' in item && item.countdown ? (
-            <span className="text-[10px] font-semibold leading-[14px] text-white">in {item.countdown}</span>
+            <span className="shrink-0 text-[10px] font-semibold leading-[14px] text-white/95">
+              in {item.countdown}
+            </span>
           ) : null}
         </>
       ) : (
         <>
-          <span className={TIER_LABEL_CLASS[item.tone]}>{item.label}</span>
-          <JackpotAmount value={amount} className="text-foreground" />
+          <span className={cn(TIER_LABEL_CLASS[item.tone], 'shrink-0')}>{item.label}</span>
+          <JackpotAmount value={amount} className="min-w-0 truncate text-foreground" />
         </>
       )}
     </>
   )
 }
 
+type JackpotTier = (typeof JACKPOT_TIERS)[number]
+
 /** Casino Master `jackpot-label` strip (Component 1) — 50px segmented bar (desktop). */
 function JackpotTierBar({
   activeId,
   onSelect,
   amounts,
+  tiers = JACKPOT_TIERS,
 }: {
   activeId: JackpotTierId
   onSelect: (id: JackpotTierId) => void
   amounts: Record<JackpotTierId, number>
+  tiers?: readonly JackpotTier[]
 }) {
+  const hasMust = tiers.some((t) => t.tone === 'must')
+
   return (
     <div
       data-name="jackpot-tier-bar"
-      className="mb-3 hidden h-[50px] w-full overflow-hidden rounded-[10px] border border-border bg-card md:flex"
+      className={cn(
+        'mb-3 hidden h-[50px] w-full overflow-hidden rounded-[10px] border border-border bg-card md:grid',
+        hasMust
+          ? 'grid-cols-[minmax(0,1.35fr)_repeat(4,minmax(0,1fr))]'
+          : 'grid-cols-4',
+      )}
       role="tablist"
       aria-label="Jackpot tiers"
     >
-      {JACKPOT_TIERS.map((item) => {
+      {tiers.map((item, index) => {
         const isMust = item.tone === 'must'
         return (
           <button
@@ -216,13 +231,18 @@ function JackpotTierBar({
             data-name="jackpot-label"
             onClick={() => onSelect(item.id)}
             className={cn(
-              'flex h-full min-w-0 flex-1 items-center justify-center gap-1 px-2 text-sm font-bold leading-5',
+              'flex h-[50px] min-w-0 items-center justify-center overflow-hidden px-1.5 text-sm font-bold leading-5 sm:px-2',
               isMust
                 ? 'bg-[linear-gradient(90deg,#c48633_0%,#722d10_20%,#a65615_50%,#c48633_75%,#722d10_100%)]'
-                : 'border-l border-border bg-card',
+                : cn('border-border bg-card', index > 0 && 'border-l'),
             )}
           >
-            <span className={cn('inline-flex items-center justify-center gap-1', isMust && 'jackpot-must-drop-shake')}>
+            <span
+              className={cn(
+                'inline-flex max-w-full items-center justify-center gap-1 whitespace-nowrap',
+                isMust && 'jackpot-must-drop-shake',
+              )}
+            >
               <JackpotTierLabel item={item} amount={amounts[item.id]} />
             </span>
           </button>
@@ -232,27 +252,29 @@ function JackpotTierBar({
   )
 }
 
-/** Mobile — single rotating jackpot banner (Must → Mega → Major → Minor → Mini). */
+/** Mobile — single rotating jackpot banner. */
 function JackpotRotatingBanner({
   activeId,
   onSelect,
   amounts,
+  tiers = JACKPOT_TIERS,
 }: {
   activeId: JackpotTierId
   onSelect: (id: JackpotTierId) => void
   amounts: Record<JackpotTierId, number>
+  tiers?: readonly JackpotTier[]
 }) {
-  const item = JACKPOT_TIERS.find((t) => t.id === activeId) ?? JACKPOT_TIERS[0]!
+  const item = tiers.find((t) => t.id === activeId) ?? tiers[0]!
   const isMust = item.tone === 'must'
 
   useEffect(() => {
     const tick = window.setInterval(() => {
-      const idx = JACKPOT_TIERS.findIndex((t) => t.id === activeId)
-      const next = JACKPOT_TIERS[(idx + 1) % JACKPOT_TIERS.length]!
+      const idx = tiers.findIndex((t) => t.id === activeId)
+      const next = tiers[(idx + 1) % tiers.length]!
       onSelect(next.id)
     }, 3200)
     return () => window.clearInterval(tick)
-  }, [activeId, onSelect])
+  }, [activeId, onSelect, tiers])
 
   return (
     <div className="mb-3 px-6">
@@ -261,8 +283,8 @@ function JackpotRotatingBanner({
         data-name="jackpot-label-mobile"
         aria-label={`${item.label} $${amounts[item.id].toFixed(2)}`}
         onClick={() => {
-          const idx = JACKPOT_TIERS.findIndex((t) => t.id === activeId)
-          const next = JACKPOT_TIERS[(idx + 1) % JACKPOT_TIERS.length]!
+          const idx = tiers.findIndex((t) => t.id === activeId)
+          const next = tiers[(idx + 1) % tiers.length]!
           onSelect(next.id)
         }}
         className={cn(
@@ -638,23 +660,49 @@ export function CasinoProviderRow({
 }
 
 /** Tier bar + scrollable jackpot rail (arrows scroll the rail). */
-function CasinoJackpots({ onLaunch }: { onLaunch?: LaunchHandler }) {
-  const [tier, setTier] = useState<JackpotTierId>('must')
+export function CasinoJackpots({
+  title = 'Jackpots',
+  titleSuffix,
+  seeMoreHref = '/casino/category/jackpots',
+  seed = 'jackpot',
+  hideMustDrop = false,
+  onLaunch,
+}: {
+  title?: string
+  /** Muted parenthetical — e.g. Figma “ (Block)”. */
+  titleSuffix?: string
+  seeMoreHref?: string
+  /** Unique id prefix when rendering multiple blocks on one page. */
+  seed?: string
+  /** Omit Must Drop tier (e.g. BGaming). */
+  hideMustDrop?: boolean
+  onLaunch?: LaunchHandler
+}) {
+  const tiers = hideMustDrop
+    ? JACKPOT_TIERS.filter((t) => t.tone !== 'must')
+    : JACKPOT_TIERS
+  const defaultTier = (tiers[0]?.id ?? 'mini') as JackpotTierId
+  const [tier, setTier] = useState<JackpotTierId>(defaultTier)
   const setTierStable = useCallback((id: JackpotTierId) => setTier(id), [])
   const amounts = useJackpotAmounts()
   const railGames = Array.from({ length: 16 }, (_, i) => {
     const game = JACKPOT_GAMES[i % JACKPOT_GAMES.length]!
-    return { ...game, id: `${game.id}-jackpot-${i}` }
+    return { ...game, id: `${seed}-${game.id}-${i}` }
   })
 
   return (
-    <section data-name="jackpots" aria-label="Jackpots" className="py-2">
+    <section data-name="jackpots" aria-label={title} className="py-2">
       <div className="md:hidden">
         <Carousel opts={{ align: 'start', dragFree: true }} className="w-full">
           <div className="px-6">
-            <ShelfHeader title="Jackpots" />
+            <ShelfHeader title={title} titleSuffix={titleSuffix} seeMoreHref={seeMoreHref} />
           </div>
-          <JackpotRotatingBanner activeId={tier} onSelect={setTierStable} amounts={amounts} />
+          <JackpotRotatingBanner
+            activeId={tier}
+            onSelect={setTierStable}
+            amounts={amounts}
+            tiers={tiers}
+          />
           <GameRail games={railGames} onLaunch={onLaunch} />
         </Carousel>
       </div>
@@ -662,8 +710,13 @@ function CasinoJackpots({ onLaunch }: { onLaunch?: LaunchHandler }) {
       <div className="hidden md:block">
         <Carousel opts={{ align: 'start', dragFree: true }} className="w-full">
           <div className="px-6">
-            <ShelfHeader title="Jackpots" />
-            <JackpotTierBar activeId={tier} onSelect={setTier} amounts={amounts} />
+            <ShelfHeader title={title} titleSuffix={titleSuffix} seeMoreHref={seeMoreHref} />
+            <JackpotTierBar
+              activeId={tier}
+              onSelect={setTier}
+              amounts={amounts}
+              tiers={tiers}
+            />
           </div>
           <GameRail games={railGames} onLaunch={onLaunch} />
         </Carousel>

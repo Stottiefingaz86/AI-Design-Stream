@@ -16,6 +16,7 @@ import { celebrateVipClaim } from '@/lib/lumen/vip-celebrate'
 import {
   claimableCount,
   VIP_REWARDS_SEED,
+  type VipHubTab,
   type VipReward,
 } from '@/lib/lumen/vip-hub'
 import { productFromPath, type ShellProduct } from './shell-nav'
@@ -38,7 +39,9 @@ type ShellContextValue = {
   cashierOpen: boolean
   setCashierOpen: (value: boolean) => void
   vipHubOpen: boolean
-  setVipHubOpen: (value: boolean) => void
+  /** Open/close VIP Hub; optional tab deep-link (defaults to VIP). */
+  setVipHubOpen: (value: boolean, tab?: VipHubTab) => void
+  vipHubTab: VipHubTab
   navOpen: boolean
   setNavOpen: (value: boolean) => void
   navigating: boolean
@@ -115,6 +118,7 @@ export function ShellProvider({
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [cashierOpen, setCashierOpen] = useState(false)
   const [vipHubOpen, setVipHubOpen] = useState(false)
+  const [vipHubTab, setVipHubTab] = useState<VipHubTab>('VIP')
   const [navOpen, setNavOpen] = useState(false)
   const [casinoSearchOpen, setCasinoSearchOpen] = useState(false)
   const [launchedGame, setLaunchedGame] = useState<CasinoLobbyGame | null>(null)
@@ -175,10 +179,11 @@ export function ShellProvider({
     })
   }, [])
 
-  const openVipHub = useCallback((value: boolean) => {
+  const openVipHub = useCallback((value: boolean, tab: VipHubTab = 'VIP') => {
     if (value) {
       setDrawerOpen(false)
       setCashierOpen(false)
+      setVipHubTab(tab)
       /* Fresh Figma seed each open so Claim CTAs stay testable (unsticks landing too). */
       setVipRewards(VIP_REWARDS_SEED.map((r) => ({ ...r })))
     }
@@ -276,6 +281,7 @@ export function ShellProvider({
       setCashierOpen: openCashier,
       vipHubOpen,
       setVipHubOpen: openVipHub,
+      vipHubTab,
       navOpen,
       setNavOpen,
       navigating: forceSkeleton || navigating,
@@ -318,6 +324,7 @@ export function ShellProvider({
       vipClaimCount,
       vipClaimToast,
       vipHubOpen,
+      vipHubTab,
       vipRewards,
     ],
   )
