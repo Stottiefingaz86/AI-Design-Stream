@@ -2,7 +2,8 @@ import type { ShellIconName } from './shell-icons'
 
 export type ShellProduct = 'casino' | 'sports' | 'poker' | 'promotions'
 
-export type ShellNavAction = 'launch-last-game' | 'launch-random'
+export type ShellNavGameAction = 'launch-last-game' | 'launch-random'
+export type ShellNavAction = ShellNavGameAction | 'open-vip-hub'
 
 export type ShellNavItem = {
   label: string
@@ -10,12 +11,26 @@ export type ShellNavItem = {
   icon: ShellIconName
   /** Optional thumbnail (e.g. last game art) — shown instead of the vector icon. */
   iconSrc?: string
-  /** Opens game launcher instead of navigating. */
+  /** Opens game launcher or VIP Hub instead of navigating. */
   action?: ShellNavAction
   active?: boolean
   subtitle?: string
   emphasis?: boolean
   trailing?: ShellIconName
+}
+
+/** Last side-nav row on every product — opens the VIP Hub sheet. */
+export const VIP_HUB_NAV_ITEM: ShellNavItem = {
+  label: 'VIP Hub',
+  href: '#vip-hub',
+  icon: 'vip',
+  trailing: 'external',
+  emphasis: true,
+  action: 'open-vip-hub',
+}
+
+function withVipHub(groups: ShellNavGroup[]): ShellNavGroup[] {
+  return [...groups, { items: [VIP_HUB_NAV_ITEM] }]
 }
 
 export type ShellNavGroup = {
@@ -113,7 +128,11 @@ export function chipItemActive(label: string, pathname: string) {
 }
 
 /** Which left-nav row is active for the current URL (Lobby vs Slots vs Live, etc.). */
-export function navItemActive(item: Pick<ShellNavItem, 'label' | 'href'>, pathname: string): boolean {
+export function navItemActive(
+  item: Pick<ShellNavItem, 'label' | 'href'>,
+  pathname: string,
+  hash = '',
+): boolean {
   if (item.href === '/casino/slots') return pathname.startsWith('/casino/slots')
   if (item.href === '/casino/live') return pathname.startsWith('/casino/live')
   if (item.href === '/casino/table-games') return pathname.startsWith('/casino/table-games')
@@ -126,24 +145,39 @@ export function navItemActive(item: Pick<ShellNavItem, 'label' | 'href'>, pathna
   }
   if (item.label === 'Casino Lobby') return pathname === '/casino' || pathname === '/'
   if (item.label === 'Sports Home') return pathname.startsWith('/sports')
-  if (item.label === 'Start' && item.href === '/poker') return pathname.startsWith('/poker')
-  if (item.label === 'All Promotions') return pathname.startsWith('/promotions')
+  if (item.label === 'All Promotions') {
+    return pathname === '/promotions' || pathname === '/promotions/'
+  }
+  if (item.label === 'My Bonus') return pathname.startsWith('/promotions/my-bonus')
+
+  /* Poker landing section anchors — Promotions stays a real route.
+     Emphasis CTAs (Play Online / Download) are never "active" from hash. */
+  if (pathname.startsWith('/poker') && item.href.startsWith('/poker#')) {
+    if (item.label === 'Play Online' || item.label === 'Download') return false
+    const section = item.href.split('#')[1] ?? ''
+    const current = hash || 'poker-start'
+    return section === current
+  }
   return false
 }
 
-export function withNavActive(groups: ShellNavGroup[], pathname: string): ShellNavGroup[] {
+export function withNavActive(
+  groups: ShellNavGroup[],
+  pathname: string,
+  hash = '',
+): ShellNavGroup[] {
   return groups.map((group) => ({
     ...group,
     items: group.items.map((item) => ({
       ...item,
-      active: navItemActive(item, pathname),
+      active: navItemActive(item, pathname, hash),
     })),
   }))
 }
 
 export function navForProduct(product: ShellProduct): ShellNavGroup[] {
   if (product === 'sports') {
-    return [
+    return withVipHub([
       {
         items: [
           { label: 'Sports Home', href: '/sports', icon: 'house', emphasis: true },
@@ -183,47 +217,46 @@ export function navForProduct(product: ShellProduct): ShellNavGroup[] {
       {
         items: [{ label: 'Settings', href: '/sports', icon: 'gear' }],
       },
-    ]
+    ])
   }
 
   if (product === 'poker') {
-    return [
+    return withVipHub([
       {
         items: [
-          { label: 'Play Online', href: '/poker', icon: 'play', emphasis: true },
-          { label: 'Download', href: '/poker', icon: 'download', emphasis: true },
+          { label: 'Play Online', href: '/poker#poker-start', icon: 'play', emphasis: true },
+          { label: 'Download', href: '/poker#poker-download', icon: 'download', emphasis: true },
         ],
       },
       {
         items: [
-          { label: 'Start', href: '/poker', icon: 'start' },
-          { label: 'Features', href: '/poker', icon: 'diamond' },
-          { label: 'Getting Started', href: '/poker', icon: 'rocket' },
-          { label: 'Integrity', href: '/poker', icon: 'shield' },
+          { label: 'Start', href: '/poker#poker-start', icon: 'start' },
+          { label: 'Features', href: '/poker#poker-features', icon: 'diamond' },
+          { label: 'Getting Started', href: '/poker#poker-getting-started', icon: 'rocket' },
+          { label: 'Integrity', href: '/poker#poker-integrity', icon: 'shield' },
           { label: 'Promotions', href: '/promotions', icon: 'gift' },
         ],
       },
-    ]
+    ])
   }
 
   if (product === 'promotions') {
-    return [
+    return withVipHub([
       {
         items: [
           { label: 'All Promotions', href: '/promotions', icon: 'megaphone' },
-          { label: 'My Bonus', href: '/promotions', icon: 'gift' },
+          { label: 'My Bonus', href: '/promotions/my-bonus', icon: 'gift' },
           { label: 'Contests', href: '/promotions', icon: 'contests' },
           { label: 'Refer A Friend', href: '/promotions', icon: 'refer' },
-          { label: 'VIP Hub', href: '/promotions', icon: 'vip', trailing: 'external' },
         ],
       },
       {
         items: [{ label: 'Get Telegram', href: '/promotions', icon: 'telegram' }],
       },
-    ]
+    ])
   }
 
-  return [
+  return withVipHub([
     {
       items: [
         { label: 'Casino Lobby', href: '/casino', icon: 'library', emphasis: true },
@@ -258,5 +291,5 @@ export function navForProduct(product: ShellProduct): ShellNavGroup[] {
         { label: 'Tournaments', href: '/casino', icon: 'tournaments' },
       ],
     },
-  ]
+  ])
 }

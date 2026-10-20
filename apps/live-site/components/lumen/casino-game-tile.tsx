@@ -136,15 +136,9 @@ export function CasinoGameTile({
       )}
     >
       <img src={game.imageSrc} alt="" className="absolute inset-0 size-full object-cover" />
-      {/* Originals Figma art already includes title + brand — skip bottom vignette unless masking. */}
+      {/* Originals / hideTitle art already includes title + brand — no bottom fade. */}
       {game.tag !== 'Original' && !hideTitle ? (
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 from-0% to-transparent to-[46%]" />
-      ) : null}
-      {hideTitle ? (
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-[32%] bg-gradient-to-t from-card from-40% via-card/95 to-transparent"
-          aria-hidden
-        />
       ) : null}
 
       {/* Dim overlay */}

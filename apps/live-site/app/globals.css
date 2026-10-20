@@ -265,9 +265,12 @@
     height: 48px !important;
   }
 
-  [data-name='sub-menu'] [data-sub-menu-pill][data-active='true'],
-  [data-name='sub-menu'] [data-sub-menu-pill][data-active='true'] span {
+  [data-name='sub-menu'] [data-sub-menu-pill][data-active='true'] {
     background: transparent !important;
+  }
+
+  [data-name='sub-menu'] [data-sub-menu-pill][data-covered='true'],
+  [data-name='sub-menu'] [data-sub-menu-pill][data-covered='true'] span {
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
   }
@@ -306,16 +309,34 @@
   background: var(--accent);
 }
 
-/* Active fill lives on the sliding thumb; label stays opaque white on top. */
+/* Promo lobby filter track — same inactive hover as casino sub-menu. */
+[data-name='promo-sub-menu'] [data-sub-menu-pill][data-active='false']:hover {
+  background: var(--surface-muted-3);
+}
+
+[data-brand='betonline'].dark [data-name='promo-sub-menu'] [data-sub-menu-pill][data-active='false']:hover {
+  background: var(--accent);
+}
+
+[data-name='promo-sub-menu'] [data-sub-menu-pill][data-active='true'] {
+  background: transparent !important;
+}
+
+/* White label only after thumb covers the pill (data-covered from JS). */
+[data-name='promo-sub-menu'] [data-sub-menu-pill][data-covered='true'] {
+  color: var(--primary-foreground) !important;
+  -webkit-text-fill-color: var(--primary-foreground) !important;
+}
+
+/* Active fill lives on the sliding thumb; label turns white when covered. */
 [data-name='sub-menu'] [data-sub-menu-pill][data-active='true'] {
   background: transparent !important;
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
   opacity: 1 !important;
   box-shadow: none !important;
 }
 
-[data-name='sub-menu'] [data-sub-menu-pill][data-active='true'] span {
+[data-name='sub-menu'] [data-sub-menu-pill][data-covered='true'],
+[data-name='sub-menu'] [data-sub-menu-pill][data-covered='true'] span {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
   opacity: 1 !important;
@@ -994,8 +1015,9 @@ header[class*="z-\[100\]"] [role="button"] {
   margin-bottom: -5px;
 }
 
-[data-radix-portal] [data-radix-dropdown-menu-content] {
-  z-index: 200 !important;
+[data-radix-portal] [data-radix-dropdown-menu-content],
+[data-radix-portal] [data-radix-select-content] {
+  z-index: 220 !important;
 }
 
 /* Overlay carousel arrows only (direct children). Header arrows use static layout — do not force absolute. */
@@ -1241,9 +1263,10 @@ main[data-sidebar="inset"] div.flex.items-center.justify-between.mb-4 > div:last
   visibility: visible !important;
 }
 
-/* Ensure dropdown portal appears above sub-nav */
-[data-radix-portal] [data-radix-dropdown-menu-content] {
-  z-index: 120 !important;
+/* Ensure dropdown / select portals appear above shell chrome + sheets */
+[data-radix-portal] [data-radix-dropdown-menu-content],
+[data-radix-portal] [data-radix-select-content] {
+  z-index: 220 !important;
 }
 
 /* Ensure Drawer (vaul) overlays and content are properly layered - above everything */
@@ -1375,16 +1398,42 @@ main[data-sidebar="inset"] > * {
 }
 
 /* Ensure all parent containers up to body allow sticky.
- * Exclude portaled overlays (UBC / cashier / VIP hub / search / drawer / claim toast) —
- * they need fixed + full height. Without this carve-out, `position: relative !important`
- * overrides toast `fixed` and the alert disappears off-page after claim. */
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]),
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]),
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]) > div[class*="flex"] {
+ * Exclude portaled overlays (UBC / cashier / VIP hub / search / drawer / claim toast /
+ * my-bonus filters / Radix portals) — they need fixed + full height. Without this
+ * carve-out, `position: relative !important` overrides Floating UI / overlay `fixed`
+ * and menus/sheets land off-screen. */
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]) > div[class*="flex"] {
   overflow: visible !important;
   overflow-x: hidden !important;
   position: relative !important;
   height: auto !important;
+}
+
+/* Keep Floating UI poppers fixed — legacy body rules must never unstick them. */
+[data-radix-popper-content-wrapper] {
+  position: fixed !important;
+}
+
+/* My Bonus filters sheet — same carve-out treatment as VIP Hub / search. */
+[data-my-bonus-filters-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+[data-my-bonus-filters-root] [data-my-bonus-filters] {
+  pointer-events: none;
+}
+
+[data-my-bonus-filters-root] [data-my-bonus-filters].pointer-events-auto {
+  pointer-events: auto !important;
 }
 
 /* Ensure content items don't overlap and flow properly - banners should be visible below sub nav */

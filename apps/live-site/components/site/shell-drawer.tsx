@@ -4,6 +4,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import {
+  hashFromHref,
+  isInPageHashHref,
+  scrollShellToId,
+} from '@/lib/lumen/shell-scroll'
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLogo } from './shell-icons'
 import { gameForNavAction } from './shell-nav-launch'
@@ -13,13 +18,21 @@ import { cn } from '@/lib/utils'
 /** Mobile/tablet left nav — Figma drawer, not the desktop rail. */
 export function ShellDrawer() {
   const pathname = usePathname()
-  const { navOpen, setNavOpen, product, launchGame } = useShell()
-  const groups = withNavActive(navForProduct(product), pathname)
+  const [hash, setHash] = useState('')
+  const { navOpen, setNavOpen, product, launchGame, setVipHubOpen } = useShell()
+  const groups = withNavActive(navForProduct(product), pathname, hash)
   const tabsRef = useRef<HTMLElement>(null)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash.replace(/^#/, ''))
+    sync()
+    window.addEventListener('hashchange', sync)
+    return () => window.removeEventListener('hashchange', sync)
   }, [])
 
   useEffect(() => {
@@ -110,10 +123,12 @@ export function ShellDrawer() {
             })}
           </nav>
         </div>
-        <nav className="shell-scroll flex flex-1 flex-col gap-2 overflow-y-auto px-2 pt-2" aria-label={product}>
+        <nav className="shell-scroll flex flex-1 flex-col gap-3 overflow-y-auto px-2 pt-3" aria-label={product}>
           {groups.map((group, index) => (
                 <div key={`${group.heading ?? 'group'}-${index}`} className="flex flex-col gap-1.5">
-                  {index > 0 ? <div className="h-px w-full bg-[var(--border-inverted)]" /> : null}
+                  {index > 0 ? (
+                    <div className="my-1.5 h-px w-full bg-[var(--border-inverted)]" />
+                  ) : null}
                   {group.heading ? (
                     <p className="px-2 py-1.5 text-xs font-medium leading-4 text-[var(--muted-foreground-inverted)]">
                       {group.heading}
@@ -158,6 +173,21 @@ export function ShellDrawer() {
                         {item.trailing ? <ShellIcon name={item.trailing} className="size-5" /> : null}
                       </>
                     )
+                    if (item.action === 'open-vip-hub') {
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          className={itemClass}
+                          onClick={() => {
+                            setVipHubOpen(true)
+                            setNavOpen(false)
+                          }}
+                        >
+                          {body}
+                        </button>
+                      )
+                    }
                     if (item.action) {
                       return (
                         <button
@@ -165,7 +195,7 @@ export function ShellDrawer() {
                           type="button"
                           className={itemClass}
                           onClick={() => {
-                            launchGame(gameForNavAction(item.action!))
+                            launchGame(gameForNavAction(item.action))
                             setNavOpen(false)
                           }}
                         >
@@ -177,7 +207,18 @@ export function ShellDrawer() {
                       <Link
                         key={item.label}
                         href={item.href}
-                        onClick={() => setNavOpen(false)}
+                        onClick={(event) => {
+                          if (isInPageHashHref(item.href, pathname)) {
+                            event.preventDefault()
+                            const id = hashFromHref(item.href)
+                            window.history.pushState(null, '', `#${id}`)
+                            window.dispatchEvent(new HashChangeEvent('hashchange'))
+                            setNavOpen(false)
+                            requestAnimationFrame(() => scrollShellToId(id))
+                            return
+                          }
+                          setNavOpen(false)
+                        }}
                         className={itemClass}
                       >
                         {body}

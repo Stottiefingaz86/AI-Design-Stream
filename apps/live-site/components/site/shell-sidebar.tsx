@@ -1,14 +1,30 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { CasinoLobbyGame } from '@/lib/lumen/casino-lobby-catalog'
+import {
+  hashFromHref,
+  isInPageHashHref,
+  scrollShellToId,
+} from '@/lib/lumen/shell-scroll'
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLogo } from './shell-icons'
 import { gameForNavAction } from './shell-nav-launch'
 import { navForProduct, withNavActive, type ShellNavItem } from './shell-nav'
 import { cn } from '@/lib/utils'
+
+function useLocationHash() {
+  const [hash, setHash] = useState('')
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash.replace(/^#/, ''))
+    sync()
+    window.addEventListener('hashchange', sync)
+    return () => window.removeEventListener('hashchange', sync)
+  }, [])
+  return hash
+}
 
 /**
  * Figma sidebar-container — 96px collapsed / 256px expanded.
@@ -16,8 +32,9 @@ import { cn } from '@/lib/utils'
  */
 export function ShellSidebar() {
   const pathname = usePathname()
-  const { expanded, toggle, product, startNavigating, launchGame } = useShell()
-  const groups = withNavActive(navForProduct(product), pathname)
+  const hash = useLocationHash()
+  const { expanded, toggle, product, startNavigating, launchGame, setVipHubOpen } = useShell()
+  const groups = withNavActive(navForProduct(product), pathname, hash)
 
   return (
     <aside
@@ -41,14 +58,16 @@ export function ShellSidebar() {
 
       <nav
         className={cn(
-          'shell-scroll flex flex-1 flex-col gap-2 overflow-y-auto overflow-x-visible pt-2 transition-[padding] duration-300 ease-in-out',
+          'shell-scroll flex flex-1 flex-col gap-3 overflow-y-auto overflow-x-visible pt-3 transition-[padding] duration-300 ease-in-out',
           expanded ? 'px-2' : 'px-4'
         )}
         aria-label={product}
       >
         {groups.map((group, index) => (
           <div key={`${group.heading ?? 'group'}-${index}`} className="flex flex-col gap-1.5">
-            {index > 0 ? <div className="h-px w-full bg-[var(--border-inverted)]" /> : null}
+            {index > 0 ? (
+              <div className="my-1.5 h-px w-full bg-[var(--border-inverted)]" />
+            ) : null}
             {group.heading ? (
               <p
                 className={cn(
@@ -64,8 +83,10 @@ export function ShellSidebar() {
                 key={`${group.heading ?? ''}-${item.label}`}
                 item={item}
                 expanded={expanded}
+                pathname={pathname}
                 onNavigate={startNavigating}
                 onLaunch={launchGame}
+                onOpenVipHub={() => setVipHubOpen(true)}
               />
             ))}
           </div>
@@ -78,13 +99,17 @@ export function ShellSidebar() {
 function NavItem({
   item,
   expanded,
+  pathname,
   onNavigate,
   onLaunch,
+  onOpenVipHub,
 }: {
   item: ShellNavItem
   expanded: boolean
+  pathname: string
   onNavigate: () => void
   onLaunch: (game: CasinoLobbyGame) => void
+  onOpenVipHub: () => void
 }) {
   const className = cn(
     'group relative flex w-full items-center border-0 bg-transparent p-0 text-left text-sm leading-5 outline-none ring-0 transition-colors duration-200 ease-in-out focus:outline-none focus-visible:outline-none',
@@ -136,6 +161,21 @@ function NavItem({
     </>
   )
 
+  if (item.action === 'open-vip-hub') {
+    return (
+      <button
+        type="button"
+        aria-label={item.label}
+        data-tip={expanded ? undefined : item.label}
+        data-tip-side="right"
+        className={className}
+        onClick={onOpenVipHub}
+      >
+        {body}
+      </button>
+    )
+  }
+
   if (item.action) {
     return (
       <button
@@ -144,7 +184,7 @@ function NavItem({
         data-tip={expanded ? undefined : item.label}
         data-tip-side="right"
         className={className}
-        onClick={() => onLaunch(gameForNavAction(item.action!))}
+        onClick={() => onLaunch(gameForNavAction(item.action))}
       >
         {body}
       </button>
@@ -154,7 +194,17 @@ function NavItem({
   return (
     <Link
       href={item.href}
-      onClick={onNavigate}
+      onClick={(event) => {
+        if (isInPageHashHref(item.href, pathname)) {
+          event.preventDefault()
+          const id = hashFromHref(item.href)
+          window.history.pushState(null, '', `#${id}`)
+          window.dispatchEvent(new HashChangeEvent('hashchange'))
+          scrollShellToId(id)
+          return
+        }
+        onNavigate()
+      }}
       aria-label={item.label}
       aria-current={item.active ? 'page' : undefined}
       data-state={item.active ? 'active' : 'default'}

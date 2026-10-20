@@ -1,6 +1,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ShellContent } from './shell-content'
 import { useShell, ShellProvider } from './shell-context'
@@ -14,6 +15,9 @@ import { VipHubSheet } from './vip-hub-sheet'
 import { VipClaimToastHost } from '@/components/lumen/vip-claim-toast'
 import { ShellMobileNav } from './shell-mobile-nav'
 import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
+import { PokerLandingSkeleton } from '@/components/lumen/poker-landing-skeleton'
+import { MyBonusSkeleton } from '@/components/lumen/my-bonus-skeleton'
+import { PromotionsLobbySkeleton } from '@/components/lumen/promotions-lobby-skeleton'
 import { CasinoSearchOverlay } from '@/components/lumen/casino-search-overlay'
 import { GameLauncher } from '@/components/lumen/game-launcher'
 import { CasinoSubNav } from './casino-subnav'
@@ -45,6 +49,7 @@ export function ShellFrame({
 }
 
 function ShellChrome({ children }: { children?: ReactNode }) {
+  const pathname = usePathname()
   const {
     expanded,
     drawerOpen,
@@ -89,7 +94,23 @@ function ShellChrome({ children }: { children?: ReactNode }) {
           {/* Full-width column so footer bg bleeds edge-to-edge; page body stays max 1440. */}
           <div className="flex min-h-full w-full flex-col">
             <div className="mx-auto w-full max-w-[1440px] flex-1 pb-24 lg:pb-0">
-              {product === 'casino' && navigating ? <CasinoLobbySkeleton /> : (children ?? <ShellContent />)}
+              {navigating ? (
+                product === 'poker' ? (
+                  <PokerLandingSkeleton />
+                ) : product === 'promotions' ? (
+                  pathname.startsWith('/promotions/my-bonus') ? (
+                    <MyBonusSkeleton />
+                  ) : (
+                    <PromotionsLobbySkeleton />
+                  )
+                ) : product === 'casino' ? (
+                  <CasinoLobbySkeleton />
+                ) : (
+                  children ?? <ShellContent />
+                )
+              ) : (
+                children ?? <ShellContent />
+              )}
               {/* Never flash SEO under the sub-nav while the page body is empty/loading. */}
               {!navigating ? <ShellSeo /> : null}
             </div>
@@ -105,7 +126,7 @@ function ShellChrome({ children }: { children?: ReactNode }) {
       {product === 'casino' ? (
         <CasinoSearchOverlay open={casinoSearchOpen} onClose={() => setCasinoSearchOpen(false)} />
       ) : null}
-      {product === 'casino' ? (
+      {product === 'casino' || product === 'promotions' ? (
         <GameLauncher open={!!launchedGame} game={launchedGame} onClose={closeGameLauncher} />
       ) : null}
     </div>

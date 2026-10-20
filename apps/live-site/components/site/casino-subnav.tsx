@@ -104,11 +104,29 @@ export function CasinoSubNav({
   const [thumb, setThumb] = useState({ x: 0, w: 0, ready: false })
   const [canScrollMore, setCanScrollMore] = useState(false)
   const [canScrollBack, setCanScrollBack] = useState(false)
+  /** White label only after the red thumb finishes covering the pill (~240ms of 300ms travel). */
+  const [covered, setCovered] = useState<SubNavItem | null>(null)
+  const firstCover = useRef(true)
 
   useEffect(() => {
     const next = defaultActive !== undefined ? defaultActive : activeFromPath(pathname)
     setActive((prev) => (prev === next ? prev : next))
   }, [pathname, defaultActive])
+
+  useEffect(() => {
+    if (!active) {
+      setCovered(null)
+      return
+    }
+    if (firstCover.current) {
+      firstCover.current = false
+      setCovered(active)
+      return
+    }
+    setCovered(null)
+    const id = window.setTimeout(() => setCovered(active), 240)
+    return () => window.clearTimeout(id)
+  }, [active])
 
   const measureOverflow = useCallback(() => {
     const el = scrollRef.current
@@ -257,6 +275,7 @@ export function CasinoSubNav({
                 />
                 {CASINO_SUBNAV.map((item) => {
                   const on = item === active
+                  const isCovered = item === covered
                   return (
                     <button
                       key={item}
@@ -265,6 +284,7 @@ export function CasinoSubNav({
                       aria-selected={on}
                       data-sub-menu-pill=""
                       data-active={on ? 'true' : 'false'}
+                      data-covered={isCovered ? 'true' : 'false'}
                       onClick={() => {
                         setActive(item)
                         const href = SUBNAV_HREF[item]
@@ -272,11 +292,10 @@ export function CasinoSubNav({
                       }}
                       className={cn(
                         'shell-chrome-btn relative z-10 inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-transparent px-4 text-sm font-normal leading-5 whitespace-nowrap',
-                        motion && 'transition-colors duration-300',
-                        on ? 'text-white' : 'text-muted-foreground',
+                        isCovered ? 'text-white' : 'text-muted-foreground',
                       )}
                     >
-                      <span className={on ? 'text-white' : undefined}>{item}</span>
+                      <span>{item}</span>
                     </button>
                   )
                 })}

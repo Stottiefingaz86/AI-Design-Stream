@@ -18,9 +18,12 @@ import { cn } from '@/lib/utils';
 
 const BANNER_LAUNCH_MS = 2200;
 
-/** Subtle lift on dark translucent cards — white/8 is visible without looking loud. */
+/**
+ * Theme-safe hover — white/25 on light mode washes the card into the page.
+ * Foreground tint works on solid cards and dark promo art.
+ */
 const BANNER_HOVER =
-  'transition-[background-color,border-color] duration-150 hover:border-white/25 hover:bg-white/[0.08]';
+  'transition-[background-color,border-color,box-shadow] duration-150 hover:border-foreground/15 hover:bg-foreground/[0.04] hover:shadow-[0_0_16px_rgba(0,0,0,0.06)]';
 
 function useLaunchAction(onAction?: () => void) {
   const [loading, setLoading] = useState(false);
@@ -236,7 +239,7 @@ export function PromoLobbyBanner({
         }
       }}
       className={cn(
-        'relative flex h-[164px] w-[340px] shrink-0 cursor-pointer overflow-hidden rounded-[10px] border border-border bg-card shadow-none',
+        'group relative flex h-[164px] w-[340px] shrink-0 cursor-pointer overflow-hidden rounded-[10px] border border-border bg-card shadow-none',
         BANNER_HOVER,
         className,
       )}
@@ -295,7 +298,7 @@ export function PromoLobbyBanner({
           type="button"
           size="default"
           tabIndex={-1}
-          className="h-8 w-fit shrink-0 self-start px-3 text-sm font-medium hover:bg-primary/80"
+          className="h-8 w-fit shrink-0 self-start px-3 text-sm font-medium group-hover:bg-[color-mix(in_srgb,var(--primary)_80%,transparent)]"
           onClick={(e) => {
             e.stopPropagation()
             launch()

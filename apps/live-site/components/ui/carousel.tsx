@@ -60,9 +60,10 @@ const Carousel = React.forwardRef<
   ) => {
     const [carouselRef, api] = useEmblaCarousel(
       {
+        /* Lower = snappier arrow/API scrolls. Embla drag force is separate — mobile swipe unchanged. */
+        duration: 14,
         ...opts,
         axis: orientation === "horizontal" ? "x" : "y",
-        duration: 25,
       },
       plugins
     )

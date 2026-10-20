@@ -8,6 +8,7 @@ export type ShellIconName =
   | 'bell'
   | 'betslip'
   | 'blackjack'
+  | 'bonus'
   | 'broadcast'
   | 'cards'
   | 'caretDown'
@@ -38,6 +39,7 @@ export type ShellIconName =
   | 'moon'
   | 'play'
   | 'popular'
+  | 'promos'
   | 'puzzle'
   | 'random'
   | 'receipt'
@@ -74,6 +76,7 @@ const ICONS: Record<ShellIconName, string> = {
   bell: '/shell/figma/ubc/bell.svg',
   betslip: '/shell/figma/ubc/betslip.svg',
   blackjack: '/shell/figma/casino/blackjack.svg',
+  bonus: '/shell/figma/promo/bonus.svg',
   broadcast: '/shell/figma/sports/live.svg',
   cards: '/shell/figma/casino/table.svg',
   caretDown: '/shell/figma/header/caret.svg',
@@ -104,6 +107,7 @@ const ICONS: Record<ShellIconName, string> = {
   moon: '/shell/figma/ubc/moon.svg',
   play: '/shell/figma/poker/play.svg',
   popular: '/shell/figma/casino/popular.svg',
+  promos: '/shell/figma/promo/promos.svg',
   puzzle: '/shell/figma/casino/specialty.svg',
   random: '/shell/figma/casino/random.svg',
   receipt: '/shell/figma/ubc/transactions.svg',

@@ -4,16 +4,21 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils/index"
 
+/** Hex CSS vars can't take Tailwind `/opacity` — color-mix matches Figma primary hover. */
+const PRIMARY_HOVER =
+  "hover:bg-[color-mix(in_srgb,var(--primary)_80%,transparent)]"
+const SECONDARY_HOVER =
+  "hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)]"
+
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-md border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-[background-color,border-color,color,opacity,box-shadow,transform] duration-150 outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        default: cn("bg-primary text-primary-foreground", PRIMARY_HOVER),
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        secondary: cn("bg-secondary text-secondary-foreground", SECONDARY_HOVER),
         ghost: "hover:bg-muted hover:text-foreground",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20",
@@ -48,7 +53,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : "button"
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(buttonVariants({ variant, size }), className)}
         ref={ref}
         {...props}
       />
@@ -57,4 +62,4 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 )
 Button.displayName = "Button"
 
-export { Button, buttonVariants }
+export { Button, buttonVariants, PRIMARY_HOVER }
