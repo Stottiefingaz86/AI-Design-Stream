@@ -94,15 +94,11 @@ export function headerItemActive(label: string, pathname: string) {
 
 export function chipItemActive(label: string, pathname: string) {
   if (label === 'Home') return pathname === '/'
-  if (label === 'Casino')
-    return (
-      pathname === '/casino' ||
-      (pathname.startsWith('/casino') &&
-        !pathname.startsWith('/casino/live') &&
-        !pathname.startsWith('/casino/slots'))
-    )
+  /* Casino stays active for lobby + slots + live (product), not only lobby. */
+  if (label === 'Casino') return pathname.startsWith('/casino')
   if (label === 'Live Casino') return pathname.startsWith('/casino/live')
   if (label === 'Sports') return pathname.startsWith('/sports')
+  if (label === 'Live Betting') return false
   if (label === 'Poker') return pathname.startsWith('/poker')
   if (label === 'Promos' || label === 'Contests') return pathname.startsWith('/promotions')
   return false

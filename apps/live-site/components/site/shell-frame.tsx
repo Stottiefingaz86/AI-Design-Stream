@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ShellContent } from './shell-content'
-import { ShellHeader } from './shell-header'
 import { useShell, ShellProvider } from './shell-context'
 import { ShellSeo } from './shell-seo'
 import { ShellDrawer } from './shell-drawer'
@@ -16,6 +15,7 @@ import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
 import { CasinoSearchOverlay } from '@/components/lumen/casino-search-overlay'
 import { GameLauncher } from '@/components/lumen/game-launcher'
 import { CasinoSubNav } from './casino-subnav'
+import { ShellHeader } from './shell-header'
 import { cn } from '@/lib/utils'
 
 /**
@@ -70,6 +70,7 @@ function ShellChrome({ children }: { children?: ReactNode }) {
           expanded && 'lg:pl-64'
         )}
       >
+        {/* Header (chips + bar) outside scroll — chips hide/show without sticky flicker. */}
         <ShellHeader />
         <div id="shell-scroll" className="shell-scroll h-0 min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
           {/* Large screens: content column max 1440, centered in the shell (header stays full-bleed). */}

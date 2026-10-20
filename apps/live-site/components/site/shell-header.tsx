@@ -14,39 +14,31 @@ import { cn } from '@/lib/utils'
 const navItemClass =
   'inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium leading-5 transition-colors duration-200 ease-in-out'
 
+const CHIP_STRIP_H = 48
+
 /**
- * Desktop: 68px header-brand, sticky.
- * Mobile/tablet: Figma nav-item-outline-inverted pills + lettermark.
- * Chip strip hides on scroll down and returns on scroll up.
+ * Desktop: 68px header-brand.
+ * Mobile: product chips above the bar — hide on scroll down / show on scroll up
+ * (smooth max-height + scroll compensation so the page doesn’t accelerate).
  */
 export function ShellHeader() {
   const pathname = usePathname()
   const { toggle, loggedIn, setLoggedIn, navOpen, setNavOpen, startNavigating } = useShell()
   const [otherOpen, setOtherOpen] = useState(false)
-  /** Chip strip is h-12 (48px); compensate shell scroll when it collapses so scroll doesn’t accelerate. */
-  const chipsHidden = useHideOnScroll('down', 48)
+  const chipsHidden = useHideOnScroll('down', CHIP_STRIP_H)
 
   return (
-    <header data-name="header-brand" className="sticky top-0 z-[60] w-full shrink-0 overflow-visible bg-[var(--header-inverted)]">
-      {/*
-        Height toggles instantly (no max-height tween) — tweening header height while the
-        user scrolls makes #shell-scroll resize mid-gesture and feels like a speed-up.
-        Opacity fades only; scroll compensation lives in useHideOnScroll(layoutDeltaPx).
-      */}
+    <header data-name="header-brand" className="z-[60] w-full shrink-0 overflow-visible bg-[var(--header-inverted)]">
       <div
         className={cn(
           'max-w-full overflow-hidden border-b border-[var(--border-inverted)] lg:hidden',
-          chipsHidden ? 'max-h-0 border-b-0' : 'max-h-12',
+          'transition-[max-height,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          chipsHidden ? 'max-h-0 border-b-0 opacity-0' : 'max-h-12 opacity-100',
         )}
         aria-hidden={chipsHidden}
       >
-        <div
-          className={cn(
-            'scrollbar-hide max-w-full overflow-x-auto px-4 pt-1 transition-opacity duration-200 ease-out',
-            chipsHidden ? 'pointer-events-none opacity-0' : 'opacity-100',
-          )}
-        >
-          <nav className="flex w-max items-center gap-2" aria-label="Products">
+        <div className="scrollbar-hide max-w-full overflow-x-auto px-4 pt-1">
+          <nav className="flex h-11 w-max items-center gap-2" aria-label="Products">
             {CHIP_NAV.map((item) => {
               const active = chipItemActive(item.label, pathname)
               return (
@@ -61,7 +53,7 @@ export function ShellHeader() {
                     'inline-flex min-w-[60px] items-center justify-center border-b-2 px-[14px] py-1.5 text-sm leading-5 transition-colors duration-200 ease-in-out',
                     active
                       ? 'border-primary font-semibold text-[rgba(255,255,255,0.87)]'
-                      : 'border-transparent font-medium text-[rgba(255,255,255,0.6)] hover:text-[rgba(255,255,255,0.87)]'
+                      : 'border-transparent font-medium text-[rgba(255,255,255,0.6)] hover:text-[rgba(255,255,255,0.87)]',
                   )}
                 >
                   {item.label}
@@ -100,7 +92,7 @@ export function ShellHeader() {
                     navItemClass,
                     active
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-[var(--secondary-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)]'
+                      : 'text-[var(--secondary-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)]',
                   )}
                 >
                   {item.label}
@@ -122,7 +114,7 @@ export function ShellHeader() {
                     navItemClass,
                     active
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-[var(--secondary-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)]'
+                      : 'text-[var(--secondary-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)]',
                   )}
                 >
                   {item.label}
@@ -194,7 +186,7 @@ function OtherMenu({
           navItemClass,
           open
             ? 'bg-[var(--surface-muted-1-inverted)] text-[var(--foreground-inverted)]'
-            : 'text-[var(--secondary-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)]'
+            : 'text-[var(--secondary-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)]',
         )}
         onClick={() => onOpenChange(!open)}
       >
@@ -227,4 +219,3 @@ function OtherMenu({
     </div>
   )
 }
-

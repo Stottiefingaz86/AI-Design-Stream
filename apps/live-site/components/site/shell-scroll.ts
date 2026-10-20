@@ -5,10 +5,9 @@ import { useEffect, useRef, useState } from 'react'
 /**
  * Scroll-aware chrome visibility.
  * `hideOn: 'down'` — hide while scrolling down, show on the way up.
- * Chips and the mobile dock both use `down` so they show and hide together.
  *
- * `layoutDeltaPx` — when chrome height changes with `hidden`, compensate
- * `#shell-scroll` so collapsing the strip does not feel like a scroll jump.
+ * `layoutDeltaPx` — when chrome height changes, bump `#shell-scroll` so the
+ * page doesn’t feel like it accelerates (header shrinks → scrollport grows).
  */
 export function useHideOnScroll(hideOn: 'down' | 'up', layoutDeltaPx = 0) {
   const [hidden, setHidden] = useState(false)
@@ -26,7 +25,6 @@ export function useHideOnScroll(hideOn: 'down' | 'up', layoutDeltaPx = 0) {
       const el = scroller()
       const y = Math.max(0, el.scrollTop)
 
-      // Ignore programmatic compensation from chrome show/hide.
       if (Date.now() < ignoreUntilRef.current) {
         lastRef.current = y
         return
@@ -48,10 +46,8 @@ export function useHideOnScroll(hideOn: 'down' | 'up', layoutDeltaPx = 0) {
       if (layoutDeltaPx > 0) {
         const shell = document.getElementById('shell-scroll')
         if (shell) {
-          // Header shrank → scrollport grew upward; bump scrollTop to keep content pinned.
-          // Header grew → reverse.
           const delta = next ? layoutDeltaPx : -layoutDeltaPx
-          ignoreUntilRef.current = Date.now() + 120
+          ignoreUntilRef.current = Date.now() + 320
           shell.scrollTop = Math.max(0, shell.scrollTop + delta)
           lastRef.current = shell.scrollTop
         }
