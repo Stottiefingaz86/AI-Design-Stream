@@ -11,9 +11,21 @@ import React, {
 } from 'react'
 import { usePathname } from 'next/navigation'
 import type { CasinoLobbyGame } from '@/lib/lumen/casino-lobby-catalog'
+import { flashVipClaimToast } from '@/components/lumen/vip-claim-toast'
+import { celebrateVipClaim } from '@/lib/lumen/vip-celebrate'
+import {
+  claimableCount,
+  VIP_REWARDS_SEED,
+  type VipReward,
+} from '@/lib/lumen/vip-hub'
 import { productFromPath, type ShellProduct } from './shell-nav'
 
 const SIDEBAR_KEY = 'lumen-shell-sidebar-expanded'
+const CLAIM_PRELOAD_MS = 1400
+/** From claim press → balance roll-up (confetti + toast fire first at CLAIM_PRELOAD_MS). */
+const BALANCE_ROLL_MS = 3000
+
+export type VipClaimToastState = { id: number; amount: number }
 
 type ShellContextValue = {
   expanded: boolean
@@ -25,6 +37,8 @@ type ShellContextValue = {
   setDrawerOpen: (value: boolean) => void
   cashierOpen: boolean
   setCashierOpen: (value: boolean) => void
+  vipHubOpen: boolean
+  setVipHubOpen: (value: boolean) => void
   navOpen: boolean
   setNavOpen: (value: boolean) => void
   navigating: boolean
@@ -34,6 +48,15 @@ type ShellContextValue = {
   launchedGame: CasinoLobbyGame | null
   launchGame: (game: CasinoLobbyGame) => void
   closeGameLauncher: () => void
+  /** Settled wallet balance */
+  balance: number
+  /** Animated balance shown in chrome (NumberFlow) */
+  displayBalance: number
+  vipRewards: VipReward[]
+  vipClaimCount: number
+  claimVipReward: (id: string, button?: HTMLButtonElement | null) => void
+  vipClaimToast: VipClaimToastState | null
+  dismissVipClaimToast: () => void
 }
 
 const ShellContext = createContext<ShellContextValue | null>(null)
@@ -91,11 +114,27 @@ export function ShellProvider({
   const [loggedIn, setLoggedIn] = useState(loggedInProp)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [cashierOpen, setCashierOpen] = useState(false)
+  const [vipHubOpen, setVipHubOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [casinoSearchOpen, setCasinoSearchOpen] = useState(false)
   const [launchedGame, setLaunchedGame] = useState<CasinoLobbyGame | null>(null)
   const [navigating, setNavigating] = useState(true)
+  const [balance, setBalance] = useState(10)
+  const [displayBalance, setDisplayBalance] = useState(10)
+  const [vipRewards, setVipRewards] = useState<VipReward[]>(() =>
+    VIP_REWARDS_SEED.map((r) => ({ ...r })),
+  )
+  const [vipClaimToast, setVipClaimToast] = useState<VipClaimToastState | null>(null)
   const timerRef = React.useRef<number | null>(null)
+  const claimTimersRef = React.useRef<Map<string, number>>(new Map())
+  const balanceTimersRef = React.useRef<number[]>([])
+  const vipRewardsRef = React.useRef(vipRewards)
+  vipRewardsRef.current = vipRewards
+  const vipClaimCount = claimableCount(vipRewards)
+
+  const dismissVipClaimToast = useCallback(() => {
+    setVipClaimToast(null)
+  }, [])
 
   useEffect(() => {
     setCasinoSearchOpen(false)
@@ -136,6 +175,94 @@ export function ShellProvider({
     })
   }, [])
 
+  const openVipHub = useCallback((value: boolean) => {
+    if (value) {
+      setDrawerOpen(false)
+      setCashierOpen(false)
+      /* Fresh Figma seed each open so Claim CTAs stay testable (unsticks landing too). */
+      setVipRewards(VIP_REWARDS_SEED.map((r) => ({ ...r })))
+    }
+    setVipHubOpen(value)
+  }, [])
+
+  const openCashier = useCallback((value: boolean) => {
+    if (value) {
+      setDrawerOpen(false)
+      setVipHubOpen(false)
+    }
+    setCashierOpen(value)
+  }, [])
+
+  const openDrawer = useCallback((value: boolean) => {
+    if (value) {
+      setCashierOpen(false)
+      setVipHubOpen(false)
+    }
+    setDrawerOpen(value)
+  }, [])
+
+  const claimVipReward = useCallback((id: string, button?: HTMLButtonElement | null) => {
+    const reward = vipRewardsRef.current.find((r) => r.id === id)
+    if (!reward || reward.state !== 'enable') return
+
+    const amount = reward.amount
+    const kind = reward.kind
+
+    setVipRewards((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, state: 'landing' as const } : r)),
+    )
+
+    const existing = claimTimersRef.current.get(id)
+    if (existing) window.clearTimeout(existing)
+
+    /* Balance rolls after BALANCE_ROLL_MS from press — after confetti + toast. */
+    const balanceTimer = window.setTimeout(() => {
+      balanceTimersRef.current = balanceTimersRef.current.filter((t) => t !== balanceTimer)
+      setBalance((b) => {
+        const next = b + amount
+        setDisplayBalance(next)
+        return next
+      })
+    }, BALANCE_ROLL_MS)
+    balanceTimersRef.current.push(balanceTimer)
+
+    const timer = window.setTimeout(() => {
+      claimTimersRef.current.delete(id)
+      setVipRewards((latest) =>
+        latest.map((r) => {
+          if (r.id !== id) return r
+          if (kind === 'reloads' || kind === 'post-reload') {
+            return {
+              ...r,
+              state: 'disabled' as const,
+              metaLabel: kind === 'reloads' ? '10 days' : '15 days',
+              subtitle: kind === 'reloads' ? '3 of 3 claimed' : '3 of 5 claimed',
+            }
+          }
+          return { ...r, state: 'claimed' as const }
+        }),
+      )
+      /* Confetti + toast first; balance waits until BALANCE_ROLL_MS */
+      flashVipClaimToast(amount)
+      setVipClaimToast({ id: Date.now(), amount })
+      try {
+        celebrateVipClaim(button ?? null)
+      } catch {
+        /* confetti/sound must never affect claim or toast */
+      }
+    }, CLAIM_PRELOAD_MS)
+    claimTimersRef.current.set(id, timer)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      claimTimersRef.current.forEach((timer) => window.clearTimeout(timer))
+      claimTimersRef.current.clear()
+      balanceTimersRef.current.forEach((timer) => window.clearTimeout(timer))
+      balanceTimersRef.current = []
+    }
+  }, [])
+
   const value = useMemo(
     () => ({
       expanded,
@@ -144,9 +271,11 @@ export function ShellProvider({
       setLoggedIn,
       product,
       drawerOpen,
-      setDrawerOpen,
+      setDrawerOpen: openDrawer,
       cashierOpen,
-      setCashierOpen,
+      setCashierOpen: openCashier,
+      vipHubOpen,
+      setVipHubOpen: openVipHub,
       navOpen,
       setNavOpen,
       navigating: forceSkeleton || navigating,
@@ -156,23 +285,41 @@ export function ShellProvider({
       launchedGame,
       launchGame,
       closeGameLauncher,
+      balance,
+      displayBalance,
+      vipRewards,
+      vipClaimCount,
+      claimVipReward,
+      vipClaimToast,
+      dismissVipClaimToast,
     }),
     [
-      cashierOpen,
+      balance,
       casinoSearchOpen,
+      claimVipReward,
       closeGameLauncher,
+      dismissVipClaimToast,
+      displayBalance,
       drawerOpen,
       expanded,
       forceSkeleton,
+      cashierOpen,
       launchGame,
       launchedGame,
       loggedIn,
       navOpen,
       navigating,
+      openCashier,
+      openDrawer,
+      openVipHub,
       product,
       startNavigating,
       toggle,
-    ]
+      vipClaimCount,
+      vipClaimToast,
+      vipHubOpen,
+      vipRewards,
+    ],
   )
 
   return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>

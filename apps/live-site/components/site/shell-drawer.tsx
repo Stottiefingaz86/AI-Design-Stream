@@ -6,14 +6,15 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLogo } from './shell-icons'
-import { CHIP_NAV, chipItemActive, navForProduct } from './shell-nav'
+import { gameForNavAction } from './shell-nav-launch'
+import { CHIP_NAV, chipItemActive, navForProduct, withNavActive } from './shell-nav'
 import { cn } from '@/lib/utils'
 
 /** Mobile/tablet left nav — Figma drawer, not the desktop rail. */
 export function ShellDrawer() {
   const pathname = usePathname()
-  const { navOpen, setNavOpen, product } = useShell()
-  const groups = navForProduct(product)
+  const { navOpen, setNavOpen, product, launchGame } = useShell()
+  const groups = withNavActive(navForProduct(product), pathname)
   const tabsRef = useRef<HTMLElement>(null)
   const [mounted, setMounted] = useState(false)
 
@@ -118,39 +119,71 @@ export function ShellDrawer() {
                       {group.heading}
                     </p>
                   ) : null}
-                  {group.items.map((item) => (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      onClick={() => setNavOpen(false)}
-                      className={cn(
-                        'flex items-center gap-2 rounded-lg px-2 text-sm font-medium leading-5 transition-colors duration-200 ease-in-out',
-                        item.emphasis ? 'h-11' : 'h-10',
-                        item.active
-                          ? 'bg-[var(--sidebar-primary)] font-semibold text-[var(--sidebar-primary-foreground)]'
-                          : 'text-[var(--muted-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)] hover:text-[var(--foreground-inverted)]'
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          'flex shrink-0 items-center justify-center rounded-md',
-                          item.emphasis ? 'size-8' : 'size-6',
-                          !item.active && item.emphasis && 'bg-[var(--surface-muted-1-inverted)]'
-                        )}
+                  {group.items.map((item) => {
+                    const itemClass = cn(
+                      'flex w-full items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left text-sm font-medium leading-5 transition-colors duration-200 ease-in-out',
+                      item.emphasis ? 'h-11' : 'h-10',
+                      item.active
+                        ? 'bg-[var(--sidebar-primary)] font-semibold text-[var(--sidebar-primary-foreground)]'
+                        : 'text-[var(--muted-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)] hover:text-[var(--foreground-inverted)]',
+                    )
+                    const body = (
+                      <>
+                        <span
+                          className={cn(
+                            'flex shrink-0 items-center justify-center rounded-md',
+                            item.emphasis ? 'size-8' : 'size-6',
+                            !item.active && item.emphasis && 'bg-[var(--surface-muted-1-inverted)]',
+                          )}
+                        >
+                          {item.iconSrc ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.iconSrc}
+                              alt=""
+                              className="size-full rounded-md object-cover object-top"
+                            />
+                          ) : (
+                            <ShellIcon name={item.icon} active={item.active} className="size-5" />
+                          )}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate">{item.label}</span>
+                          {item.subtitle ? (
+                            <span className="block truncate text-[10px] font-normal leading-[14px] opacity-80">
+                              {item.subtitle}
+                            </span>
+                          ) : null}
+                        </span>
+                        {item.trailing ? <ShellIcon name={item.trailing} className="size-5" /> : null}
+                      </>
+                    )
+                    if (item.action) {
+                      return (
+                        <button
+                          key={item.label}
+                          type="button"
+                          className={itemClass}
+                          onClick={() => {
+                            launchGame(gameForNavAction(item.action!))
+                            setNavOpen(false)
+                          }}
+                        >
+                          {body}
+                        </button>
+                      )
+                    }
+                    return (
+                      <Link
+                        key={item.label}
+                        href={item.href}
+                        onClick={() => setNavOpen(false)}
+                        className={itemClass}
                       >
-                        <ShellIcon name={item.icon} active={item.active} className="size-5" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{item.label}</span>
-                        {item.subtitle ? (
-                          <span className="block truncate text-[10px] font-normal leading-[14px] opacity-80">
-                            {item.subtitle}
-                          </span>
-                        ) : null}
-                      </span>
-                      {item.trailing ? <ShellIcon name={item.trailing} className="size-5" /> : null}
-                    </Link>
-                  ))}
+                        {body}
+                      </Link>
+                    )
+                  })}
                 </div>
               ))}
         </nav>

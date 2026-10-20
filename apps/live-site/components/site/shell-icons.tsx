@@ -65,6 +65,7 @@ export type ShellIconName =
   | 'users'
   | 'videoPoker'
   | 'vip'
+  | 'virtuals'
   | 'wallet'
 
 const ICONS: Record<ShellIconName, string> = {
@@ -130,6 +131,8 @@ const ICONS: Record<ShellIconName, string> = {
   users: '/shell/figma/sports/parlay.svg',
   videoPoker: '/shell/figma/casino/video-poker.svg',
   vip: '/shell/figma/promo/vip.svg',
+  /* Stopwatch/bolt — solid black so chrome invert stays bright (not Live Casino flame). */
+  virtuals: '/shell/figma/casino/virtuals.svg',
   wallet: '/shell/figma/header/wallet.svg',
 }
 

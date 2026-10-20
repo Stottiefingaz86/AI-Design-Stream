@@ -10,12 +10,15 @@ import { ShellSidebar } from './shell-sidebar'
 import { SiteFooter } from './site-footer'
 import { CashierSheet } from './cashier-sheet'
 import { UbcSheet } from './shell-ubc'
+import { VipHubSheet } from './vip-hub-sheet'
+import { VipClaimToastHost } from '@/components/lumen/vip-claim-toast'
 import { ShellMobileNav } from './shell-mobile-nav'
 import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
 import { CasinoSearchOverlay } from '@/components/lumen/casino-search-overlay'
 import { GameLauncher } from '@/components/lumen/game-launcher'
 import { CasinoSubNav } from './casino-subnav'
 import { ShellHeader } from './shell-header'
+import { ShellProductChips } from './shell-product-chips'
 import { cn } from '@/lib/utils'
 
 /**
@@ -48,6 +51,8 @@ function ShellChrome({ children }: { children?: ReactNode }) {
     setDrawerOpen,
     cashierOpen,
     setCashierOpen,
+    vipHubOpen,
+    setVipHubOpen,
     product,
     navigating,
     casinoSearchOpen,
@@ -70,13 +75,20 @@ function ShellChrome({ children }: { children?: ReactNode }) {
           expanded && 'lg:pl-64'
         )}
       >
-        {/* Header (chips + bar) outside scroll — chips hide/show without sticky flicker. */}
-        <ShellHeader />
+        {/*
+          Scroll phases:
+          1) Quick-links (chips) sit in flow — first scroll pushes them away (no snap).
+          2) Header + sub-nav stick together; only then does content frost under glass.
+        */}
         <div id="shell-scroll" className="shell-scroll h-0 min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-          {/* Large screens: content column max 1440, centered in the shell (header stays full-bleed). */}
-          <div className="mx-auto flex min-h-full w-full max-w-[1440px] flex-col">
-            <div className="flex-1 pb-24 lg:pb-0">
-              {product === 'casino' ? <CasinoSubNav glass sticky motion /> : null}
+          <ShellProductChips />
+          <div data-shell-sticky-chrome="" className="sticky top-0 z-20">
+            <ShellHeader />
+            {product === 'casino' ? <CasinoSubNav glass sticky={false} motion /> : null}
+          </div>
+          {/* Full-width column so footer bg bleeds edge-to-edge; page body stays max 1440. */}
+          <div className="flex min-h-full w-full flex-col">
+            <div className="mx-auto w-full max-w-[1440px] flex-1 pb-24 lg:pb-0">
               {product === 'casino' && navigating ? <CasinoLobbySkeleton /> : (children ?? <ShellContent />)}
               {/* Never flash SEO under the sub-nav while the page body is empty/loading. */}
               {!navigating ? <ShellSeo /> : null}
@@ -88,6 +100,8 @@ function ShellChrome({ children }: { children?: ReactNode }) {
       <ShellMobileNav />
       <CashierSheet open={cashierOpen} onClose={() => setCashierOpen(false)} />
       <UbcSheet open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <VipHubSheet open={vipHubOpen} onClose={() => setVipHubOpen(false)} />
+      <VipClaimToastHost />
       {product === 'casino' ? (
         <CasinoSearchOverlay open={casinoSearchOpen} onClose={() => setCasinoSearchOpen(false)} />
       ) : null}

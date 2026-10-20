@@ -311,7 +311,7 @@ function GameRail({
       ))}
       {showPlayRandom ? (
         <CarouselItem key="play-random" className="basis-auto pl-0 first:pl-6 last:pr-6">
-          <PlayRandomTile />
+          <PlayRandomTile onLaunch={onLaunch} />
         </CarouselItem>
       ) : null}
     </CarouselContent>
@@ -548,7 +548,8 @@ function CasinoThemeBanner({
 }
 
 /** Same overlay arrows as lobby banner row — no See More. */
-const PROVIDER_ARROW_CLASS = 'absolute top-1/2 z-10 size-8 -translate-y-1/2 rounded-full'
+const PROVIDER_ARROW_CLASS =
+  'absolute top-1/2 z-10 size-8 -translate-y-1/2 rounded-full max-md:!hidden'
 
 export function CasinoProviderRow({
   title = 'Provider',
@@ -594,14 +595,14 @@ export function CasinoProviderRow({
         <CarouselContent className="!ml-0 gap-3">
           {PROVIDERS.map((provider) => (
             <CarouselItem key={provider.id} className="basis-auto pl-0 first:pl-6 last:pr-6">
-              <button
-                type="button"
+              <Link
+                href={`/casino/provider/${provider.id}`}
                 className="group relative inline-flex min-w-[97px] items-center justify-center gap-2 overflow-hidden rounded-lg border border-border bg-card px-3 py-4 shadow-[0_0_16px_rgba(0,0,0,0.06)] transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:min-w-[151px]"
               >
                 <img src={provider.logo} alt="" className="relative z-10 size-5 object-contain" />
                 <span className="relative z-10 text-xs font-medium text-foreground">{provider.name}</span>
                 <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
-              </button>
+              </Link>
             </CarouselItem>
           ))}
         </CarouselContent>
@@ -1001,23 +1002,54 @@ export function CasinoLobby() {
       <div className="py-4">
         <CasinoLobbyBannerRow promos={CASINO_LOBBY_PROMO_BANNERS} />
       </div>
-      <CasinoGameShelf title="Continue Playing" games={CONTINUE_PLAYING} showPlayRandom onLaunch={launchGame} />
-      <CasinoGameShelf title="Originals" games={ORIGINALS_GAMES} onLaunch={launchGame} />
+      <CasinoGameShelf
+        title="Continue Playing"
+        games={CONTINUE_PLAYING}
+        showPlayRandom
+        seeMoreHref="/casino/category/continue-playing"
+        onLaunch={launchGame}
+      />
+      <CasinoGameShelf
+        title="Originals"
+        games={ORIGINALS_GAMES}
+        seeMoreHref="/casino/category/originals"
+        onLaunch={launchGame}
+      />
       <CasinoTop10 games={TOP10_GAMES} onLaunch={launchGame} />
-      <CasinoGameShelf title="New Games" games={NEW_GAMES} onLaunch={launchGame} />
+      <CasinoGameShelf
+        title="New Games"
+        games={NEW_GAMES}
+        seeMoreHref="/casino/category/new"
+        onLaunch={launchGame}
+      />
       <CasinoJackpots onLaunch={launchGame} />
       <CasinoGameShelf
         title="Live Casino"
         games={LIVE_GAMES}
-        seeMoreHref="/casino/live"
+        seeMoreHref="/casino/category/live"
         onLaunch={launchGame}
       />
       <CasinoProviderRow />
       <CasinoActivity />
-      <CasinoGameShelf title="Popular" games={POPULAR_GAMES} onLaunch={launchGame} />
+      <CasinoGameShelf
+        title="Popular"
+        games={POPULAR_GAMES}
+        seeMoreHref="/casino/category/popular"
+        onLaunch={launchGame}
+      />
       <CasinoThemeBanner {...HALLOWEEN_PROMO} onLaunch={launchGame} />
-      <CasinoGameShelf title="Exclusives" games={EXCLUSIVE_GAMES} onLaunch={launchGame} />
-      <CasinoGameShelf title="Halloween Games" games={HALLOWEEN_GAMES} onLaunch={launchGame} />
+      <CasinoGameShelf
+        title="Exclusives"
+        games={EXCLUSIVE_GAMES}
+        seeMoreHref="/casino/category/exclusive"
+        onLaunch={launchGame}
+      />
+      <CasinoGameShelf
+        title="Halloween Games"
+        games={HALLOWEEN_GAMES}
+        seeMoreHref="/casino/category/halloween"
+        onLaunch={launchGame}
+      />
       <CasinoGameShelf
         title="Slots"
         games={SLOTS_GAMES}

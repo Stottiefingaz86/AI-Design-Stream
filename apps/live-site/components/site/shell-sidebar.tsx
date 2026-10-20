@@ -2,9 +2,12 @@
 
 import React from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import type { CasinoLobbyGame } from '@/lib/lumen/casino-lobby-catalog'
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLogo } from './shell-icons'
-import { navForProduct, type ShellNavItem } from './shell-nav'
+import { gameForNavAction } from './shell-nav-launch'
+import { navForProduct, withNavActive, type ShellNavItem } from './shell-nav'
 import { cn } from '@/lib/utils'
 
 /**
@@ -12,8 +15,9 @@ import { cn } from '@/lib/utils'
  * Width eases in/out. Logo morphs wordmark → lettermark with a pop.
  */
 export function ShellSidebar() {
-  const { expanded, toggle, product, startNavigating } = useShell()
-  const groups = navForProduct(product)
+  const pathname = usePathname()
+  const { expanded, toggle, product, startNavigating, launchGame } = useShell()
+  const groups = withNavActive(navForProduct(product), pathname)
 
   return (
     <aside
@@ -61,6 +65,7 @@ export function ShellSidebar() {
                 item={item}
                 expanded={expanded}
                 onNavigate={startNavigating}
+                onLaunch={launchGame}
               />
             ))}
           </div>
@@ -74,45 +79,44 @@ function NavItem({
   item,
   expanded,
   onNavigate,
+  onLaunch,
 }: {
   item: ShellNavItem
   expanded: boolean
   onNavigate: () => void
+  onLaunch: (game: CasinoLobbyGame) => void
 }) {
-  const link = (
-    <Link
-      href={item.href}
-      onClick={onNavigate}
-      aria-label={item.label}
-      aria-current={item.active ? 'page' : undefined}
-      data-state={item.active ? 'active' : 'default'}
-      data-tip={expanded ? undefined : item.label}
-      data-tip-side="right"
-      className={cn(
-        'group relative flex w-full items-center border-0 text-sm leading-5 outline-none ring-0 transition-colors duration-200 ease-in-out focus:outline-none focus-visible:outline-none',
-        expanded ? 'h-11 justify-start gap-2 overflow-hidden rounded-lg px-2' : 'h-12 justify-center overflow-visible',
-        expanded && item.active && 'bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)]',
-        expanded &&
-          !item.active &&
-          'text-[var(--muted-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)] hover:text-[var(--foreground-inverted)]',
-        !expanded && 'text-[var(--muted-foreground-inverted)] hover:text-[var(--foreground-inverted)]'
-      )}
-    >
+  const className = cn(
+    'group relative flex w-full items-center border-0 bg-transparent p-0 text-left text-sm leading-5 outline-none ring-0 transition-colors duration-200 ease-in-out focus:outline-none focus-visible:outline-none',
+    expanded ? 'h-11 justify-start gap-2 overflow-hidden rounded-lg px-2' : 'h-12 justify-center overflow-visible',
+    expanded && item.active && 'bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)]',
+    expanded &&
+      !item.active &&
+      'text-[var(--muted-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)] hover:text-[var(--foreground-inverted)]',
+    !expanded && 'text-[var(--muted-foreground-inverted)] hover:text-[var(--foreground-inverted)]',
+  )
+
+  const body = (
+    <>
       <span
         className={cn(
           'flex shrink-0 items-center justify-center rounded-[8px] transition-colors duration-200 ease-in-out',
           expanded ? (item.emphasis || item.active ? 'size-8' : 'size-6') : 'size-10',
           item.active && 'bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)]',
           !item.active && item.emphasis && 'bg-[var(--surface-muted-1-inverted)]',
-          !expanded && !item.active && 'group-hover:bg-[var(--surface-muted-1-inverted)]'
+          !expanded && !item.active && 'group-hover:bg-[var(--surface-muted-1-inverted)]',
         )}
       >
-        <ShellIcon
-          name={item.icon}
-          tone="token"
-          active={item.active}
-          className="size-5"
-        />
+        {item.iconSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.iconSrc}
+            alt=""
+            className="size-full rounded-[6px] object-cover object-top"
+          />
+        ) : (
+          <ShellIcon name={item.icon} tone="token" active={item.active} className="size-5" />
+        )}
       </span>
       {expanded ? (
         <>
@@ -129,8 +133,36 @@ function NavItem({
           {item.trailing ? <ShellIcon name={item.trailing} tone="token" className="size-5" /> : null}
         </>
       ) : null}
-    </Link>
+    </>
   )
 
-  return link
+  if (item.action) {
+    return (
+      <button
+        type="button"
+        aria-label={item.label}
+        data-tip={expanded ? undefined : item.label}
+        data-tip-side="right"
+        className={className}
+        onClick={() => onLaunch(gameForNavAction(item.action!))}
+      >
+        {body}
+      </button>
+    )
+  }
+
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavigate}
+      aria-label={item.label}
+      aria-current={item.active ? 'page' : undefined}
+      data-state={item.active ? 'active' : 'default'}
+      data-tip={expanded ? undefined : item.label}
+      data-tip-side="right"
+      className={className}
+    >
+      {body}
+    </Link>
+  )
 }

@@ -165,6 +165,20 @@ export const ORIGINALS_GAMES: CasinoLobbyGame[] = ORIGINALS_ROSTER.map((game) =>
   originals(game.id, game.title, game.image),
 )
 
+/** Sidebar / header “Last Game Played” — Chicken. */
+export const LAST_GAME_PLAYED: CasinoLobbyGame = originals(
+  'chicken',
+  'Chicken',
+  '/games/originals/chicken.png',
+)
+
+/** Pool for Play Random — originals + recent slots art. */
+export function pickRandomLobbyGame(excludeId?: string): CasinoLobbyGame {
+  const pool = ORIGINALS_GAMES.filter((g) => g.id !== excludeId)
+  const list = pool.length > 0 ? pool : ORIGINALS_GAMES
+  return list[Math.floor(Math.random() * list.length)]!
+}
+
 export const NEW_GAMES: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>
   slot(`new-${i + 1}`, SLOT_TITLES[i % SLOT_TITLES.length], SLOT_ART[i % SLOT_ART.length]),
 )
@@ -242,6 +256,89 @@ export const EXCLUSIVE_GAMES = NEW_GAMES.map((game, i) => ({ ...game, id: `exclu
 export const HALLOWEEN_GAMES = NEW_GAMES.map((game, i) => ({ ...game, id: `halloween-${i + 1}` }))
 export const SLOTS_GAMES = NEW_GAMES.map((game, i) => ({ ...game, id: `slots-${i + 1}` }))
 export const JACKPOT_GAMES = NEW_GAMES.map((game, i) => ({ ...game, id: `jackpot-${i + 1}` }))
+
+/** Video Poker lobby — Multi Hand / Single Hand. */
+export const VIDEO_POKER_MULTI_HAND: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>
+  slot(
+    `vp-multi-${i + 1}`,
+    ['Multi-Hand Poker', '100 Play Poker', '50 Hand Deuces', 'Triple Play Poker'][i % 4]!,
+    SLOT_ART[i % SLOT_ART.length],
+  ),
+)
+
+export const VIDEO_POKER_SINGLE_HAND: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>
+  slot(
+    `vp-single-${i + 1}`,
+    ['Jacks or Better', 'Deuces Wild', 'Bonus Poker', 'Double Double Bonus'][i % 4]!,
+    SLOT_ART[(i + 3) % SLOT_ART.length],
+  ),
+)
+
+/** Specialty Games lobby — Scratch Cards / Keno / Other. */
+export const SPECIALTY_SCRATCH_CARDS: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>
+  slot(
+    `spec-scratch-${i + 1}`,
+    ['Lucky Scratch', 'Gold Rush Scratch', 'Cash Card', 'Instant Win'][i % 4]!,
+    SLOT_ART[(i + 1) % SLOT_ART.length],
+  ),
+)
+
+export const SPECIALTY_KENO: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>
+  slot(
+    `spec-keno-${i + 1}`,
+    ['Classic Keno', 'Power Keno', 'Speed Keno', 'Keno Plus'][i % 4]!,
+    SLOT_ART[(i + 2) % SLOT_ART.length],
+  ),
+)
+
+export const SPECIALTY_OTHER_GAMES: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>
+  slot(
+    `spec-other-${i + 1}`,
+    ['Bingo Blitz', 'Arcade Rush', 'Crash Extra', 'Plinko Party'][i % 4]!,
+    SLOT_ART[(i + 4) % SLOT_ART.length],
+  ),
+)
+
+/** Table Games lobby — Roulette / Other Table Games / Baccarat / Casino Poker. */
+export const TABLE_ROULETTE_GAMES = LIVE_ROULETTE_GAMES.map((g, i) => ({
+  ...g,
+  id: `table-rou-${i + 1}`,
+}))
+
+export const TABLE_OTHER_GAMES: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>
+  slot(
+    `table-other-${i + 1}`,
+    ['Craps', 'Sic Bo', 'Red Dog', 'Pai Gow'][i % 4]!,
+    SLOT_ART[(i + 2) % SLOT_ART.length],
+  ),
+)
+
+export const TABLE_BACCARAT_GAMES = LIVE_BACCARAT_GAMES.map((g, i) => ({
+  ...g,
+  id: `table-bac-${i + 1}`,
+}))
+
+export const TABLE_CASINO_POKER_GAMES = LIVE_POKER_GAMES.map((g, i) => ({
+  ...g,
+  id: `table-poker-${i + 1}`,
+}))
+
+/** Virtual Sports lobby — Esports / Sports. */
+export const VIRTUAL_ESPORTS: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>
+  slot(
+    `virt-esports-${i + 1}`,
+    ['Virtual CS', 'Virtual Dota', 'Virtual LoL', 'Virtual FIFA'][i % 4]!,
+    SLOT_ART[(i + 5) % SLOT_ART.length],
+  ),
+)
+
+export const VIRTUAL_SPORTS: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>
+  slot(
+    `virt-sports-${i + 1}`,
+    ['Virtual Football', 'Virtual Horses', 'Virtual Tennis', 'Virtual Basketball'][i % 4]!,
+    SLOT_ART[(i + 6) % SLOT_ART.length],
+  ),
+)
 
 /** Slots page Top 10 rail — Casino-Lumen 115:389970. */
 export const SLOTS_TOP10_GAMES: CasinoLobbyGame[] = Array.from({ length: 10 }, (_, i) =>

@@ -12,7 +12,11 @@ import {
 } from '@/components/lumen/live-casino-history'
 import { ShellIcon } from '@/components/site/shell-icons'
 import { cn } from '@/lib/utils'
-import type { CasinoLobbyGame, CasinoTileTag } from '@/lib/lumen/casino-lobby-catalog'
+import {
+  pickRandomLobbyGame,
+  type CasinoLobbyGame,
+  type CasinoTileTag,
+} from '@/lib/lumen/casino-lobby-catalog'
 
 const TAG_CLASS: Record<CasinoTileTag, string> = {
   Original: 'border-white/25 bg-white/10 text-white',
@@ -29,8 +33,8 @@ export const CASINO_TILE_H = 207
 
 /** Casino Master `Tiles (Covers)` — hover play → click loading. */
 const PLAY_MS = 2200
-/** Short beat before opening the launcher so the tile spinner still reads. */
-const LAUNCH_MS = 450
+/** Preloader in the play button, then open the game launcher. */
+const LAUNCH_PRELOAD_MS = 1000
 
 /** Centered arc spinner — Figma notch SVG’s mass isn’t on-center, so CSS spin wobbles. */
 function TileSpinner({ className }: { className?: string }) {
@@ -95,10 +99,12 @@ export function CasinoGameTile({
     if (loading) return
     setLoading(true)
     if (loadTimer.current) clearTimeout(loadTimer.current)
-    // Launch immediately through shell overlay; keep a short spinner for feedback.
+    /* Spinner in play button for 1s, then open launcher for a clean transition */
     if (onLaunch) {
-      onLaunch(game)
-      loadTimer.current = setTimeout(() => setLoading(false), LAUNCH_MS)
+      loadTimer.current = setTimeout(() => {
+        onLaunch(game)
+        setLoading(false)
+      }, LAUNCH_PRELOAD_MS)
       return
     }
     loadTimer.current = setTimeout(() => setLoading(false), PLAY_MS)
@@ -112,7 +118,7 @@ export function CasinoGameTile({
       tabIndex={0}
       aria-label={`Play ${game.title}`}
       aria-busy={loading}
-      whileHover={loading ? undefined : { scale: 1.04, y: -6, zIndex: 30 }}
+      whileHover={loading ? undefined : { scale: 1.04, y: -6, zIndex: 10 }}
       whileTap={loading ? undefined : { scale: 1.015, y: -2 }}
       transition={TILE_SPRING}
       onClick={(e) => startPlay(e)}
@@ -245,14 +251,21 @@ export function CasinoGameTile({
   )
 }
 
-export function PlayRandomTile({ className }: { className?: string }) {
+export function PlayRandomTile({
+  className,
+  onLaunch,
+}: {
+  className?: string
+  onLaunch?: (game: CasinoLobbyGame) => void
+}) {
   return (
     <motion.button
       type="button"
       data-name="play-random"
-      whileHover={{ scale: 1.04, y: -6, zIndex: 30 }}
+      whileHover={{ scale: 1.04, y: -6, zIndex: 10 }}
       whileTap={{ scale: 1.015, y: -2 }}
       transition={TILE_SPRING}
+      onClick={() => onLaunch?.(pickRandomLobbyGame())}
       className={cn(
         'relative z-0 flex h-[207px] w-[152px] shrink-0 flex-col items-center justify-center gap-4 rounded-[10px] border border-border bg-card',
         'shadow-[0_0_16px_rgba(0,0,0,0.06)]',

@@ -232,71 +232,76 @@ export function CashierPanel({
       data-name="Cashier_content"
       className={cn('flex min-h-0 w-full flex-1 flex-col text-foreground', className)}
     >
-      {/* Fixed chrome — never scrolls away (Instagram-style sheet header). */}
-      <div
-        data-name="Cashier top"
-        className="flex w-full shrink-0 flex-col gap-3 border-b border-border bg-[var(--container)] px-3 pb-3 pt-1"
-      >
-        {showClose ? (
-          <div className="flex shrink-0 items-center gap-1.5 pr-2">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close wallet"
-              className="shell-chrome-btn inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors duration-200 ease-in-out hover:bg-muted"
-            >
-              <ShellIcon name="drawer" tone="token" className="size-4 text-foreground" />
-            </button>
-            <h2 className="min-w-0 flex-1 text-sm font-medium leading-5 text-foreground">Wallet</h2>
-          </div>
-        ) : null}
-
-        <div
-          data-name="Navigation / Cashier Menu"
-          className="flex h-10 w-full shrink-0 overflow-hidden rounded-lg border border-border bg-background/80"
-          role="tablist"
-          aria-label="Wallet action"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'deposit'}
-            onClick={() => {
-              setTab('deposit')
-              setRedirectOpen(false)
-            }}
-            className={cn(
-              'inline-flex h-full flex-1 items-center justify-center gap-1.5 text-sm font-medium transition-colors duration-200',
-              tab === 'deposit'
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-card text-foreground hover:bg-[var(--surface-muted-4)]',
-            )}
-          >
-            <DepositIcon active={tab === 'deposit'} />
-            Deposit
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === 'withdraw'}
-            onClick={() => setRedirectOpen(true)}
-            className={cn(
-              'inline-flex h-full flex-1 items-center justify-center gap-1.5 border-l border-border text-sm font-medium transition-colors duration-200',
-              tab === 'withdraw'
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-card text-foreground hover:bg-[var(--surface-muted-4)]',
-            )}
-          >
-            <WithdrawIcon />
-            Withdraw
-          </button>
-        </div>
-      </div>
-
+      {/* Sticky glass chrome — deposit card frosts underneath as it scrolls. */}
       <div className="shell-scroll min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
         <div
+          data-name="Cashier top"
+          className={cn(
+            'sticky top-0 z-20 mb-3 flex w-full flex-col gap-3 border-b border-border px-3 pb-3',
+            'bg-[color-mix(in_srgb,var(--container)_72%,transparent)]',
+            'backdrop-blur-[32px] saturate-[1.2]',
+            showClose ? 'pt-3' : 'pt-1',
+          )}
+        >
+          {showClose ? (
+            <div className="flex shrink-0 items-center gap-1.5 pr-2">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close wallet"
+                className="shell-chrome-btn inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors duration-200 ease-in-out hover:bg-muted"
+              >
+                <ShellIcon name="drawer" tone="token" className="size-4 text-foreground" />
+              </button>
+              <h2 className="min-w-0 flex-1 text-sm font-medium leading-5 text-foreground">Wallet</h2>
+            </div>
+          ) : null}
+
+          <div
+            data-name="Navigation / Cashier Menu"
+            className="flex h-10 w-full shrink-0 overflow-hidden rounded-lg border border-border bg-background/80"
+            role="tablist"
+            aria-label="Wallet action"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'deposit'}
+              onClick={() => {
+                setTab('deposit')
+                setRedirectOpen(false)
+              }}
+              className={cn(
+                'inline-flex h-full flex-1 items-center justify-center gap-1.5 text-sm font-medium transition-colors duration-200',
+                tab === 'deposit'
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-card text-foreground hover:bg-[var(--surface-muted-4)]',
+              )}
+            >
+              <DepositIcon active={tab === 'deposit'} />
+              Deposit
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'withdraw'}
+              onClick={() => setRedirectOpen(true)}
+              className={cn(
+                'inline-flex h-full flex-1 items-center justify-center gap-1.5 border-l border-border text-sm font-medium transition-colors duration-200',
+                tab === 'withdraw'
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-card text-foreground hover:bg-[var(--surface-muted-4)]',
+              )}
+            >
+              <WithdrawIcon />
+              Withdraw
+            </button>
+          </div>
+        </div>
+
+        <div
           data-name="Drawer / Deposit"
-          className="mx-3 mb-3 mt-3 flex min-h-full flex-col gap-6 rounded-[10px] border border-border bg-card px-4 pb-4 pt-5 shadow-[0_0_16px_rgba(0,0,0,0.06)]"
+          className="mx-3 mb-3 flex min-h-[60%] flex-col gap-6 rounded-[10px] border border-border bg-card px-4 pb-4 pt-5 shadow-[0_0_16px_rgba(0,0,0,0.06)]"
         >
           <div className="flex shrink-0 justify-center">
             <DepositMethodTrack
@@ -455,104 +460,167 @@ function CryptoHome({ onSelect }: { onSelect: (id: string) => void }) {
 
 type CashierCoin = (typeof COINS)[number]
 
-/** Figma 7162:119086 — coin selected: address, QR, network note, converter. */
+async function writeClipboard(text: string) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    return
+  }
+  const area = document.createElement('textarea')
+  area.value = text
+  area.setAttribute('readonly', '')
+  area.style.position = 'fixed'
+  area.style.left = '-9999px'
+  document.body.appendChild(area)
+  area.select()
+  document.execCommand('copy')
+  document.body.removeChild(area)
+}
+
+/** Figma 7162:121387 — BTC selected: QR, address + copy tooltip, note, converter. */
 function CryptoCoinView({ coin, onOpenPicker }: { coin: CashierCoin; onOpenPicker: () => void }) {
   const [copied, setCopied] = useState(false)
   const [usd, setUsd] = useState('')
   const address = DEPOSIT_ADDRESS[coin.id] ?? DEPOSIT_ADDRESS.btc
   const network = COIN_NETWORK[coin.id] ?? `${coin.label} ${coin.ticker}`
+  const qrSrc = coin.id === 'btc' ? `${ASSET}/btc-qr.svg` : null
 
   const copyAddress = async () => {
     try {
-      await navigator.clipboard.writeText(address)
+      await writeClipboard(address)
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 1600)
+      window.setTimeout(() => setCopied(false), 3000)
     } catch {
       setCopied(false)
     }
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <label className="flex flex-col gap-1.5">
-        <span className="px-0.5 text-sm font-medium leading-5 text-foreground">Select Crypto</span>
-        <button
-          type="button"
-          onClick={onOpenPicker}
-          className="flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-left transition-colors hover:bg-[var(--surface-muted-4)]"
-        >
-          <CoinMark coin={coin} size={20} />
-          <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-            {coin.label} {coin.ticker}
-          </span>
-          <ShellIcon name="caretDown" tone="surface" className="size-4 opacity-70" />
-        </button>
-      </label>
+    <div className="flex w-full flex-col gap-3">
+      <div className="flex w-full flex-col gap-5">
+        <label className="flex w-full flex-col gap-1.5">
+          <span className="px-0.5 text-sm font-medium leading-5 text-foreground">Select Crypto</span>
+          <button
+            type="button"
+            onClick={onOpenPicker}
+            className="flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-left transition-colors hover:bg-[var(--surface-muted-4)]"
+          >
+            <CoinMark coin={coin} size={20} />
+            <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+              {coin.label} {coin.ticker}
+            </span>
+            <ShellIcon name="caretDown" tone="surface" className="size-4 opacity-70" />
+          </button>
+        </label>
 
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative flex size-[126px] items-center justify-center rounded-md border border-border bg-white p-2">
-          <QrMark />
-          <span className="absolute flex size-8 items-center justify-center rounded-full bg-white">
-            <CoinMark coin={coin} size={28} />
-          </span>
-        </div>
-
-        <div className="flex w-full flex-col gap-1">
-          <p className="text-[10px] font-semibold leading-[14px] tracking-wide text-muted-foreground">
-            DEPOSIT ADDRESS
-          </p>
-          <div className="flex items-start gap-2">
-            <p className="min-w-0 flex-1 break-all text-xs leading-4 text-foreground">{address}</p>
-            <button
-              type="button"
-              onClick={copyAddress}
-              aria-label={copied ? 'Copied' : 'Copy deposit address'}
-              className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-secondary text-foreground transition-colors hover:bg-[var(--surface-muted-4)]"
-            >
-              <CopyIcon />
-            </button>
+        {/* Figma 7162:121387 — inset uses secondary (soft wash), not muted. */}
+        <div className="flex w-full flex-col gap-4 rounded-lg border border-border bg-secondary p-4">
+          <div className="flex w-full flex-col items-center">
+            <div className="relative flex size-[150px] items-center justify-center overflow-hidden rounded-lg border border-border bg-card p-3">
+              {qrSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qrSrc} alt="" width={126} height={126} className="size-[126px] max-w-none" />
+              ) : (
+                <span className="relative size-[126px]">
+                  <QrMark />
+                </span>
+              )}
+              <span className="absolute left-1/2 top-1/2 flex size-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-card">
+                <CoinMark coin={coin} size={28} />
+              </span>
+            </div>
           </div>
-          {copied ? <p className="text-xs text-info">Copied</p> : null}
+
+          <div className="flex w-full flex-col gap-1">
+            <p className="text-[10px] font-semibold leading-[14px] text-muted-foreground">
+              DEPOSIT ADDRESS
+            </p>
+            <div className="flex w-full items-center gap-5">
+              <p className="min-w-0 flex-1 break-all text-sm leading-5 text-secondary-foreground">
+                {address}
+              </p>
+              <div className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={copyAddress}
+                  aria-label={copied ? 'Copied' : 'Copy deposit address'}
+                  className="inline-flex items-center justify-center rounded-lg border border-border bg-secondary p-2.5 text-foreground transition-colors hover:bg-[var(--surface-muted-4)]"
+                >
+                  {copied ? <CopyCheckIcon /> : <CopyIcon />}
+                </button>
+                {copied ? (
+                  <span
+                    role="status"
+                    className="absolute bottom-[calc(100%+8px)] left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg bg-foreground px-3 py-1.5 text-xs font-medium leading-4 text-background"
+                  >
+                    Copied!
+                    <span
+                      aria-hidden
+                      className="absolute left-1/2 top-full size-0 -translate-x-1/2 border-x-4 border-t-4 border-x-transparent border-t-foreground"
+                    />
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px w-full bg-border" />
+
+          <div className="flex w-full flex-col gap-1.5">
+            <span className="inline-flex h-5 w-fit items-center justify-center gap-0.5 rounded-full border border-border bg-secondary px-1.5 text-xs font-medium leading-4 text-secondary-foreground">
+              <ImportantIcon />
+              Important
+            </span>
+            <p className="text-xs leading-4 text-secondary-foreground">
+              Send only <span className="font-medium">{coin.label} {coin.ticker}</span> on the{' '}
+              <span className="font-medium">{network}</span> network.
+            </p>
+          </div>
+
+          <p className="flex w-full items-center gap-0.5 text-xs leading-4 text-secondary-foreground">
+            <span>Min. Deposit:</span>
+            <span className="font-medium">$10 USD</span>
+          </p>
+
+          <div className="h-px w-full bg-border" />
+
+          <div className="flex w-full items-center justify-center gap-2">
+            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={`${ASSET}/cashier-dollar.svg`}
+                alt=""
+                width={16}
+                height={16}
+                className="size-4 shrink-0"
+              />
+              <input
+                inputMode="decimal"
+                value={usd}
+                onChange={(event) => setUsd(event.target.value)}
+                placeholder="0.00"
+                aria-label="USD amount"
+                className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </label>
+            <span className="shrink-0 text-sm text-muted-foreground">=</span>
+            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3">
+              <CoinMark coin={coin} size={16} />
+              <input
+                readOnly
+                value={usdToCoin(usd)}
+                aria-label={`${coin.label} amount`}
+                className="w-full bg-transparent text-sm text-muted-foreground outline-none"
+              />
+            </label>
+          </div>
         </div>
-
-        <p className="w-full text-xs leading-4 text-foreground">
-          <span className="mr-1.5 inline-flex rounded bg-foreground px-1.5 py-0.5 text-[10px] font-semibold leading-[14px] text-background">
-            Important
-          </span>
-          Send only {coin.label} {coin.ticker} on the {network} network.
-        </p>
-        <p className="w-full text-xs leading-4 text-muted-foreground">Min. Deposit: $10 USD</p>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3">
-          <span className="text-sm text-foreground">$</span>
-          <input
-            inputMode="decimal"
-            value={usd}
-            onChange={(event) => setUsd(event.target.value)}
-            placeholder="0.00"
-            aria-label="USD amount"
-            className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
-          />
-        </label>
-        <span className="text-sm text-muted-foreground">=</span>
-        <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3">
-          <CoinMark coin={coin} size={16} />
-          <input
-            readOnly
-            value={usdToCoin(usd)}
-            aria-label={`${coin.label} amount`}
-            className="w-full bg-transparent text-sm text-foreground outline-none"
-          />
-        </label>
       </div>
 
       <a
         href="https://www.betonline.ag/crypto-tutorial"
         target="_blank"
         rel="noreferrer"
-        className="flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-card px-2 text-center text-xs leading-4 text-card-foreground transition-colors duration-200 hover:bg-[var(--surface-muted-4)]"
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-2 text-center text-xs leading-4 text-card-foreground transition-colors duration-200 hover:bg-[var(--surface-muted-4)]"
       >
         <CoinMark coin={coin} size={18} />
         <span>
@@ -598,9 +666,36 @@ function QrMark() {
 
 function CopyIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" stroke="currentColor" />
-      <path d="M10.5 5.5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9A1.5 1.5 0 0 0 3.5 10.5H5.5" stroke="currentColor" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className="size-4">
+      <rect x="5.5" y="5.5" width="8" height="8" rx="1.5" stroke="currentColor" strokeOpacity="0.7" />
+      <path
+        d="M10.5 5.5V3.5A1.5 1.5 0 0 0 9 2H3.5A1.5 1.5 0 0 0 2 3.5V9A1.5 1.5 0 0 0 3.5 10.5H5.5"
+        stroke="currentColor"
+        strokeOpacity="0.7"
+      />
+    </svg>
+  )
+}
+
+function CopyCheckIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className="size-4">
+      <path
+        d="M14.53 4.615 6.53 12.615a1 1 0 0 1-1.414 0L1.968 9.115a1 1 0 1 1 1.414-1.414L5.999 11.02l7.47-7.468a1 1 0 0 1 1.414 1.414Z"
+        fill="currentColor"
+        fillOpacity="0.7"
+      />
+    </svg>
+  )
+}
+
+function ImportantIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden className="size-3">
+      <path
+        d="M6 1a5 5 0 1 0 0 10A5 5 0 0 0 6 1Zm-.385 2.692a.385.385 0 0 1 .77 0v2.693a.385.385 0 0 1-.77 0V3.692ZM6 8.692a.577.577 0 1 1 0-1.154.577.577 0 0 1 0 1.154Z"
+        fill="currentColor"
+      />
     </svg>
   )
 }
@@ -612,7 +707,7 @@ function usdToCoin(usd: string) {
 }
 
 const DEPOSIT_ADDRESS: Record<string, string> = {
-  btc: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+  btc: '0x3c690f9497afbe256a4fa94e0f863d191e1531497afbe256aa94e0fDFG691a1',
 }
 
 const COIN_NETWORK: Record<string, string> = {
@@ -636,9 +731,24 @@ const COIN_NETWORK: Record<string, string> = {
   scor: 'Ethereum (ERC20)',
 }
 
+function parseDepositAmount(raw: string) {
+  const cleaned = raw.replace(/[^0-9.]/g, '')
+  const parts = cleaned.split('.')
+  const whole = (parts[0] ?? '').slice(0, 3)
+  const frac = parts.slice(1).join('').slice(0, 2)
+  const next = parts.length > 1 ? `${whole}.${frac}` : whole
+  const value = Number(next)
+  if (!next || Number.isNaN(value)) return { text: next, value: 0 }
+  if (value > 500) return { text: '500', value: 500 }
+  return { text: next, value }
+}
+
 function CreditCardHome() {
-  const [amount, setAmount] = useState(0)
+  const [amountText, setAmountText] = useState('')
+  const [focused, setFocused] = useState(false)
+  const amount = amountText ? Number(amountText) || 0 : 0
   const total = amount * (1 + CC_FEE)
+  const display = focused ? amountText : amount ? amount.toFixed(2) : ''
 
   return (
     <div className="flex flex-col gap-4">
@@ -661,7 +771,7 @@ function CreditCardHome() {
               <button
                 key={value}
                 type="button"
-                onClick={() => setAmount(value)}
+                onClick={() => setAmountText(String(value))}
                 className={cn(
                   'h-10 flex-1 rounded-lg border text-sm font-medium transition-colors duration-200',
                   amount === value
@@ -674,14 +784,35 @@ function CreditCardHome() {
             ))}
           </div>
           <div className="flex w-full flex-col items-center py-12">
-            <p
+            <label
               className={cn(
-                'text-center text-[36px] font-semibold leading-10',
-                amount ? 'text-foreground' : 'text-muted-foreground'
+                'flex items-center justify-center text-[36px] font-semibold leading-10',
+                amount || focused ? 'text-foreground' : 'text-muted-foreground',
               )}
             >
-              ${amount.toFixed(2)}
-            </p>
+              <span aria-hidden>$</span>
+              <input
+                inputMode="decimal"
+                enterKeyHint="done"
+                value={display}
+                placeholder="0.00"
+                aria-label="Deposit amount"
+                onFocus={() => setFocused(true)}
+                onBlur={() => {
+                  setFocused(false)
+                  if (amountText) {
+                    const n = Number(amountText)
+                    if (!Number.isNaN(n) && n > 0) setAmountText(n.toFixed(2))
+                  }
+                }}
+                onChange={(event) => {
+                  const parsed = parseDepositAmount(event.target.value)
+                  setAmountText(parsed.text)
+                }}
+                style={{ width: `${Math.max((display || '0.00').length, 4)}ch` }}
+                className="bg-transparent text-center outline-none placeholder:text-muted-foreground"
+              />
+            </label>
             <p className="mt-1.5 text-center text-xs leading-4 text-muted-foreground opacity-80">
               Min. $25 / Max. $500
             </p>
@@ -703,7 +834,7 @@ function CreditCardHome() {
           </div>
         </div>
       </div>
-      <Button type="button" size="lg" disabled={amount < 25} className="h-10 w-full rounded-lg text-sm font-medium">
+      <Button type="button" size="lg" disabled={amount < 25 || amount > 500} className="h-10 w-full rounded-lg text-sm font-medium">
         Deposit
       </Button>
     </div>
@@ -795,30 +926,15 @@ function WithdrawRedirectDialog({ onCancel }: { onCancel: () => void }) {
   )
 }
 
+/** Figma `Icon / cashier-dollar` — filled circle $; inherits button text color. */
 function DepositIcon({ active = false }: { active?: boolean }) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0">
-      {active ? (
-        <>
-          <circle cx="8" cy="8" r="7" fill="currentColor" />
-          <path
-            d="M8 4.25v7.5M6.2 6c.4-.65 1.05-1 1.8-1 1.05 0 1.85.6 1.85 1.5 0 2-3.65 1.15-3.65 3.15 0 .9.85 1.55 1.85 1.55.75 0 1.4-.35 1.8-.9"
-            stroke="var(--primary)"
-            strokeWidth="1.35"
-            strokeLinecap="round"
-          />
-        </>
-      ) : (
-        <>
-          <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" />
-          <path
-            d="M8 4.4v7.2M6.3 6.15c.4-.6 1-.9 1.7-.9 1 0 1.75.55 1.75 1.4 0 1.9-3.5 1.1-3.5 3 0 .85.8 1.45 1.75 1.45.7 0 1.3-.3 1.7-.85"
-            stroke="currentColor"
-            strokeWidth="1.35"
-            strokeLinecap="round"
-          />
-        </>
-      )}
+      <path
+        d="M8 0C6.41775 0 4.87103 0.469192 3.55544 1.34824C2.23985 2.22729 1.21447 3.47672 0.608967 4.93853C0.00346628 6.40034 -0.15496 8.00887 0.153721 9.56072C0.462403 11.1126 1.22433 12.538 2.34315 13.6569C3.46197 14.7757 4.88743 15.5376 6.43928 15.8463C7.99113 16.155 9.59966 15.9965 11.0615 15.391C12.5233 14.7855 13.7727 13.7602 14.6518 12.4446C15.5308 11.129 16 9.58225 16 8C15.9978 5.87895 15.1542 3.84542 13.6544 2.34562C12.1546 0.845814 10.121 0.00223986 8 0ZM8.92308 11.6923H8.61539V12.3077C8.61539 12.4709 8.55055 12.6274 8.43514 12.7428C8.31974 12.8582 8.16321 12.9231 8 12.9231C7.83679 12.9231 7.68027 12.8582 7.56486 12.7428C7.44945 12.6274 7.38462 12.4709 7.38462 12.3077V11.6923H6.15385C5.99064 11.6923 5.83411 11.6275 5.71871 11.5121C5.6033 11.3967 5.53846 11.2401 5.53846 11.0769C5.53846 10.9137 5.6033 10.7572 5.71871 10.6418C5.83411 10.5264 5.99064 10.4615 6.15385 10.4615H8.92308C9.16789 10.4615 9.40268 10.3643 9.57579 10.1912C9.7489 10.0181 9.84616 9.78327 9.84616 9.53846C9.84616 9.29364 9.7489 9.05886 9.57579 8.88575C9.40268 8.71264 9.16789 8.61538 8.92308 8.61538H7.07692C6.50569 8.61538 5.95785 8.38846 5.55393 7.98454C5.15 7.58061 4.92308 7.03277 4.92308 6.46154C4.92308 5.8903 5.15 5.34246 5.55393 4.93854C5.95785 4.53461 6.50569 4.30769 7.07692 4.30769H7.38462V3.69231C7.38462 3.5291 7.44945 3.37257 7.56486 3.25716C7.68027 3.14176 7.83679 3.07692 8 3.07692C8.16321 3.07692 8.31974 3.14176 8.43514 3.25716C8.55055 3.37257 8.61539 3.5291 8.61539 3.69231V4.30769H9.84616C10.0094 4.30769 10.1659 4.37253 10.2813 4.48793C10.3967 4.60334 10.4615 4.75987 10.4615 4.92308C10.4615 5.08629 10.3967 5.24281 10.2813 5.35822C10.1659 5.47363 10.0094 5.53846 9.84616 5.53846H7.07692C6.83211 5.53846 6.59732 5.63571 6.42421 5.80882C6.2511 5.98193 6.15385 6.21672 6.15385 6.46154C6.15385 6.70635 6.2511 6.94114 6.42421 7.11425C6.59732 7.28736 6.83211 7.38461 7.07692 7.38461H8.92308C9.49431 7.38461 10.0422 7.61154 10.4461 8.01546C10.85 8.41938 11.0769 8.96722 11.0769 9.53846C11.0769 10.1097 10.85 10.6575 10.4461 11.0615C10.0422 11.4654 9.49431 11.6923 8.92308 11.6923Z"
+        fill="currentColor"
+        opacity={active ? 1 : 0.9}
+      />
     </svg>
   )
 }

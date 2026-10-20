@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { pickRandomLobbyGame } from '@/lib/lumen/casino-lobby-catalog'
 import { useShell } from './shell-context'
 import { ShellIcon, type ShellIconName } from './shell-icons'
 import { useHideOnScroll } from './shell-scroll'
@@ -11,7 +12,7 @@ import { cn } from '@/lib/utils'
 const CASINO_DOCK: { href: string; icon: ShellIconName; label: string }[] = [
   { href: '/casino', icon: 'search', label: 'Search' },
   { href: '/casino', icon: 'random', label: 'Play Random' },
-  { href: '/casino', icon: 'favorite', label: 'Favourites' },
+  { href: '/casino/category/favourites', icon: 'favorite', label: 'Favourites' },
 ]
 
 const SPORTS_DOCK: { href: string; icon: ShellIconName; label: string }[] = [
@@ -26,7 +27,7 @@ function dockForProduct(product: ShellProduct) {
 
 /** Figma `nav-menu-icon-solid` — floating dock. Labels sit under the icons. */
 export function ShellMobileNav() {
-  const { product, setCasinoSearchOpen } = useShell()
+  const { product, setCasinoSearchOpen, launchGame } = useShell()
   const hidden = useHideOnScroll('down')
   const items = dockForProduct(product)
   const [selected, setSelected] = useState<string | null>(null)
@@ -43,6 +44,7 @@ export function ShellMobileNav() {
       {items.map((item) => {
         const active = selected === item.label
         const openSearch = product === 'casino' && item.label === 'Search'
+        const playRandom = product === 'casino' && item.label === 'Play Random'
         return (
           <Link
             key={item.label}
@@ -55,6 +57,11 @@ export function ShellMobileNav() {
               if (openSearch) {
                 e.preventDefault()
                 setCasinoSearchOpen(true)
+                return
+              }
+              if (playRandom) {
+                e.preventDefault()
+                launchGame(pickRandomLobbyGame())
               }
             }}
             className={cn(

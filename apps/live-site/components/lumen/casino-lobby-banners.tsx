@@ -12,6 +12,7 @@ import {
 import { ShellIcon } from '@/components/site/shell-icons';
 import { Card } from '@/components/ui/card';
 import { Typography } from '@/components/ui/typography';
+import { useGrowProgress } from '@/lib/lumen/use-grow-progress';
 import { cn } from '@/lib/utils';
 
 const BANNER_LAUNCH_MS = 2200;
@@ -55,6 +56,7 @@ export function VipProgressBanner({
   className,
 }: VipProgressBannerProps) {
   const pct = Math.min(100, Math.max(0, progressPercent));
+  const grown = useGrowProgress(pct);
   const { loading, launch } = useLaunchAction(onOpenHub);
 
   return (
@@ -88,12 +90,19 @@ export function VipProgressBanner({
       <div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{levelLabel}</span>
-          <span>{pct}%</span>
+          <span className="tabular-nums">{Math.round(grown)}%</span>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-muted-2">
+        <div
+          className="mt-2 h-2 overflow-hidden rounded-full bg-surface-muted-2"
+          role="progressbar"
+          aria-valuenow={Math.round(grown)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="VIP tier progress"
+        >
           <div
-            className="h-full rounded-full bg-[var(--vip-rewards-bronze-400,#e39e3d)] transition-[width]"
-            style={{ width: `${pct}%` }}
+            className="h-full rounded-full bg-[var(--vip-rewards-bronze-400,#e39e3d)]"
+            style={{ width: `${grown}%` }}
           />
         </div>
         <Typography as="p" shape="xxs" variant="muted" className="mt-2">
@@ -258,7 +267,8 @@ export type CasinoLobbyBannerRowProps = {
 /** Figma 69-47911 — VIP + Daily Races + promo cards. Inside arrows sit on the track. */
 const DEFAULT_PROMOS: PromoLobbyBannerItem[] = [{ id: 'promo-1' }, { id: 'promo-2' }];
 
-const ARROW_CLASS = 'absolute top-1/2 z-10 size-8 -translate-y-1/2 rounded-full';
+const ARROW_CLASS =
+  'absolute top-1/2 z-10 size-8 -translate-y-1/2 rounded-full max-md:!hidden';
 
 export function CasinoLobbyBannerRow({
   vip = {},

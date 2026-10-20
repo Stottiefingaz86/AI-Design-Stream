@@ -3,6 +3,7 @@
 import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import NumberFlow from '@number-flow/react'
 import { Button } from '@/components/ui/button'
 import { useShell } from './shell-context'
 import { ShellIcon, type ShellIconName } from './shell-icons'
@@ -29,37 +30,54 @@ const REWARDS_ITEMS: { label: string; icon: ShellIconName }[] = [
 ]
 
 export function ShellUbc() {
-  const { drawerOpen, setDrawerOpen, setCashierOpen } = useShell()
+  const {
+    drawerOpen,
+    setDrawerOpen,
+    cashierOpen,
+    setCashierOpen,
+    vipHubOpen,
+    setVipHubOpen,
+  } = useShell()
 
-  const openCashier = () => {
-    setDrawerOpen(false)
-    setCashierOpen(true)
+  const toggleCashier = () => {
+    setCashierOpen(!cashierOpen)
   }
 
   const toggleAccount = () => {
-    setCashierOpen(false)
     setDrawerOpen(!drawerOpen)
+  }
+
+  const toggleVip = () => {
+    setVipHubOpen(!vipHubOpen)
   }
 
   return (
     <div className="flex items-center gap-2">
-      <BalanceButton onClick={openCashier} />
-      <VipButton />
+      <BalanceButton onClick={toggleCashier} open={cashierOpen} />
+      <VipButton onClick={toggleVip} open={vipHubOpen} />
       <AccountButton onClick={toggleAccount} open={drawerOpen} />
     </div>
   )
 }
 
-function BalanceButton({ onClick }: { onClick: () => void }) {
+function BalanceButton({ onClick, open = false }: { onClick: () => void; open?: boolean }) {
+  const { displayBalance } = useShell()
+
   return (
     <button
       type="button"
+      data-shell-balance=""
       onClick={onClick}
+      aria-expanded={open}
+      aria-label={open ? 'Close wallet' : 'Open wallet'}
       className="shell-chrome-btn flex h-9 items-center overflow-hidden rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] pl-1.5 transition-colors duration-200 ease-in-out hover:bg-white/10"
-      aria-label="Account and balance"
     >
       <span className="px-1 text-xs font-medium leading-4 text-[rgba(255,255,255,0.87)]">
-        $10.00
+        $
+        <NumberFlow
+          value={displayBalance}
+          format={{ minimumFractionDigits: 2, maximumFractionDigits: 2 }}
+        />
       </span>
       <span className="flex h-9 items-center bg-[rgba(255,255,255,0.1)] px-2.5">
         <ShellIcon name="wallet" className="size-4" />
@@ -68,14 +86,31 @@ function BalanceButton({ onClick }: { onClick: () => void }) {
   )
 }
 
-function VipButton() {
+function VipButton({ onClick, open = false }: { onClick: () => void; open?: boolean }) {
+  const { vipClaimCount } = useShell()
+  const needsAttention = vipClaimCount > 0
+
   return (
     <button
       type="button"
-      aria-label="VIP level"
-      className="shell-chrome-btn inline-flex size-9 items-center justify-center rounded-lg border border-[rgba(227,158,61,0.55)] bg-[rgba(227,158,61,0.18)] opacity-80 transition-[background-color,border-color,opacity] duration-200 ease-in-out hover:border-[rgba(227,158,61,0.95)] hover:bg-[rgba(227,158,61,0.42)] hover:opacity-100"
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label={
+        needsAttention
+          ? `VIP Hub, ${vipClaimCount} reward${vipClaimCount === 1 ? '' : 's'} ready to claim`
+          : 'VIP Hub'
+      }
+      className={cn(
+        'shell-chrome-btn relative inline-flex size-9 items-center justify-center rounded-lg border border-[rgba(227,158,61,0.55)] bg-[rgba(227,158,61,0.18)] opacity-80 transition-[background-color,border-color,opacity] duration-200 ease-in-out hover:border-[rgba(227,158,61,0.95)] hover:bg-[rgba(227,158,61,0.42)] hover:opacity-100',
+        needsAttention && 'vip-crown-wobble opacity-100',
+      )}
     >
       <ShellIcon name="crownGold" className="size-4 opacity-100" />
+      {needsAttention ? (
+        <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-white">
+          {vipClaimCount > 9 ? '9+' : vipClaimCount}
+        </span>
+      ) : null}
     </button>
   )
 }
@@ -214,7 +249,7 @@ export function UbcPanel({
   onClose: () => void
   showClose?: boolean
 }) {
-  const { setLoggedIn } = useShell()
+  const { setLoggedIn, setVipHubOpen, vipClaimCount, displayBalance } = useShell()
 
   return (
     <div data-name="UBC_content" className="flex w-full flex-col gap-5 pb-6">
@@ -240,17 +275,18 @@ export function UbcPanel({
         </div>
 
         <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-card px-6 py-5">
-          <Row label="Available Balance" value="$10.00" />
+          <Row
+            label="Available Balance"
+            value={`$${displayBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          />
           <Row label="Free Bet" value="$0.00" />
-          <Row label="Level" value="Gold" gold />
+          <Row label="Level" value="Bronze" gold />
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
         <Divider />
-        <MenuRow
-          item={{ label: 'Notifications', icon: 'bell', badge: '12' }}
-        />
+        <MenuRow item={{ label: 'Notifications', icon: 'bell', badge: '12' }} />
         <Divider />
         <div className="flex flex-col gap-2">
           {ACCOUNT_ITEMS.map((item) => (
@@ -260,7 +296,23 @@ export function UbcPanel({
         <Divider />
         <div className="flex flex-col gap-2">
           {REWARDS_ITEMS.map((item) => (
-            <MenuRow key={item.label} item={item} />
+            <MenuRow
+              key={item.label}
+              item={{
+                ...item,
+                ...(item.label === 'VIP Hub' && vipClaimCount > 0
+                  ? { badge: String(vipClaimCount) }
+                  : null),
+              }}
+              onClick={
+                item.label === 'VIP Hub'
+                  ? () => {
+                      onClose()
+                      window.setTimeout(() => setVipHubOpen(true), 180)
+                    }
+                  : undefined
+              }
+            />
           ))}
         </div>
         <Divider />
@@ -305,6 +357,7 @@ export function ThemeToggleButton({ className }: { className?: string }) {
 
 function MenuRow({
   item,
+  onClick,
 }: {
   item: {
     label: string
@@ -313,10 +366,12 @@ function MenuRow({
     badgeMuted?: boolean
     value?: string
   }
+  onClick?: () => void
 }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="shell-chrome-btn flex h-11 w-full items-center gap-2 rounded-lg px-4 text-left text-sm font-medium leading-5 text-foreground transition-colors duration-200 ease-in-out hover:bg-accent"
     >
       <span className="flex size-6 items-center justify-center">

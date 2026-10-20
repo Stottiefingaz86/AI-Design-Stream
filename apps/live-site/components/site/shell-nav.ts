@@ -2,10 +2,16 @@ import type { ShellIconName } from './shell-icons'
 
 export type ShellProduct = 'casino' | 'sports' | 'poker' | 'promotions'
 
+export type ShellNavAction = 'launch-last-game' | 'launch-random'
+
 export type ShellNavItem = {
   label: string
   href: string
   icon: ShellIconName
+  /** Optional thumbnail (e.g. last game art) — shown instead of the vector icon. */
+  iconSrc?: string
+  /** Opens game launcher instead of navigating. */
+  action?: ShellNavAction
   active?: boolean
   subtitle?: string
   emphasis?: boolean
@@ -94,8 +100,10 @@ export function headerItemActive(label: string, pathname: string) {
 
 export function chipItemActive(label: string, pathname: string) {
   if (label === 'Home') return pathname === '/'
-  /* Casino stays active for lobby + slots + live (product), not only lobby. */
-  if (label === 'Casino') return pathname.startsWith('/casino')
+  /* Mobile chips: Casino and Live Casino are mutually exclusive. */
+  if (label === 'Casino') {
+    return pathname.startsWith('/casino') && !pathname.startsWith('/casino/live')
+  }
   if (label === 'Live Casino') return pathname.startsWith('/casino/live')
   if (label === 'Sports') return pathname.startsWith('/sports')
   if (label === 'Live Betting') return false
@@ -104,12 +112,41 @@ export function chipItemActive(label: string, pathname: string) {
   return false
 }
 
+/** Which left-nav row is active for the current URL (Lobby vs Slots vs Live, etc.). */
+export function navItemActive(item: Pick<ShellNavItem, 'label' | 'href'>, pathname: string): boolean {
+  if (item.href === '/casino/slots') return pathname.startsWith('/casino/slots')
+  if (item.href === '/casino/live') return pathname.startsWith('/casino/live')
+  if (item.href === '/casino/table-games') return pathname.startsWith('/casino/table-games')
+  if (item.href === '/casino/video-poker') return pathname.startsWith('/casino/video-poker')
+  if (item.href === '/casino/specialty') return pathname.startsWith('/casino/specialty')
+  if (item.href === '/casino/virtual-sports') return pathname.startsWith('/casino/virtual-sports')
+  if (item.href === '/casino/category/popular') return pathname.startsWith('/casino/category/popular')
+  if (item.href === '/casino/category/favourites') {
+    return pathname.startsWith('/casino/category/favourites')
+  }
+  if (item.label === 'Casino Lobby') return pathname === '/casino' || pathname === '/'
+  if (item.label === 'Sports Home') return pathname.startsWith('/sports')
+  if (item.label === 'Start' && item.href === '/poker') return pathname.startsWith('/poker')
+  if (item.label === 'All Promotions') return pathname.startsWith('/promotions')
+  return false
+}
+
+export function withNavActive(groups: ShellNavGroup[], pathname: string): ShellNavGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    items: group.items.map((item) => ({
+      ...item,
+      active: navItemActive(item, pathname),
+    })),
+  }))
+}
+
 export function navForProduct(product: ShellProduct): ShellNavGroup[] {
   if (product === 'sports') {
     return [
       {
         items: [
-          { label: 'Sports Home', href: '/sports', icon: 'house', active: true, emphasis: true },
+          { label: 'Sports Home', href: '/sports', icon: 'house', emphasis: true },
           { label: 'My Bets', href: '/sports', icon: 'bets', emphasis: true },
           { label: 'Live Betting', href: '/sports', icon: 'broadcast', emphasis: true },
           { label: 'World Cup 2026', href: '/sports', icon: 'star', emphasis: true },
@@ -159,7 +196,7 @@ export function navForProduct(product: ShellProduct): ShellNavGroup[] {
       },
       {
         items: [
-          { label: 'Start', href: '/poker', icon: 'start', active: true },
+          { label: 'Start', href: '/poker', icon: 'start' },
           { label: 'Features', href: '/poker', icon: 'diamond' },
           { label: 'Getting Started', href: '/poker', icon: 'rocket' },
           { label: 'Integrity', href: '/poker', icon: 'shield' },
@@ -173,7 +210,7 @@ export function navForProduct(product: ShellProduct): ShellNavGroup[] {
     return [
       {
         items: [
-          { label: 'All Promotions', href: '/promotions', icon: 'megaphone', active: true },
+          { label: 'All Promotions', href: '/promotions', icon: 'megaphone' },
           { label: 'My Bonus', href: '/promotions', icon: 'gift' },
           { label: 'Contests', href: '/promotions', icon: 'contests' },
           { label: 'Refer A Friend', href: '/promotions', icon: 'refer' },
@@ -189,21 +226,35 @@ export function navForProduct(product: ShellProduct): ShellNavGroup[] {
   return [
     {
       items: [
-        { label: 'Casino Lobby', href: '/casino', icon: 'library', active: true, emphasis: true },
-        { label: 'Favorite', href: '/casino', icon: 'favorite', emphasis: true },
-        { label: 'Play Random', href: '/casino', icon: 'random', emphasis: true },
-        { label: 'Last Game Played', href: '/casino', icon: 'lastGame', subtitle: '<Game Name>', emphasis: true },
+        { label: 'Casino Lobby', href: '/casino', icon: 'library', emphasis: true },
+        { label: 'Favorite', href: '/casino/category/favourites', icon: 'favorite', emphasis: true },
+        {
+          label: 'Play Random',
+          href: '/casino',
+          icon: 'random',
+          action: 'launch-random',
+          emphasis: true,
+        },
+        {
+          label: 'Last Game Played',
+          href: '/casino',
+          icon: 'lastGame',
+          iconSrc: '/games/originals/chicken.png',
+          subtitle: 'Chicken',
+          action: 'launch-last-game',
+          emphasis: true,
+        },
       ],
     },
     {
       items: [
-        { label: 'Popular Games', href: '/casino', icon: 'popular' },
+        { label: 'Popular Games', href: '/casino/category/popular', icon: 'popular' },
         { label: 'Slots', href: '/casino/slots', icon: 'slots' },
-        { label: 'Blackjack', href: '/casino', icon: 'blackjack' },
-        { label: 'Video Poker', href: '/casino', icon: 'videoPoker' },
-        { label: 'Specialty Games', href: '/casino', icon: 'specialty' },
-        { label: 'Table Games', href: '/casino', icon: 'table' },
         { label: 'Live Casino', href: '/casino/live', icon: 'live' },
+        { label: 'Table Games', href: '/casino/table-games', icon: 'table' },
+        { label: 'Video Poker', href: '/casino/video-poker', icon: 'videoPoker' },
+        { label: 'Specialty Games', href: '/casino/specialty', icon: 'specialty' },
+        { label: 'Virtuals', href: '/casino/virtual-sports', icon: 'virtuals' },
         { label: 'Tournaments', href: '/casino', icon: 'tournaments' },
       ],
     },
