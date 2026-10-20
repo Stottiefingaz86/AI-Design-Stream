@@ -1402,9 +1402,9 @@ main[data-sidebar="inset"] > * {
  * my-bonus filters / Radix portals) — they need fixed + full height. Without this
  * carve-out, `position: relative !important` overrides Floating UI / overlay `fixed`
  * and menus/sheets land off-screen. */
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]),
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]),
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]) > div[class*="flex"] {
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]) > div[class*="flex"] {
   overflow: visible !important;
   overflow-x: hidden !important;
   position: relative !important;
@@ -1414,6 +1414,16 @@ body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]
 /* Keep Floating UI poppers fixed — legacy body rules must never unstick them. */
 [data-radix-popper-content-wrapper] {
   position: fixed !important;
+}
+
+/* My Bonus “Pick a game” — fixed menu portaled to body. */
+[data-pick-a-game-menu] {
+  position: fixed !important;
+  height: auto !important;
+  max-height: min(280px, 70vh) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  z-index: 220 !important;
 }
 
 /* My Bonus filters sheet — same carve-out treatment as VIP Hub / search. */

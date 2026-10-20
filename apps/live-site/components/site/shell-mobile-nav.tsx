@@ -87,8 +87,8 @@ export function ShellMobileNav() {
                 }
               }}
               className={cn(
-                /* rounded-xl (not full) so long labels stay inside the highlight, not in the end-cap curve */
-                'flex h-[46px] w-16 shrink-0 flex-col items-center justify-center gap-0 rounded-xl px-0.5 text-[11px] font-medium leading-[14px] outline-none ring-0 transition-[background-color,color,transform] duration-200 ease-in-out',
+                /* Same stadium radius as the dock — not a squared chip in a circle. */
+                'flex h-[46px] w-16 shrink-0 flex-col items-center justify-center gap-0 rounded-full px-1 text-[11px] font-medium leading-[14px] outline-none ring-0 transition-[background-color,color,transform] duration-200 ease-in-out',
                 active
                   ? 'bg-secondary text-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -102,7 +102,7 @@ export function ShellMobileNav() {
                   active={active}
                   className={cn(
                     'size-5',
-                    active ? 'bg-foreground' : 'bg-current',
+                    active ? 'bg-foreground' : 'bg-muted-foreground',
                   )}
                 />
               </span>

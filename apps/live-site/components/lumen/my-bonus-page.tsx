@@ -1,6 +1,16 @@
 'use client'
 
-import { Fragment, useMemo, useState, type ReactNode } from 'react'
+import {
+  Fragment,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { createPortal } from 'react-dom'
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -9,12 +19,6 @@ import {
   IconInfoCircle,
 } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Select,
   SelectContent,
@@ -70,6 +74,127 @@ function StatusBadge({ status }: { status: BonusStatus }) {
   )
 }
 
+/** Fixed body portal — bypasses Radix popper (legacy body CSS unsticks it). */
+function PickAGameMenu({ onLaunch }: { onLaunch: (game: CasinoLobbyGame) => void }) {
+  const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState({ top: 0, left: 0 })
+  const [portalReady, setPortalReady] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const menuId = useId()
+
+  useEffect(() => {
+    setPortalReady(true)
+  }, [])
+
+  const updateCoords = () => {
+    const el = triggerRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const width = 192
+    let left = r.left
+    if (left + width > window.innerWidth - 12) left = window.innerWidth - 12 - width
+    if (left < 12) left = 12
+    let top = r.bottom + 6
+    const estHeight = Math.min(280, PICK_A_GAME_OPTIONS.length * 36 + 8)
+    if (top + estHeight > window.innerHeight - 12) {
+      top = Math.max(12, r.top - estHeight - 6)
+    }
+    setCoords({ top, left })
+  }
+
+  useLayoutEffect(() => {
+    if (!open) return
+    updateCoords()
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    const onPointer = (e: PointerEvent) => {
+      const t = e.target as Node
+      if (triggerRef.current?.contains(t)) return
+      if (menuRef.current?.contains(t)) return
+      setOpen(false)
+    }
+    const onReposition = () => updateCoords()
+    const attachId = window.setTimeout(() => {
+      document.addEventListener('pointerdown', onPointer, true)
+    }, 0)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('resize', onReposition)
+    window.addEventListener('scroll', onReposition, true)
+    return () => {
+      window.clearTimeout(attachId)
+      document.removeEventListener('pointerdown', onPointer, true)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', onReposition)
+      window.removeEventListener('scroll', onReposition, true)
+    }
+  }, [open])
+
+  return (
+    <>
+      <Button
+        ref={triggerRef}
+        type="button"
+        variant="outline"
+        size="sm"
+        className="min-w-[5.5rem]"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        aria-haspopup="listbox"
+        onClick={() => {
+          if (open) {
+            setOpen(false)
+            return
+          }
+          updateCoords()
+          setOpen(true)
+        }}
+      >
+        Pick a game
+      </Button>
+      {open && portalReady
+        ? createPortal(
+            <div
+              ref={menuRef}
+              id={menuId}
+              role="listbox"
+              aria-label="Pick a game"
+              data-pick-a-game-menu=""
+              className="min-w-[12rem] overflow-hidden rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+              style={{
+                position: 'fixed',
+                top: coords.top,
+                left: coords.left,
+                zIndex: 220,
+              }}
+            >
+              {PICK_A_GAME_OPTIONS.map((game) => (
+                <button
+                  key={game.id}
+                  type="button"
+                  role="option"
+                  className="flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => {
+                    setOpen(false)
+                    onLaunch(game)
+                  }}
+                >
+                  {game.title}
+                </button>
+              ))}
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  )
+}
+
 function CasinoActionCell({
   action,
   onLaunch,
@@ -90,30 +215,7 @@ function CasinoActionCell({
     )
   }
 
-  return (
-    <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="min-w-[5.5rem]">
-          Pick a game
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="start"
-        sideOffset={6}
-        className="z-[220] min-w-[12rem]"
-      >
-        {PICK_A_GAME_OPTIONS.map((game) => (
-          <DropdownMenuItem
-            key={game.id}
-            className="cursor-pointer"
-            onSelect={() => onLaunch(game)}
-          >
-            {game.title}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+  return <PickAGameMenu onLaunch={onLaunch} />
 }
 
 function DetailField({ label, children }: { label: string; children: ReactNode }) {
