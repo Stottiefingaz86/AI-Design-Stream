@@ -2,12 +2,19 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { motion } from 'framer-motion'
 import NumberFlow from '@number-flow/react'
 import { IconMaximize, IconMinimize, IconSettings, IconX } from '@tabler/icons-react'
 import { Favorite } from '@/components/lumen/favorite'
 import { JACKPOT_TIERS, type CasinoLobbyGame, type JackpotTierId } from '@/lib/lumen/casino-lobby-catalog'
 import { useJackpotAmounts } from '@/lib/lumen/use-jackpot-amounts'
 import { cn } from '@/lib/utils'
+
+const LAUNCHER_EASE = [0.22, 1, 0.36, 1] as const
+/** Header slides down from above the viewport. */
+const HEADER_DROP = { type: 'spring' as const, stiffness: 320, damping: 30, mass: 0.85 }
+/** Game stage pops in from center — enough damping to avoid bounce flicker. */
+const GAME_POP = { type: 'spring' as const, stiffness: 320, damping: 28, mass: 0.85 }
 
 /** Ticker colors — Figma 130:436517. Mega is the gradient; Must Drop is vip-rewards. */
 const TICKER_TIER_CLASS: Record<(typeof JACKPOT_TIERS)[number]['tone'], string> = {
@@ -468,110 +475,127 @@ export function GameLauncher({
     }
   }, [open, onClose, infoOpen])
 
-  if (!mounted || !open || !game) return null
+  if (!mounted) return null
+
+  /* Instant unmount on close — no exit animation. */
+  if (!open || !game) return null
 
   return createPortal(
-    <div
+    <motion.div
+      key={game.id}
       ref={rootRef}
       data-casino-game-root=""
       data-name="game-launcher"
       data-testid="game-launcher"
       data-brand="betonline"
-      className="dark fixed inset-0 z-[320] flex flex-col bg-[#0a0a0a] p-3 text-[rgba(255,255,255,0.87)] sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label={game.title}
+      className="dark fixed inset-0 z-[320] flex flex-col bg-[#0a0a0a] p-3 text-[rgba(255,255,255,0.87)] sm:p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.22, ease: LAUNCHER_EASE }}
     >
-      <div
+      <motion.div
         data-name="jackpot-header"
         className="relative z-10 flex w-full shrink-0 flex-col overflow-visible rounded-[14px] border border-white/[0.08] bg-[#212121]"
+        initial={{ opacity: 0, y: '-120%' }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={HEADER_DROP}
       >
-        {/*
-          Desktop: 3-col grid keeps the title truly centered.
-          Mobile: favourite + title left, controls right.
-        */}
-        <div className="relative z-20 grid grid-cols-[1fr_auto] items-center gap-2 overflow-visible p-2 md:grid-cols-[1fr_auto_1fr]">
-          <div className="flex min-w-0 items-center gap-2 md:justify-start">
-            <Favorite
-              inline
-              title={game.title}
-              onFavoriteChange={onFavoriteChange}
-              className="md:hidden"
-            />
-            <p className="min-w-0 truncate text-xs font-medium leading-4 text-[rgba(255,255,255,0.87)] md:hidden">
-              {game.title}
-            </p>
-            {/* Balance left actions width so the center title stays centered on desktop */}
-            <span className="hidden md:block" aria-hidden />
-          </div>
+            {/*
+              Desktop: 3-col grid keeps the title truly centered.
+              Mobile: favourite + title left, controls right.
+            */}
+            <div className="relative z-20 grid grid-cols-[1fr_auto] items-center gap-2 overflow-visible p-2 md:grid-cols-[1fr_auto_1fr]">
+              <div className="flex min-w-0 items-center gap-2 md:justify-start">
+                <Favorite
+                  inline
+                  title={game.title}
+                  onFavoriteChange={onFavoriteChange}
+                  className="md:hidden"
+                />
+                <p className="min-w-0 truncate text-xs font-medium leading-4 text-[rgba(255,255,255,0.87)] md:hidden">
+                  {game.title}
+                </p>
+                <span className="hidden md:block" aria-hidden />
+              </div>
 
-          <p className="hidden text-center text-sm font-medium leading-5 text-[rgba(255,255,255,0.87)] md:block">
-            {game.title}
-          </p>
+              <p className="hidden text-center text-sm font-medium leading-5 text-[rgba(255,255,255,0.87)] md:block">
+                {game.title}
+              </p>
 
-          <div className="flex items-center justify-end gap-6">
-            <OptInPill
-              enabled={optIn}
-              onToggle={setOptIn}
-              label={spinLabel}
-              infoOpen={infoOpen}
-              onInfoOpenChange={setInfoOpen}
-              ticker={ticker}
-              onTickerChange={setTicker}
-              countdown={mustDropCountdown}
-              amounts={amounts}
-            />
-            <div className="flex items-center gap-4">
-            <button
-              type="button"
-              aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-              aria-pressed={fullscreen}
-              onClick={toggleFullscreen}
-              className="inline-flex size-7 items-center justify-center rounded-lg p-1.5 text-[rgba(255,255,255,0.87)] transition-colors hover:bg-white/10"
-            >
-              {fullscreen ? <IconMinimize className="size-4" /> : <IconMaximize className="size-4" />}
-            </button>
-            <Favorite
-              inline
-              title={game.title}
-              onFavoriteChange={onFavoriteChange}
-              className="hidden md:inline-flex"
-            />
-            <button
-              type="button"
-              aria-label="Close game"
-              onClick={onClose}
-              className="inline-flex size-7 items-center justify-center rounded-lg p-1.5 text-[rgba(255,255,255,0.87)] transition-colors hover:bg-white/10"
-            >
-              <IconX className="size-4" />
-            </button>
+              <div className="flex items-center justify-end gap-6">
+                <OptInPill
+                  enabled={optIn}
+                  onToggle={setOptIn}
+                  label={spinLabel}
+                  infoOpen={infoOpen}
+                  onInfoOpenChange={setInfoOpen}
+                  ticker={ticker}
+                  onTickerChange={setTicker}
+                  countdown={mustDropCountdown}
+                  amounts={amounts}
+                />
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                    aria-pressed={fullscreen}
+                    onClick={toggleFullscreen}
+                    className="inline-flex size-7 items-center justify-center rounded-lg p-1.5 text-[rgba(255,255,255,0.87)] transition-colors hover:bg-white/10"
+                  >
+                    {fullscreen ? <IconMinimize className="size-4" /> : <IconMaximize className="size-4" />}
+                  </button>
+                  <Favorite
+                    inline
+                    title={game.title}
+                    onFavoriteChange={onFavoriteChange}
+                    className="hidden md:inline-flex"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Close game"
+                    onClick={onClose}
+                    className="inline-flex size-7 items-center justify-center rounded-lg p-1.5 text-[rgba(255,255,255,0.87)] transition-colors hover:bg-white/10"
+                  >
+                    <IconX className="size-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        {ticker ? (
-          <>
-            <div className="h-px w-full bg-white/[0.08]" aria-hidden />
-            <JackpotRow countdown={mustDropCountdown} amounts={amounts} />
-          </>
-        ) : null}
-      </div>
+            {ticker ? (
+              <>
+                <div className="h-px w-full bg-white/[0.08]" aria-hidden />
+                <JackpotRow countdown={mustDropCountdown} amounts={amounts} />
+              </>
+            ) : null}
+          </motion.div>
 
-      <div
+      {/* Game stage — single pop; no layered overlay fade (that read as a wipe). */}
+      <motion.div
         data-name="game-viewport"
-        className="relative mt-3 min-h-0 flex-1 overflow-hidden rounded-[14px] bg-black sm:mt-4"
+        className="relative mt-3 min-h-0 flex-1 origin-center overflow-hidden rounded-[14px] bg-black sm:mt-4"
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ ...GAME_POP, delay: 0.1 }}
       >
         {game.imageSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={game.imageSrc} alt="" className="absolute inset-0 size-full object-cover" />
+          <img
+            src={game.imageSrc}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
+          />
         ) : null}
         <div className="absolute inset-0 flex items-center justify-center bg-black/45">
           <p className="rounded-full border border-white/20 bg-black/50 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm">
             Click to continue
           </p>
         </div>
-      </div>
-    </div>,
+      </motion.div>
+    </motion.div>,
     document.body,
   )
 }
