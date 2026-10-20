@@ -154,8 +154,17 @@ const LIVE_LOBBY_ROSTER: LiveRosterEntry[] = [
   { id: 'baccarat-3', kind: 'baccarat', title: 'Live Baccarat' },
 ]
 
-/** Recent games only — Play Random is appended after these in the lobby rail. */
+/** Sidebar / header “Last Game Played” — Chicken. */
+export const LAST_GAME_PLAYED: CasinoLobbyGame = originals(
+  'chicken',
+  'Chicken',
+  '/games/originals/chicken.png',
+)
+
+/** Recent games only — Play Random is appended after these in the lobby rail.
+ * First tile = last game played (Chicken). */
 export const CONTINUE_PLAYING: CasinoLobbyGame[] = [
+  LAST_GAME_PLAYED,
   originals('continue-blackjack'),
   live('continue-roulette', 'roulette', 'LIVE Roulette', 0),
   slot('continue-plinko', SLOT_TITLES[0], SLOT_ART[0]),
@@ -163,13 +172,6 @@ export const CONTINUE_PLAYING: CasinoLobbyGame[] = [
 
 export const ORIGINALS_GAMES: CasinoLobbyGame[] = ORIGINALS_ROSTER.map((game) =>
   originals(game.id, game.title, game.image),
-)
-
-/** Sidebar / header “Last Game Played” — Chicken. */
-export const LAST_GAME_PLAYED: CasinoLobbyGame = originals(
-  'chicken',
-  'Chicken',
-  '/games/originals/chicken.png',
 )
 
 /** Pool for Play Random — originals + recent slots art. */
