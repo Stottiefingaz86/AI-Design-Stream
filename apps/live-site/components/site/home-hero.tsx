@@ -9,7 +9,7 @@ import { Shimmer, ShimmerText } from '@/components/lumen/animations'
 import { cn } from '@/lib/utils'
 
 const CASINO_TILES = [
-  '/games/originals/plink.png',
+  '/games/originals/plinko.png',
   '/games/originals/blackjack.png',
   '/games/originals/dice.png',
   '/games/originals/diamonds.png',

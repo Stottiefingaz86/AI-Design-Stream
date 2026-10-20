@@ -173,26 +173,26 @@ import { Input } from '@/components/ui/input'
 
 // Available square tile images
 const squareTileImages = [
-  '/games/square/goldNuggetRush.png',
-  '/games/square/megacrush.png',
-  '/games/square/goldNuggetRush2.png',
-  '/games/square/mrMammoth.png',
-  '/games/square/cocktailWheel.png',
-  '/games/square/takeTheBank.png',
-  '/games/square/hookedOnFishing.png',
-  '/games/square/roulette.png',
-  '/games/square/blackjack.png',
-  '/games/square/baccarat.png',
-  '/games/square/game8.png',
-  '/games/square/game17.png',
-  '/games/square/game18.png',
-  '/games/square/game20.png',
-  '/games/square/game21.png',
+  '/games/originals/plinko.png',
+  '/games/originals/mines.png',
+  '/games/originals/dice.png',
+  '/games/originals/crash.png',
+  '/games/originals/wheel.png',
+  '/games/originals/keno.png',
+  '/games/originals/limbo.png',
+  '/games/originals/hilo.png',
+  '/games/originals/blackjack.png',
+  '/games/originals/baccarat.png',
+  '/games/originals/roulette.png',
+  '/games/originals/chicken.png',
+  '/games/originals/trader.png',
+  '/games/originals/diamonds.png',
+  '/games/originals/dragons-tower.png',
 ]
 
 // Originals tile images (tall rectangles)
 const originalsTileImages = [
-  '/games/originals/plink.png',
+  '/games/originals/plinko.png',
   '/games/originals/blackjack.png',
   '/games/originals/dice.png',
   '/games/originals/diamonds.png',
@@ -201,7 +201,7 @@ const originalsTileImages = [
   '/games/originals/limbo.png',
   '/games/originals/wheel.png',
   '/games/originals/hilo.png',
-  '/games/originals/video_poker.png',
+  '/games/originals/video-poker.png',
 ]
 
 // Mock game data
@@ -575,7 +575,6 @@ function TotalRewardsCard() {
             $<NumberFlow 
               value={shouldAnimate ? targetValue : 0} 
               format={{ notation: 'standard', minimumFractionDigits: 2, maximumFractionDigits: 2 }}
-              duration={2000}
             />
           </div>
         </CardContent>

@@ -38,3 +38,4 @@ JURNII_PASSWORD
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env*

@@ -1,3 +1,4 @@
+import { isStudioFigmaUrl } from './knowledge';
 import type {
   StudioApproval,
   StudioChannel,
@@ -40,7 +41,7 @@ function generalChannel(): StudioChannel {
     id: GENERAL_CHANNEL_ID,
     kind: 'general',
     name: 'general',
-    topic: 'Studio-wide. Stand-ups, announcements, anything not tied to one brief.',
+    topic: 'Ask the team here. Small work stays in this thread — New brief is for a whole area.',
     createdAt: nowIso(),
   };
 }
@@ -67,7 +68,8 @@ function ensureChannels(snap: StudioStoreSnapshot): boolean {
   }
   for (const p of snap.projects) {
     const id = projectChannelId(p.id);
-    if (!snap.channels.some((c) => c.id === id)) {
+    const existing = snap.channels.find((c) => c.id === id);
+    if (!existing) {
       snap.channels.push({
         id,
         kind: 'project',
@@ -75,7 +77,11 @@ function ensureChannels(snap: StudioStoreSnapshot): boolean {
         projectId: p.id,
         topic: p.surface ? `${p.title} — ${p.surface}` : p.title,
         createdAt: p.createdAt,
+        archived: Boolean(p.archivedAt),
       });
+      changed = true;
+    } else if (Boolean(p.archivedAt) !== Boolean(existing.archived)) {
+      existing.archived = Boolean(p.archivedAt);
       changed = true;
     }
   }
@@ -144,10 +150,22 @@ export function mutateStudioStore<T>(fn: (snap: StudioStoreSnapshot) => T): T {
 
 /* ---------------- projects ---------------- */
 
+export function isArchivedProject(p: StudioProject) {
+  return Boolean(p.archivedAt);
+}
+
+export function activeProjects(snap: StudioStoreSnapshot) {
+  return snap.projects.filter((p) => !p.archivedAt);
+}
+
 export function listProjects(): StudioProject[] {
-  return loadStudioStore().projects.sort((a, b) =>
-    b.updatedAt.localeCompare(a.updatedAt),
-  );
+  return activeProjects(loadStudioStore()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function listArchivedProjects(): StudioProject[] {
+  return loadStudioStore()
+    .projects.filter((p) => p.archivedAt)
+    .sort((a, b) => (b.archivedAt ?? b.updatedAt).localeCompare(a.archivedAt ?? a.updatedAt));
 }
 
 export function getProject(id: string): StudioProject | null {
@@ -169,6 +187,7 @@ export function createProject(input: {
     surface: input.surface.trim(),
     brief: input.brief.trim(),
     specUrl: input.specUrl.trim(),
+    origin: 'brief',
     status: 'draft',
     references: [],
     briefAnswers: {},
@@ -222,6 +241,102 @@ export function createProject(input: {
   return project;
 }
 
+/** Small ask from Slack — stays in the channel you typed in. */
+export function createChatJob(input: {
+  title: string;
+  kind: StudioProject['kind'];
+  surface: string;
+  brief: string;
+  homeChannelId: string;
+  briefAnswers?: Record<string, string>;
+}): StudioProject {
+  const stamp = nowIso();
+  const project: StudioProject = {
+    id: uid('proj'),
+    title: input.title.trim() || 'Chat request',
+    kind: input.kind,
+    surface: input.surface.trim(),
+    brief: input.brief.trim(),
+    specUrl: '',
+    origin: 'chat',
+    homeChannelId: input.homeChannelId,
+    status: 'draft',
+    references: [],
+    briefAnswers: input.briefAnswers ?? {},
+    artifacts: {},
+    createdAt: stamp,
+    updatedAt: stamp,
+  };
+  mutateStudioStore((snap) => {
+    snap.projects.unshift(project);
+    const channelId = projectChannelId(project.id);
+    if (!snap.channels.some((c) => c.id === channelId)) {
+      snap.channels.push({
+        id: channelId,
+        kind: 'project',
+        name: slugify(project.title),
+        projectId: project.id,
+        topic: `Chat ask — ${project.title}`,
+        createdAt: stamp,
+      });
+    }
+  });
+  return project;
+}
+
+export function markPrototypeOpened(projectId: string) {
+  mutateStudioStore((snap) => {
+    const project = snap.projects.find((p) => p.id === projectId);
+    if (!project || project.artifacts.openedPrototypeAt) return project;
+    project.artifacts = { ...project.artifacts, openedPrototypeAt: nowIso() };
+    project.updatedAt = nowIso();
+    return project;
+  });
+}
+
+function setProjectChannelArchived(snap: StudioStoreSnapshot, projectId: string, archived: boolean) {
+  const ch = snap.channels.find((c) => c.id === projectChannelId(projectId) || c.projectId === projectId);
+  if (ch) ch.archived = archived;
+}
+
+export function archiveProject(id: string): StudioProject | null {
+  return mutateStudioStore((snap) => {
+    const project = snap.projects.find((p) => p.id === id);
+    if (!project) return null;
+    project.archivedAt = nowIso();
+    project.updatedAt = project.archivedAt;
+    setProjectChannelArchived(snap, id, true);
+    return project;
+  });
+}
+
+export function unarchiveProject(id: string): StudioProject | null {
+  return mutateStudioStore((snap) => {
+    const project = snap.projects.find((p) => p.id === id);
+    if (!project) return null;
+    project.archivedAt = undefined;
+    project.updatedAt = nowIso();
+    setProjectChannelArchived(snap, id, false);
+    return project;
+  });
+}
+
+/** Permanently drop a brief and its channel, tasks, questions, approvals, and messages. */
+export function deleteProject(id: string): boolean {
+  return mutateStudioStore((snap) => {
+    const before = snap.projects.length;
+    snap.projects = snap.projects.filter((p) => p.id !== id);
+    if (snap.projects.length === before) return false;
+    snap.tasks = snap.tasks.filter((t) => t.projectId !== id);
+    snap.questions = snap.questions.filter((q) => q.projectId !== id);
+    snap.approvals = snap.approvals.filter((a) => a.projectId !== id);
+    snap.messages = snap.messages.filter((m) => m.projectId !== id && m.channelId !== projectChannelId(id));
+    snap.channels = snap.channels.filter((c) => c.id !== projectChannelId(id) && c.projectId !== id);
+    delete snap.reads[projectChannelId(id)];
+    return true;
+  });
+}
+
 export function updateProject(
   id: string,
   patch: Partial<
@@ -247,9 +362,7 @@ export function addReference(
     const reference: StudioReference = { ...ref, id: uid('ref'), createdAt: nowIso() };
     project.references = [reference, ...project.references];
     project.updatedAt = nowIso();
-    if (/figma\.com/i.test(reference.value) && /[?&]node-id=/.test(reference.value)) {
-      project.artifacts = { ...project.artifacts, figmaUrl: reference.value };
-    }
+    // Pasted / dropped Figma links are SOURCE. Design mock is only a new studio file.
     // A reference is exactly what an escalated agent asked for: unblock them.
     if (project.escalation && !project.escalation.resolvedAt) {
       project.escalation.resolvedAt = nowIso();
@@ -274,6 +387,19 @@ export function addReference(
       });
     }
     return reference;
+  });
+}
+
+export function persistFigmaUrl(projectId: string, text: string): string | null {
+  const matches = text.match(/https?:\/\/(?:www\.)?figma\.com\/(?:design|file)\/[^\s)\]>'"]+/gi) ?? [];
+  const url = matches.map((u) => u.replace(/[.,;]+$/, '')).find(isStudioFigmaUrl);
+  if (!url) return null;
+  return mutateStudioStore((snap) => {
+    const project = snap.projects.find((p) => p.id === projectId);
+    if (!project) return null;
+    project.artifacts = { ...project.artifacts, figmaUrl: url };
+    project.updatedAt = nowIso();
+    return url;
   });
 }
 
@@ -338,16 +464,46 @@ export function appendMessage(msg: Omit<StudioMessage, 'id' | 'createdAt'>): Stu
   return mutateStudioStore((snap) => pushMessage(snap, msg));
 }
 
+export function patchMessage(id: string, patch: Partial<StudioMessage>) {
+  mutateStudioStore((snap) => {
+    const m = snap.messages.find((x) => x.id === id);
+    if (m) Object.assign(m, patch);
+  });
+}
+
 export function createCustomChannel(name: string, topic?: string): StudioChannel {
   const slug = slugify(name);
   return mutateStudioStore((snap) => {
     const id = `custom:${slug}`;
     const existing = snap.channels.find((c) => c.id === id);
-    if (existing) return existing;
+    if (existing) {
+      existing.archived = false;
+      return existing;
+    }
     const ch: StudioChannel = { id, kind: 'custom', name: slug, topic, createdAt: nowIso() };
     snap.channels.push(ch);
     pushMessage(snap, { channelId: id, author: 'system', kind: 'system', text: `#${slug} created.` });
     return ch;
+  });
+}
+
+/** Wipe a DM thread. Agents stay in the rail. */
+export function clearAgentChat(agentId: string) {
+  const channelId = dmChannelId(agentId);
+  mutateStudioStore((snap) => {
+    snap.messages = snap.messages.filter((m) => m.channelId !== channelId);
+    delete snap.reads[channelId];
+  });
+}
+
+/** Hide a channel from the rail. `#general` and DMs cannot be removed. */
+export function removeChannel(id: string): boolean {
+  if (id === GENERAL_CHANNEL_ID || id.startsWith('dm:')) return false;
+  return mutateStudioStore((snap) => {
+    const ch = snap.channels.find((c) => c.id === id);
+    if (!ch || ch.kind === 'general') return false;
+    ch.archived = true;
+    return true;
   });
 }
 

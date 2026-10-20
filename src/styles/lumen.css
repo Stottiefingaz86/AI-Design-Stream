@@ -25,6 +25,22 @@
   src: url('../../node_modules/@fontsource-variable/figtree/files/figtree-latin-ext-wght-normal.woff2') format('woff2-variations');
 }
 
+/* Lumen `components/skeleton/contrast` + `white` — flat blocks, never muted+pulse. */
+:root,
+[data-brand] {
+  --skeleton: #0000000d;
+  /* Top 10 rank stroke: exposed side → under card (flips with theme). */
+  --top10-stroke-start: #1a1a1a;
+  --top10-stroke-mid: #6b6b6b;
+  --top10-stroke-end: #c4c4c4;
+}
+.dark {
+  --skeleton: #ffffff17;
+  --top10-stroke-start: #e8e8e8;
+  --top10-stroke-mid: #8a8a8a;
+  --top10-stroke-end: #1a1a1a;
+}
+
 html,
 body {
   margin: 0;
@@ -82,6 +98,11 @@ body {
   background: linear-gradient(90deg, transparent, var(--surface-muted-2), transparent);
   animation: lm-shimmer 1.6s infinite;
 }
+@media (prefers-reduced-motion: reduce) {
+  .lm-shimmer::after {
+    animation: none;
+  }
+}
 .lm-shimmer-wrap {
   position: relative;
   display: inline-flex;
@@ -123,6 +144,29 @@ body {
 }
 .lm-confetti { animation: lm-confetti 2.4s linear infinite; }
 
+.twitter-heart-sprite {
+  background-image: url('/animations/twitter-heart-sprite.png');
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: 2900px 100px;
+  -webkit-mask-image: radial-gradient(circle at center, transparent 0 20px, #000 22px);
+  mask-image: radial-gradient(circle at center, transparent 0 20px, #000 22px);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.55)) hue-rotate(-22deg) saturate(1.2) brightness(1.05);
+}
+.twitter-heart-sprite.is-animating {
+  animation: twitter-heart-burst 0.8s steps(28) forwards;
+}
+@keyframes twitter-heart-burst {
+  from { background-position: 0 0; }
+  to { background-position: -2800px 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .twitter-heart-sprite.is-animating {
+    animation: none;
+    background-position: -2800px 0;
+  }
+}
+
 @keyframes lm-particle {
   0% { transform: translate(-50%, -50%) rotate(var(--lm-angle)) translateX(0); opacity: 1; } /* lumen-allow: animation custom property */
   100% { transform: translate(-50%, -50%) rotate(var(--lm-angle)) translateX(90px); opacity: 0; } /* lumen-allow: animation custom property */
@@ -155,6 +199,256 @@ body {
 
 .lm-slide-pill { transition: left 280ms cubic-bezier(0.2, 0.8, 0.2, 1), width 280ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 
+/* Live-site shell chrome (same rules Storybook loads). */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.shell-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.shell-chrome-btn,
+[data-name='header-brand'] button,
+[data-name='sidebar-container'] button,
+[data-name='sidebar-container'] a,
+[data-name='nav-menu-icon-solid'] a,
+[data-name='sub-menu'] button {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Casino-Lumen sub-menu glass (TOKEN_USAGE.effects.glass) */
+[data-name='sub-menu'][data-glass='true'] {
+  background: var(--container);
+  -webkit-backdrop-filter: blur(64px);
+  backdrop-filter: blur(64px);
+}
+
+[data-name='sub-menu'][data-glass='false'] {
+  background: var(--background);
+  border-bottom-color: var(--border);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'][data-glass='true'] {
+  background: var(--container);
+  border-bottom-color: var(--border);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'][data-glass='false'] {
+  background: var(--background);
+  border-bottom-color: var(--border);
+}
+
+[data-name='sub-menu-icon-chip'],
+[data-name='sub-menu-pill-track'],
+[data-name='sub-menu-table-activity'] [data-name='sub-menu-pill-track'] {
+  background: var(--surface-muted-5);
+  box-shadow: none;
+}
+
+[data-name='sub-menu-table-activity'] [data-sub-menu-pill][data-active='false'] {
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu-table-activity'] [data-sub-menu-pill][data-active='true'] {
+  background: transparent;
+  color: var(--primary-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu'] [data-sub-menu-pill][data-active='false'] {
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none !important;
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'] [data-sub-menu-pill][data-active='false'] {
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:hover {
+  background: var(--surface-muted-3);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:hover {
+  background: var(--accent);
+}
+
+[data-name='sub-menu'] [data-sub-menu-pill][data-active='true'] {
+  background: transparent;
+  color: var(--primary-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu-icon-chip'] button {
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu-icon-chip'] button[data-sub-menu-search] {
+  background: transparent;
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu-icon-chip'] button[data-sub-menu-search] {
+  background: transparent;
+}
+
+[data-name='sub-menu-icon-chip'] button:hover {
+  background: var(--surface-muted-3);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu-icon-chip'] button:hover {
+  background: var(--accent);
+}
+
+[data-name='sub-menu-icon-chip'] button {
+  color: var(--muted-foreground);
+}
+[data-name='sub-menu-icon-chip'] button:hover {
+  color: var(--foreground);
+}
+[data-name='sub-menu-icon-chip'] button[aria-pressed='true'] {
+  color: var(--primary);
+}
+
+[data-name='Product Page'] {
+  position: fixed !important;
+  inset: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+[data-name='Product Page'] [data-shell-column] {
+  position: relative !important;
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+[data-name='Product Page'] [data-name='header-brand'] {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 60 !important;
+  flex-shrink: 0 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+[data-name='Product Page'] #shell-scroll {
+  position: relative !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+/* UBC + Cashier sheet motion (mirrors apps/live-site/app/globals.css). */
+[data-ubc-root='desktop'],
+[data-cashier-root='desktop'] {
+  position: fixed !important;
+  top: 68px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  z-index: 40 !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+[data-ubc-root='mobile'],
+[data-cashier-root='mobile'] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+[data-ubc-root] [data-ubc-backdrop],
+[data-cashier-root] [data-cashier-backdrop] {
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+}
+[data-ubc-root] [data-ubc-backdrop][data-state='open'],
+[data-cashier-root] [data-cashier-backdrop][data-state='open'] {
+  opacity: 1;
+}
+[data-ubc-root] [data-ubc-backdrop][data-state='open'],
+[data-cashier-root] [data-cashier-backdrop][data-state='open'] {
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+[data-ubc-root='desktop'] [data-name='UBC'],
+[data-cashier-root='desktop'] [data-name='Cashier'] {
+  transform: translateX(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-ubc-root='desktop'] [data-name='UBC'][data-state='open'],
+[data-cashier-root='desktop'] [data-name='Cashier'][data-state='open'] {
+  transform: translateX(0);
+}
+[data-ubc-root='desktop'] [data-name='UBC'][data-state='open'],
+[data-cashier-root='desktop'] [data-name='Cashier'][data-state='open'] {
+  @starting-style {
+    transform: translateX(100%);
+  }
+}
+
+[data-ubc-root='mobile'] [data-name='UBC'],
+[data-cashier-root='mobile'] [data-name='Cashier'] {
+  transform: translateY(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-ubc-root='mobile'] [data-name='UBC'][data-state='open'],
+[data-cashier-root='mobile'] [data-name='Cashier'][data-state='open'] {
+  transform: translateY(0);
+}
+[data-ubc-root='mobile'] [data-name='UBC'][data-state='open'],
+[data-cashier-root='mobile'] [data-name='Cashier'][data-state='open'] {
+  @starting-style {
+    transform: translateY(100%);
+  }
+}
+[data-ubc-root='mobile'] [data-name='UBC'][data-dragging='true'],
+[data-cashier-root='mobile'] [data-name='Cashier'][data-dragging='true'] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-ubc-root] [data-ubc-backdrop],
+  [data-ubc-root] [data-name='UBC'],
+  [data-cashier-root] [data-cashier-backdrop],
+  [data-cashier-root] [data-name='Cashier'] {
+    transition: none;
+  }
+}
+
 /* shadcn/studio — cursor + Nova input sizes */
 .input-default { @apply h-8; }
 .input-lg { @apply h-9; }
@@ -182,4 +476,60 @@ label:has([role='switch']):not(:disabled) {
 [role='menuitemradio']:not(:disabled),
 [role='option']:not(:disabled) {
   cursor: pointer;
+}
+
+#lumen-tip {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  display: none;
+  pointer-events: none !important;
+  width: fit-content;
+  max-width: 20rem;
+  align-items: center;
+  overflow: visible;
+  border-radius: 0.375rem;
+  background: var(--foreground) !important;
+  color: var(--background) !important;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  opacity: 1 !important;
+  visibility: visible !important;
+  box-shadow: none;
+}
+#lumen-tip.is-on {
+  display: inline-flex !important;
+}
+#lumen-tip::before {
+  content: '';
+  position: absolute;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px;
+  background: var(--foreground);
+  transform: rotate(45deg);
+}
+#lumen-tip[data-side='right']::before {
+  left: 0;
+  top: 50%;
+  margin-left: -5px;
+  margin-top: -5px;
+}
+#lumen-tip[data-side='left']::before {
+  right: 0;
+  top: 50%;
+  margin-right: -5px;
+  margin-top: -5px;
+}
+#lumen-tip[data-side='bottom']::before {
+  left: 50%;
+  top: 0;
+  margin-left: -5px;
+  margin-top: -5px;
+}
+#lumen-tip[data-side='top']::before {
+  left: 50%;
+  bottom: 0;
+  margin-left: -5px;
+  margin-bottom: -5px;
 }

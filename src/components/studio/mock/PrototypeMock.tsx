@@ -9,6 +9,10 @@ import type { MockSpec } from '@/lib/studio/mock';
 import { Badge, Button } from '@/components/lumen';
 import { BannerCard, Carousel, DataTable, GameTile, ProviderChip } from '@/components/lumen/data';
 import { Footer as ShellFooter, Header, SeoBlock, SubMenu } from '@/components/lumen/shell';
+import { CasinoDesignMock } from './CasinoDesignMock';
+import { PokerDesignMock } from './PokerDesignMock';
+import { TestingGroundWallet } from './TestingGroundWallet';
+import { wantsBannerOnly, wantsCashierShell, wantsCasinoShell, wantsPokerShell } from './casino-ask';
 
 function Nav({ spec }: { spec: MockSpec }) {
   return <Header brand={spec.brand === 'default' ? 'LUMEN' : spec.brand.toUpperCase()} loggedIn={false} active="Casino" />;
@@ -61,7 +65,7 @@ function Stats({ spec }: { spec: MockSpec }) {
 }
 
 function Cards({ spec }: { spec: MockSpec }) {
-  const casino = /casino|slot|poker|lobby/i.test(`${spec.title} ${spec.kicker}`);
+  const casino = /casino|slot|lobby/i.test(`${spec.title} ${spec.kicker}`) && !wantsPokerShell(spec.title, spec.summary, spec.kicker);
   if (casino) {
     const rows = [
       { title: 'Originals', items: spec.items.slice(0, 6), tag: 'Originals' as const },
@@ -313,6 +317,15 @@ const SECTION: Record<MockSpec['sections'][number], (p: { spec: MockSpec }) => R
 };
 
 export function PrototypeMock({ spec }: { spec: MockSpec }) {
+  if (wantsCashierShell(spec.title, spec.summary, spec.kicker)) {
+    return <TestingGroundWallet title={spec.title} mode={spec.mode} />;
+  }
+  if (wantsPokerShell(spec.title, spec.summary, spec.kicker)) {
+    return <PokerDesignMock title={spec.title} />;
+  }
+  if (wantsBannerOnly(spec.title, spec.summary, spec.kicker) || wantsCasinoShell(spec.title, spec.summary, spec.kicker)) {
+    return <CasinoDesignMock title={spec.title} />;
+  }
   return (
     <main className="min-h-screen bg-background font-sans text-foreground">
       {spec.sections.map((s, i) => {

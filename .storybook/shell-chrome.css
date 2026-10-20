@@ -28,9 +28,156 @@
 [data-name='header-brand'] button,
 [data-name='sidebar-container'] button,
 [data-name='sidebar-container'] a,
-[data-name='nav-menu-icon-solid'] a {
+[data-name='nav-menu-icon-solid'] a,
+[data-name='sub-menu'] button {
   outline: none !important;
   box-shadow: none !important;
+}
+
+[data-name='sub-menu'][data-glass='true'] {
+  background: var(--container);
+  -webkit-backdrop-filter: blur(64px);
+  backdrop-filter: blur(64px);
+}
+
+[data-name='sub-menu'][data-glass='false'] {
+  background: var(--background);
+  border-bottom-color: var(--border);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'][data-glass='true'] {
+  background: var(--container);
+  border-bottom-color: var(--border);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'][data-glass='false'] {
+  background: var(--background);
+  border-bottom-color: var(--border);
+}
+
+/* Casino-Lumen sub-menu (111:151968) — icon track + pill track; active pill = primary */
+[data-name='sub-menu-icon-chip'],
+[data-name='sub-menu-pill-track'] {
+  background: var(--surface-muted-5);
+  box-shadow: none;
+}
+
+[data-name='sub-menu'] [data-sub-menu-pill][data-active='false'] {
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none !important;
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'] [data-sub-menu-pill][data-active='false'] {
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:hover {
+  background: var(--surface-muted-3);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:hover {
+  background: var(--accent);
+}
+
+[data-name='sub-menu'] [data-sub-menu-pill][data-active='true'] {
+  background: transparent;
+  color: var(--primary-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu-icon-chip'] button {
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu-icon-chip'] button[data-sub-menu-search] {
+  background: transparent;
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu-icon-chip'] button[data-sub-menu-search] {
+  background: transparent;
+}
+
+[data-name='sub-menu-icon-chip'] button:hover {
+  background: var(--surface-muted-3);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu-icon-chip'] button:hover {
+  background: var(--accent);
+}
+
+[data-name='sub-menu-icon-chip'] button {
+  color: var(--muted-foreground);
+}
+[data-name='sub-menu-icon-chip'] button:hover {
+  color: var(--foreground);
+}
+[data-name='sub-menu-icon-chip'] button[aria-pressed='true'] {
+  color: var(--primary);
+}
+
+[data-lumen-tooltip] {
+  position: fixed !important;
+  z-index: 2147483000 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+}
+[data-lumen-tooltip='default'] {
+  background: #111111 !important;
+  color: #ffffff !important;
+}
+[data-lumen-tooltip='inverted'] {
+  background: #ffffff !important;
+  color: #1a1a1a !important;
+}
+
+/*
+ * Product shell — same viewport lock as apps/live-site/app/globals.css so sticky
+ * sub-menu and header behave in the testing ground and Storybook.
+ */
+[data-name='Product Page'] {
+  position: fixed !important;
+  inset: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+[data-name='Product Page'] [data-shell-column] {
+  position: relative !important;
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+[data-name='Product Page'] [data-name='header-brand'] {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 60 !important;
+  flex-shrink: 0 !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+[data-name='Product Page'] #shell-scroll {
+  position: relative !important;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
 }
 
 [data-ubc-root='mobile'] [data-drag-handle] {
@@ -52,6 +199,95 @@
   opacity: 0.7 !important;
 }
 
+/* UBC + Cashier sheet motion (mirrors apps/live-site/app/globals.css). */
+[data-ubc-root='desktop'],
+[data-cashier-root='desktop'] {
+  position: fixed !important;
+  top: 68px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  z-index: 40 !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+[data-ubc-root='mobile'],
+[data-cashier-root='mobile'] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+[data-ubc-root] [data-ubc-backdrop],
+[data-cashier-root] [data-cashier-backdrop] {
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+}
+[data-ubc-root] [data-ubc-backdrop][data-state='open'],
+[data-cashier-root] [data-cashier-backdrop][data-state='open'] {
+  opacity: 1;
+}
+[data-ubc-root] [data-ubc-backdrop][data-state='open'],
+[data-cashier-root] [data-cashier-backdrop][data-state='open'] {
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+[data-ubc-root='desktop'] [data-name='UBC'],
+[data-cashier-root='desktop'] [data-name='Cashier'] {
+  transform: translateX(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-ubc-root='desktop'] [data-name='UBC'][data-state='open'],
+[data-cashier-root='desktop'] [data-name='Cashier'][data-state='open'] {
+  transform: translateX(0);
+}
+[data-ubc-root='desktop'] [data-name='UBC'][data-state='open'],
+[data-cashier-root='desktop'] [data-name='Cashier'][data-state='open'] {
+  @starting-style {
+    transform: translateX(100%);
+  }
+}
+
+[data-ubc-root='mobile'] [data-name='UBC'],
+[data-cashier-root='mobile'] [data-name='Cashier'] {
+  transform: translateY(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-ubc-root='mobile'] [data-name='UBC'][data-state='open'],
+[data-cashier-root='mobile'] [data-name='Cashier'][data-state='open'] {
+  transform: translateY(0);
+}
+[data-ubc-root='mobile'] [data-name='UBC'][data-state='open'],
+[data-cashier-root='mobile'] [data-name='Cashier'][data-state='open'] {
+  @starting-style {
+    transform: translateY(100%);
+  }
+}
+[data-ubc-root='mobile'] [data-name='UBC'][data-dragging='true'],
+[data-cashier-root='mobile'] [data-name='Cashier'][data-dragging='true'] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-ubc-root] [data-ubc-backdrop],
+  [data-ubc-root] [data-name='UBC'],
+  [data-cashier-root] [data-cashier-backdrop],
+  [data-cashier-root] [data-name='Cashier'] {
+    transition: none;
+  }
+}
+
 /*
  * Stories run in a desktop-wide canvas. Contain the live-site `fixed` / `lg:hidden`
  * chrome inside the 375×667 [data-shell-story] frame without changing the source.
@@ -71,14 +307,35 @@
   z-index: 180 !important;
 }
 
-[data-shell-story] [data-ubc-root='mobile'] {
+[data-shell-story] [data-ubc-root='mobile'],
+[data-shell-story] [data-cashier-root='mobile'] {
   position: absolute !important;
   inset: 0 !important;
   display: block !important;
 }
 
-[data-shell-story] [data-ubc-root='desktop'] {
+[data-shell-story] [data-ubc-root='desktop'],
+[data-shell-story] [data-cashier-root='desktop'] {
   display: none !important;
+}
+
+[data-cashier-root='mobile'] [data-drag-handle] {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  justify-content: center !important;
+  align-items: center !important;
+  opacity: 1 !important;
+}
+
+[data-cashier-root='mobile'] [data-drag-handle] > span {
+  display: block !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  background: var(--surface-muted-2) !important;
+  opacity: 0.7 !important;
 }
 
 /* Header chip strip + lettermark are `lg:hidden`; desktop/tablet navs are `lg:flex`. */

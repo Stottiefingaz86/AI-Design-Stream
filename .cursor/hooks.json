@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterMCPExecution": [
+      {
+        "command": "node .cursor/hooks/figma-after-mcp.mjs"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "node .cursor/hooks/figma-after-mcp.mjs",
+        "matcher": "MCP:"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "node .cursor/hooks/figma-before-write.mjs",
+        "matcher": "Write|StrReplace|Edit|Delete"
+      }
+    ]
+  }
+}

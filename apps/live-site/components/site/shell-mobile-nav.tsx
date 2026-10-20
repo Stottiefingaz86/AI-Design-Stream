@@ -26,8 +26,8 @@ function dockForProduct(product: ShellProduct) {
 
 /** Figma `nav-menu-icon-solid` — floating dock. Labels sit under the icons. */
 export function ShellMobileNav() {
-  const { product } = useShell()
-  const hidden = useHideOnScroll('up')
+  const { product, setCasinoSearchOpen } = useShell()
+  const hidden = useHideOnScroll('down')
   const items = dockForProduct(product)
   const [selected, setSelected] = useState<string | null>(null)
 
@@ -35,13 +35,14 @@ export function ShellMobileNav() {
     <nav
       data-name="nav-menu-icon-solid"
       className={cn(
-        'fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-stretch gap-1 rounded-full border border-border bg-background px-2 py-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.18)] transition-transform duration-300 ease-in-out lg:hidden',
+        'fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-stretch gap-1 rounded-full border border-border bg-[var(--container)] px-2 py-1.5 shadow-[0_8px_28px_rgba(0,0,0,0.18)] backdrop-blur-[32px] transition-transform duration-300 ease-in-out lg:hidden',
         hidden ? 'translate-y-[calc(100%+2rem)]' : 'translate-y-0'
       )}
       aria-label="Quick navigation"
     >
       {items.map((item) => {
         const active = selected === item.label
+        const openSearch = product === 'casino' && item.label === 'Search'
         return (
           <Link
             key={item.label}
@@ -49,7 +50,13 @@ export function ShellMobileNav() {
             data-name="nav-item"
             data-state={active ? 'active' : 'default'}
             aria-current={active ? 'page' : undefined}
-            onClick={() => setSelected(item.label)}
+            onClick={(e) => {
+              setSelected(item.label)
+              if (openSearch) {
+                e.preventDefault()
+                setCasinoSearchOpen(true)
+              }
+            }}
             className={cn(
               'flex w-[76px] flex-col items-center justify-center gap-1 rounded-full py-1.5 text-[10px] font-medium leading-none outline-none ring-0 transition-[background-color,color,transform] duration-200 ease-in-out',
               active

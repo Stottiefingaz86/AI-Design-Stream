@@ -18,7 +18,7 @@ const withLumenTheme: Decorator = (Story, ctx) => {
   }, [brand, mode]);
   return (
     <StorybookPassGate>
-      <TooltipProvider>
+      <TooltipProvider delayDuration={0}>
         <div className="font-sans text-foreground">
           <Story />
         </div>

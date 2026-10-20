@@ -127,7 +127,7 @@ export function DataTable() {
   const rows: Row[] = [
     { game: 'Blackjack', player: 'Play_Gusto', bet: '$1,275.03', mult: '1.75x', payout: '$2,231.30', win: true },
     { game: 'Roulette', player: 'Wild Smiley Boy', bet: '$150.00', mult: '0.00x', payout: '-$150.00', win: false },
-    { game: 'Duck Hunt', player: 'Chicken Fajita', bet: '$83.90', mult: '2.90x', payout: '$243.31', win: true },
+    { game: 'Plinko', player: 'Chicken Fajita', bet: '$83.90', mult: '2.90x', payout: '$243.31', win: true },
     { game: 'Live Baccarat', player: 'Bear Patch', bet: '$2,000.00', mult: '0.00x', payout: '-$2,000.00', win: false },
   ];
   const cols: Column<Row & Record<string, ReactNode>>[] = [
@@ -234,27 +234,7 @@ export function GameTile({ title, tag, rank, live }: { title: string; tag?: 'Ori
   );
 }
 
-/** Row header + horizontal scroller from the casino lobby. */
-export function Carousel({ title, icon, children }: { title: string; icon?: IconName; children: ReactNode }) {
-  return (
-    <section className="flex w-full flex-col gap-3">
-      <header className="flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-lg font-semibold">
-          {icon ? <Icon name={icon} /> : null}
-          {title}
-        </h3>
-        <div className="flex items-center gap-2">
-          <button type="button" className="text-sm text-muted-foreground hover:text-foreground">
-            See More
-          </button>
-          <IconButton icon="chevronLeft" label="Previous" variant="outline" size="sm" />
-          <IconButton icon="chevron" label="Next" variant="outline" size="sm" />
-        </div>
-      </header>
-      <div className="flex gap-3 overflow-x-auto pb-1">{children}</div>
-    </section>
-  );
-}
+export { Carousel } from './carousel';
 
 export function ProviderChip({ name }: { name: string }) {
   return (

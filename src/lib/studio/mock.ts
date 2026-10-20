@@ -8,6 +8,7 @@
  * the design system.
  */
 import { TARGETS } from './brand';
+import { isStudioFigmaUrl } from './knowledge';
 import type { StudioProject } from './types';
 
 export type MockSection =
@@ -43,7 +44,7 @@ export interface MockSpec {
 
 export const BREAKPOINTS = [
   { id: 'xs', label: 'Mobile · 375', width: 375 },
-  { id: 'md', label: 'Tablet · 1200', width: 1200 },
+  { id: 'md', label: 'Tablet · 768', width: 768 },
   { id: 'lg', label: 'Desktop · 1440', width: 1440 },
 ] as const;
 
@@ -69,17 +70,18 @@ export function deriveMock(p: StudioProject): MockSpec {
   let secondaryAction = 'Learn more';
   let kicker = p.surface || 'Feature';
 
-  if (has(text, 'poker')) {
+  const pokerAsk = /\bpoker\b/.test(text.replace(/video[\s-]*poker/g, ' ')) && !/originals|casino|lobby/.test(text);
+  if (has(text, 'casino', 'slot', 'originals', 'live dealer', 'blackjack', 'roulette') || /game carousel|games carousel/.test(text)) {
+    sections = ['nav', 'cards', 'activity', 'seo', 'footer'];
+    items = ['Big Bass Bonanza', 'Gates of Olympus', 'Lightning Roulette', 'Blackjack Live', 'Sweet Bonanza', 'Crazy Time'];
+    primaryAction = 'Play now';
+    secondaryAction = 'All games';
+  } else if (pokerAsk) {
     sections = ['nav', 'hero', 'stats', 'table', 'cards', 'cta', 'footer'];
     items = ['Sunday Major · $100K GTD', 'Turbo Bounty · $25K GTD', 'Daily Deepstack · $10K GTD', 'Sit & Go · 6-max', 'Spin to Win', 'Freeroll · New players'];
     primaryAction = 'Register';
     secondaryAction = 'View schedule';
     kicker = kicker || 'Poker';
-  } else if (has(text, 'casino', 'slot', 'live dealer', 'blackjack', 'roulette')) {
-    sections = ['nav', 'cards', 'activity', 'seo', 'footer'];
-    items = ['Big Bass Bonanza', 'Gates of Olympus', 'Lightning Roulette', 'Blackjack Live', 'Sweet Bonanza', 'Crazy Time'];
-    primaryAction = 'Play now';
-    secondaryAction = 'All games';
   } else if (has(text, 'bet slip', 'betslip', 'stake', 'parlay', 'wager')) {
     sections = ['nav', 'slip', 'footer'];
     items = ['Chiefs −3.5 · −110', 'Lakers ML · +140', 'Over 47.5 · −105'];
@@ -141,9 +143,9 @@ export function storybookStoryUrl(archetype: ComponentArchetype, opts: { iframe?
     button: 'lumen-ui-button--all-variants',
     badge: 'lumen-ui-badge--all-tones',
     input: 'lumen-ui-input--default',
-    card: 'lumen-ui-card--variants',
+    card: 'lumen-data-display-card--variants',
     chip: 'lumen-ui-chip--group',
-    surface: 'lumen-ui-card--variants',
+    surface: 'lumen-data-display-card--variants',
   }[archetype];
   return opts.iframe
     ? `${TARGETS.storybookUrl}/iframe.html?id=${id}&viewMode=story`
@@ -158,22 +160,60 @@ export function storybookIframeUrl(url: string): string {
   return url;
 }
 
+/** Page / chat / casino work is reviewed on the testing ground — never the generic /component sheet. */
+export function usesTestingGround(project: StudioProject): boolean {
+  if (project.origin === 'chat') return true;
+  if (project.kind === 'feature') return true;
+  const t = `${project.title} ${project.surface} ${project.brief}`.toLowerCase();
+  return /casino|sub[- ]?nav|lobby|page|header|shell|sports|poker|promo|banner|cashier|wallet|balance/.test(t);
+}
+
 export function prototypeUrlFor(project: StudioProject) {
-  return project.artifacts.prototypeUrl ?? `/prototype?id=${encodeURIComponent(project.id)}`;
+  const stored = project.artifacts.prototypeUrl;
+  if (stored?.includes('/component')) return `/prototype?id=${encodeURIComponent(project.id)}&ground=1`;
+  if (stored?.includes('ground=1')) return stored;
+  return `/prototype?id=${encodeURIComponent(project.id)}&ground=1`;
+}
+
+/** Tess QA: same testing ground, all device sizes. */
+export function qaUrlFor(project: StudioProject) {
+  const proto = prototypeUrlFor(project);
+  return proto.includes('view=frames') ? proto : `${proto}&view=frames`;
+}
+
+/** Design mock = a new Lumen-folder file agents created. Never the source the human pasted. */
+export function figmaUrlFor(project: StudioProject): string | null {
+  const stored = project.artifacts.figmaUrl;
+  if (stored && isStudioFigmaUrl(stored)) return stored;
+  const frames = project.artifacts.framesUrl;
+  if (frames && isStudioFigmaUrl(frames)) return frames;
+  return null;
+}
+
+export function liveUrlFor(project: StudioProject): string | null {
+  const u = project.artifacts.liveUrl;
+  if (u && !/\/component(\?|$)/.test(u)) return u;
+  if (!u && project.status !== 'live') return null;
+  if (/casino|sub[- ]?nav/i.test(`${project.title} ${project.surface}`)) {
+    return `${TARGETS.liveSiteUrl.replace(/\/$/, '')}/casino`;
+  }
+  return TARGETS.liveSiteUrl;
 }
 
 /** Pick which mock a review stage should show. */
 export function mockUrlFor(project: StudioProject, stage: StudioProject['status']): string | null {
   const id = encodeURIComponent(project.id);
+  const ground = prototypeUrlFor(project);
   switch (stage) {
     case 'needs_design_review':
-      return `/prototype?id=${id}&view=frames`;
+      return figmaUrlFor(project) ?? qaUrlFor(project);
     case 'needs_prototype_review':
     case 'needs_build_review':
+      return ground;
     case 'needs_signoff':
-      return project.kind === 'component' ? `/component?id=${id}` : `/prototype?id=${id}`;
+      return usesTestingGround(project) || project.kind !== 'component' ? qaUrlFor(project) : `/component?id=${id}`;
     case 'needs_storybook_review':
-      return `/component?id=${id}`;
+      return usesTestingGround(project) ? ground : `/component?id=${id}`;
     default:
       return null;
   }

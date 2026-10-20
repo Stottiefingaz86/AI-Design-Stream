@@ -51,7 +51,7 @@ const NEW_GAMES = [
 ]
 
 const ORIGINALS = [
-  { title: 'Plinko', img: '/games/originals/plink.png' },
+  { title: 'Plinko', img: '/games/originals/plinko.png' },
   { title: 'Blackjack', img: '/games/originals/blackjack.png' },
   { title: 'Dice', img: '/games/originals/dice.png' },
   { title: 'Diamonds', img: '/games/originals/diamonds.png' },
@@ -60,7 +60,7 @@ const ORIGINALS = [
   { title: 'Limbo', img: '/games/originals/limbo.png' },
   { title: 'Wheel', img: '/games/originals/wheel.png' },
   { title: 'Hilo', img: '/games/originals/hilo.png' },
-  { title: 'Video Poker', img: '/games/originals/video_poker.png' },
+  { title: 'Video Poker', img: '/games/originals/video-poker.png' },
 ]
 
 const TOP10 = [
@@ -131,9 +131,9 @@ const LIVE: Array<{
 ]
 
 const LIVE_IMAGES: Record<LiveType, string> = {
-  blackjack: '/games/BLACKJACK RECTANGLE.png',
-  roulette: '/games/roulette_square.png',
-  baccarat: '/games/baccartae_rectangle.png',
+  blackjack: '/casino/tiles/live/dealer-navy.png',
+  roulette: '/casino/tiles/live/dealer-green.png',
+  baccarat: '/casino/tiles/live/dealer-red.png',
 }
 
 const ACTIVITY = [

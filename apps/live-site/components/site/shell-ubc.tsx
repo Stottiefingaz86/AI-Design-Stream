@@ -1,10 +1,12 @@
 'use client'
 
 import { useTheme } from 'next-themes'
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { useShell } from './shell-context'
 import { ShellIcon, type ShellIconName } from './shell-icons'
+import { useDragToClose } from './use-drag-to-close'
 import { cn } from '@/lib/utils'
 
 const ACCOUNT_ITEMS: {
@@ -27,13 +29,23 @@ const REWARDS_ITEMS: { label: string; icon: ShellIconName }[] = [
 ]
 
 export function ShellUbc() {
-  const { setDrawerOpen } = useShell()
+  const { drawerOpen, setDrawerOpen, setCashierOpen } = useShell()
+
+  const openCashier = () => {
+    setDrawerOpen(false)
+    setCashierOpen(true)
+  }
+
+  const toggleAccount = () => {
+    setCashierOpen(false)
+    setDrawerOpen(!drawerOpen)
+  }
 
   return (
     <div className="flex items-center gap-2">
-      <BalanceButton onClick={() => setDrawerOpen(true)} />
+      <BalanceButton onClick={openCashier} />
       <VipButton />
-      <AccountButton onClick={() => setDrawerOpen(true)} />
+      <AccountButton onClick={toggleAccount} open={drawerOpen} />
     </div>
   )
 }
@@ -47,7 +59,7 @@ function BalanceButton({ onClick }: { onClick: () => void }) {
       aria-label="Account and balance"
     >
       <span className="px-1 text-xs font-medium leading-4 text-[rgba(255,255,255,0.87)]">
-        $100,000.00
+        $10.00
       </span>
       <span className="flex h-9 items-center bg-[rgba(255,255,255,0.1)] px-2.5">
         <ShellIcon name="wallet" className="size-4" />
@@ -68,13 +80,14 @@ function VipButton() {
   )
 }
 
-function AccountButton({ onClick }: { onClick: () => void }) {
+function AccountButton({ onClick, open = false }: { onClick: () => void; open?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="shell-chrome-btn relative inline-flex size-9 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] transition-colors duration-200 ease-in-out hover:bg-white/10"
+      aria-expanded={open}
       aria-label="Account"
+      className="shell-chrome-btn relative inline-flex size-9 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] transition-colors duration-200 ease-in-out hover:bg-white/10"
     >
       <ShellIcon name="account" className="size-4" />
       <span className="absolute right-0 top-0 size-1.5 rounded-full border border-[var(--header-inverted)] bg-destructive" />
@@ -84,6 +97,11 @@ function AccountButton({ onClick }: { onClick: () => void }) {
 
 export function UbcSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { mounted, shown } = useAnimatedOpen(open)
+  const [portalReady, setPortalReady] = useState(false)
+
+  useEffect(() => {
+    setPortalReady(true)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -99,13 +117,14 @@ export function UbcSheet({ open, onClose }: { open: boolean; onClose: () => void
     }
   }, [open, onClose])
 
-  if (!mounted) return null
+  if (!mounted || !portalReady) return null
 
-  return (
+  return createPortal(
     <>
       <DesktopUbc open={shown} onClose={onClose} />
       <MobileUbc open={shown} onClose={onClose} />
-    </>
+    </>,
+    document.body,
   )
 }
 
@@ -121,21 +140,18 @@ function DesktopUbc({ open, onClose }: { open: boolean; onClose: () => void }) {
       <button
         type="button"
         aria-label="Close account"
+        data-ubc-backdrop=""
+        data-state={open ? 'open' : 'closed'}
         onClick={onClose}
-        className={cn(
-          'absolute inset-0 border-0 bg-black/60 transition-opacity duration-300 ease-in-out',
-          open ? 'opacity-100' : 'opacity-0'
-        )}
+        className="absolute inset-0 border-0 bg-black/60"
       />
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Account"
         data-name="UBC"
-        className={cn(
-          'absolute inset-y-0 right-0 flex w-[384px] max-w-[384px] flex-col overflow-y-auto border-l border-border bg-background p-4 shadow-lg transition-transform duration-300 ease-in-out',
-          open ? 'translate-x-0' : 'translate-x-full'
-        )}
+        data-state={open ? 'open' : 'closed'}
+        className="absolute inset-y-0 right-0 flex w-[384px] max-w-[384px] flex-col overflow-y-auto border-l border-border bg-background p-4 shadow-lg"
       >
         <UbcPanel onClose={onClose} showClose />
       </aside>
@@ -158,12 +174,11 @@ function MobileUbc({ open, onClose }: { open: boolean; onClose: () => void }) {
       <button
         type="button"
         aria-label="Close account"
+        data-ubc-backdrop=""
+        data-state={open ? 'open' : 'closed'}
         onClick={onClose}
-        className={cn(
-          'absolute inset-0 border-0 bg-black/60',
-          !dragging && 'transition-opacity duration-300 ease-in-out'
-        )}
-        style={{ opacity: backdrop }}
+        className="absolute inset-0 border-0 bg-black/60"
+        style={dragging ? { opacity: backdrop, transition: 'none' } : undefined}
       />
       <aside
         ref={sheetRef}
@@ -171,106 +186,25 @@ function MobileUbc({ open, onClose }: { open: boolean; onClose: () => void }) {
         aria-modal="true"
         aria-label="Account"
         data-name="UBC"
+        data-state={open ? 'open' : 'closed'}
+        data-dragging={dragging ? 'true' : undefined}
         {...bind}
-        className={cn(
-          'absolute inset-x-0 bottom-0 flex max-h-[calc(100svh-112px)] flex-col overflow-y-auto rounded-t-[10px] bg-background px-4 pb-6 pt-2 shadow-[0_0_16px_rgba(0,0,0,0.06)]',
-          !dragging && 'transition-transform duration-300 ease-in-out',
-          open && offset === 0 ? 'translate-y-0' : !open ? 'translate-y-full' : null
-        )}
-        style={offset > 0 ? { transform: `translateY(${offset}px)` } : undefined}
+        className="absolute inset-x-0 bottom-0 flex max-h-[calc(100svh-112px)] flex-col overflow-hidden rounded-t-[10px] bg-background shadow-[0_0_16px_rgba(0,0,0,0.06)]"
+        style={offset > 0 ? { transform: `translateY(${offset}px)`, transition: 'none' } : undefined}
       >
         <div
           data-drag-handle=""
-          className="flex w-full shrink-0 cursor-grab touch-none items-center justify-center py-2 active:cursor-grabbing"
+          className="flex w-full shrink-0 cursor-grab touch-none items-center justify-center px-4 pb-1 pt-2 active:cursor-grabbing"
+          aria-label="Drag down to close"
         >
           <span />
         </div>
-        <UbcPanel onClose={onClose} />
+        <div className="shell-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-6">
+          <UbcPanel onClose={onClose} />
+        </div>
       </aside>
     </div>
   )
-}
-
-function useDragToClose(open: boolean, onClose: () => void) {
-  const sheetRef = useRef<HTMLElement>(null)
-  const [offset, setOffset] = useState(0)
-  const [dragging, setDragging] = useState(false)
-  const startY = useRef(0)
-  const lastY = useRef(0)
-  const lastT = useRef(0)
-  const velocity = useRef(0)
-  const offsetRef = useRef(0)
-  const draggingRef = useRef(false)
-  const pending = useRef(false)
-
-  const setDragOffset = (value: number) => {
-    offsetRef.current = value
-    setOffset(value)
-  }
-
-  useEffect(() => {
-    if (open) setDragOffset(0)
-  }, [open])
-
-  const onPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    const sheet = sheetRef.current
-    if (!sheet || !open) return
-    const fromHandle = (event.target as HTMLElement).closest('[data-drag-handle]')
-    if (!fromHandle && sheet.scrollTop > 0) return
-    startY.current = event.clientY
-    lastY.current = event.clientY
-    lastT.current = performance.now()
-    velocity.current = 0
-    if (fromHandle) {
-      draggingRef.current = true
-      setDragging(true)
-      event.currentTarget.setPointerCapture(event.pointerId)
-      return
-    }
-    pending.current = true
-  }
-
-  const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
-    const dy = event.clientY - startY.current
-    if (pending.current) {
-      if (dy < 8) return
-      pending.current = false
-      draggingRef.current = true
-      setDragging(true)
-      event.currentTarget.setPointerCapture(event.pointerId)
-    }
-    if (!draggingRef.current) return
-    const now = performance.now()
-    const dt = now - lastT.current
-    if (dt > 0) velocity.current = (event.clientY - lastY.current) / dt
-    lastY.current = event.clientY
-    lastT.current = now
-    setDragOffset(Math.max(0, dy))
-  }
-
-  const endDrag = () => {
-    pending.current = false
-    if (!draggingRef.current) return
-    draggingRef.current = false
-    const height = sheetRef.current?.offsetHeight ?? 400
-    const current = offsetRef.current
-    const shouldClose = current > 80 || current > height * 0.22 || velocity.current > 0.55
-    setDragging(false)
-    setDragOffset(0)
-    if (shouldClose) onClose()
-  }
-
-  return {
-    sheetRef,
-    offset,
-    dragging,
-    bind: {
-      onPointerDown,
-      onPointerMove,
-      onPointerUp: endDrag,
-      onPointerCancel: endDrag,
-    },
-  }
 }
 
 export function UbcPanel({
@@ -293,7 +227,7 @@ export function UbcPanel({
               aria-label="Close account"
               className="shell-chrome-btn inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors duration-200 ease-in-out hover:bg-accent"
             >
-              <ShellIcon name="drawer" tone="surface" className="size-4" />
+              <ShellIcon name="drawer" tone="token" className="size-4 text-foreground" />
             </button>
           ) : null}
           <div className="min-w-0 flex-1">
@@ -306,8 +240,8 @@ export function UbcPanel({
         </div>
 
         <div className="flex flex-col gap-2 rounded-[10px] border border-border bg-card px-6 py-5">
-          <Row label="Available Balance" value="$10,00" />
-          <Row label="Free Bet" value="$0,00" />
+          <Row label="Available Balance" value="$10.00" />
+          <Row label="Free Bet" value="$0.00" />
           <Row label="Level" value="Gold" gold />
         </div>
       </div>
@@ -428,10 +362,15 @@ function useAnimatedOpen(open: boolean) {
   useEffect(() => {
     if (open) {
       setMounted(true)
+      setShown(false)
+      let timeout = 0
       const frame = window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => setShown(true))
+        timeout = window.setTimeout(() => setShown(true), 24)
       })
-      return () => window.cancelAnimationFrame(frame)
+      return () => {
+        window.cancelAnimationFrame(frame)
+        window.clearTimeout(timeout)
+      }
     }
     setShown(false)
     const timer = window.setTimeout(() => setMounted(false), 320)

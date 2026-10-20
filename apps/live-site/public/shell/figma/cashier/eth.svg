@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Logo / Crypto (Circular)">
+<g id="Ellipse">
+<circle cx="15" cy="15" r="14" fill="white"/>
+<circle cx="15" cy="15" r="14.5" stroke="black" stroke-opacity="0.08"/>
+</g>
+<g id="Logo">
+<path id="Vector" d="M14.9983 4.92L14.876 5.34536V17.6882L14.9983 17.8131L20.5967 14.4265L14.9983 4.92Z" fill="#343434"/>
+<path id="Vector_2" d="M14.9984 4.92L9.4 14.4265L14.9984 17.8132V11.8223V4.92Z" fill="#8C8C8C"/>
+<path id="Vector_3" d="M14.9983 18.8979L14.9294 18.9839V23.3807L14.9983 23.5867L20.6 15.513L14.9983 18.8979Z" fill="#3C3C3B"/>
+<path id="Vector_4" d="M14.9984 23.5867V18.8979L9.4 15.513L14.9984 23.5867Z" fill="#8C8C8C"/>
+<path id="Vector_5" d="M14.9984 17.8131L20.5967 14.4265L14.9984 11.8223V17.8131Z" fill="#141414"/>
+<path id="Vector_6" d="M9.4 14.4265L14.9983 17.8131V11.8223L9.4 14.4265Z" fill="#393939"/>
+</g>
+</g>
+</svg>

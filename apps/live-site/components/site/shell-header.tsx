@@ -2,14 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLettermark } from './shell-icons'
 import { CHIP_NAV, HEADER_NAV, OTHER_NAV, TABLET_NAV, chipItemActive, headerItemActive } from './shell-nav'
@@ -27,12 +21,12 @@ const navItemClass =
  */
 export function ShellHeader() {
   const pathname = usePathname()
-  const { toggle, loggedIn, setLoggedIn, navOpen, setNavOpen } = useShell()
+  const { toggle, loggedIn, setLoggedIn, navOpen, setNavOpen, startNavigating } = useShell()
   const [otherOpen, setOtherOpen] = useState(false)
   const chipsHidden = useHideOnScroll('down')
 
   return (
-    <header data-name="header-brand" className="sticky top-0 z-[60] w-full shrink-0 bg-[var(--header-inverted)]">
+    <header data-name="header-brand" className="sticky top-0 z-[60] w-full shrink-0 overflow-visible bg-[var(--header-inverted)]">
       <div
         className={cn(
           'max-w-full overflow-hidden border-b border-[var(--border-inverted)] transition-all duration-300 ease-in-out lg:hidden',
@@ -47,6 +41,7 @@ export function ShellHeader() {
                 <Link
                   key={item.label}
                   href={item.href}
+                  onClick={startNavigating}
                   data-name="nav-item-outline-inverted"
                   data-state={active ? 'active' : 'default'}
                   className={cn(
@@ -64,7 +59,7 @@ export function ShellHeader() {
         </div>
       </div>
 
-      <div className="grid h-[68px] w-full grid-cols-[minmax(0,1fr)_auto] items-center border-b border-[var(--border-inverted)] px-4 lg:px-6">
+      <div data-header-bar="" className="grid h-[68px] w-full grid-cols-[minmax(0,1fr)_auto] items-center border-b border-[var(--border-inverted)] px-4 lg:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
@@ -86,6 +81,7 @@ export function ShellHeader() {
                 <Link
                   key={item.label}
                   href={item.href}
+                  onClick={startNavigating}
                   data-state={active ? 'active' : 'default'}
                   className={cn(
                     navItemClass,
@@ -107,6 +103,7 @@ export function ShellHeader() {
                 <Link
                   key={item.label}
                   href={item.href}
+                  onClick={startNavigating}
                   data-state={active ? 'active' : 'default'}
                   className={cn(
                     navItemClass,
@@ -119,37 +116,7 @@ export function ShellHeader() {
                 </Link>
               )
             })}
-            <DropdownMenu open={otherOpen} onOpenChange={setOtherOpen}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  data-state={otherOpen ? 'active' : 'default'}
-                  className={cn(
-                    navItemClass,
-                    otherOpen
-                      ? 'bg-[var(--surface-muted-1-inverted)] text-[var(--foreground-inverted)]'
-                      : 'text-[var(--secondary-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)]'
-                  )}
-                >
-                  Other
-                  <ShellIcon name="caretDown" className="size-3" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-[180px] border-[var(--border-inverted)] bg-[var(--popover-inverted)] p-1 text-[var(--foreground-inverted)] shadow-md"
-              >
-                {OTHER_NAV.map((item) => (
-                  <DropdownMenuItem
-                    key={item.label}
-                    asChild
-                    className="rounded-md px-2 py-2 text-sm font-normal leading-5 text-[var(--foreground-inverted)] focus:bg-[var(--surface-muted-1-inverted)] focus:text-[var(--foreground-inverted)]"
-                  >
-                    <Link href={item.href}>{item.label}</Link>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <OtherMenu open={otherOpen} onOpenChange={setOtherOpen} />
           </nav>
         </div>
 
@@ -173,6 +140,78 @@ export function ShellHeader() {
         </div>
       </div>
     </header>
+  )
+}
+
+function OtherMenu({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { startNavigating } = useShell()
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (event: PointerEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return
+      onOpenChange(false)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onOpenChange(false)
+    }
+    document.addEventListener('pointerdown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open, onOpenChange])
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        data-state={open ? 'active' : 'default'}
+        className={cn(
+          navItemClass,
+          open
+            ? 'bg-[var(--surface-muted-1-inverted)] text-[var(--foreground-inverted)]'
+            : 'text-[var(--secondary-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)]'
+        )}
+        onClick={() => onOpenChange(!open)}
+      >
+        Other
+        <ShellIcon name="caretDown" className="size-3" />
+      </button>
+      {open ? (
+        <ul
+          data-header-other-menu=""
+          role="menu"
+          className="absolute left-0 top-full z-[80] mt-2 w-56 rounded-md border border-border bg-popover p-1 text-sm text-popover-foreground shadow-lg"
+        >
+          {OTHER_NAV.map((item) => (
+            <li key={item.label}>
+              <Link
+                href={item.href}
+                role="menuitem"
+                className="flex items-center rounded px-2 py-1.5 hover:bg-accent"
+                onClick={() => {
+                  onOpenChange(false)
+                  startNavigating()
+                }}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   )
 }
 

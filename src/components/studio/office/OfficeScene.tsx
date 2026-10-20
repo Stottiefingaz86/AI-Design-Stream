@@ -879,8 +879,7 @@ export function OfficeScene(props: OfficeSceneProps) {
         boardSel.visible = p.selected?.type === 'board';
       };
 
-      /* ---------- camera: cover the screen with the room, zoom + pan, clamped ---------- */
-      // The plate now includes the exterior, so the camera may roam the whole image.
+      /* ---------- camera: cover the loft plate, zoom + pan, clamped ---------- */
       const [W, H] = CAL.resolution;
       const ROOM = { x0: 0, x1: W, y0: 0, y1: H };
       const cam = { zoom: 1, x: 0, y: 0 }; // zoom relative to "cover" scale

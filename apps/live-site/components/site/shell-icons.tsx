@@ -1,3 +1,5 @@
+import React from 'react'
+import { HomeIcon, LibraryIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type ShellIconName =
@@ -28,6 +30,7 @@ export type ShellIconName =
   | 'home'
   | 'house'
   | 'lastGame'
+  | 'library'
   | 'list'
   | 'live'
   | 'megaphone'
@@ -86,12 +89,13 @@ const ICONS: Record<ShellIconName, string> = {
   favorite: '/shell/figma/casino/favorite.svg',
   fire: '/shell/figma/casino/popular.svg',
   gear: '/shell/figma/sports/gear.svg',
-  gift: '/shell/figma/ubc/gift.svg',
+  gift: '/shell/figma/poker/gift.svg',
   globe: '/shell/rocket.svg',
   heart: '/shell/figma/casino/favorite.svg',
   home: '/shell/figma/casino/home.svg',
   house: '/shell/figma/casino/home.svg',
   lastGame: '/shell/figma/casino/last-game.svg',
+  library: '/shell/figma/casino/home.svg',
   list: '/shell/figma/header/menu.svg',
   live: '/shell/figma/casino/live.svg',
   megaphone: '/shell/figma/promo/all.svg',
@@ -103,7 +107,7 @@ const ICONS: Record<ShellIconName, string> = {
   random: '/shell/figma/casino/random.svg',
   receipt: '/shell/figma/ubc/transactions.svg',
   refer: '/shell/figma/promo/refer.svg',
-  rocket: '/shell/figma/sports/rocket.svg',
+  rocket: '/shell/figma/poker/rocket.svg',
   search: '/shell/figma/header/search.svg',
   shield: '/shell/figma/poker/shield.svg',
   shuffle: '/shell/figma/casino/random.svg',
@@ -116,7 +120,7 @@ const ICONS: Record<ShellIconName, string> = {
   start: '/shell/figma/poker/start.svg',
   sun: '/shell/figma/ubc/sun.svg',
   table: '/shell/figma/casino/table.svg',
-  telegram: '/shell/figma/promo/telegram.svg',
+  telegram: '/shell/figma/promo/telegram-mark.svg',
   ticket: '/shell/figma/ubc/ticket.svg',
   tournaments: '/shell/figma/casino/tournaments.svg',
   transactions: '/shell/figma/ubc/transactions.svg',
@@ -142,9 +146,49 @@ export function ShellIcon({
   name: ShellIconName
   className?: string
   active?: boolean
-  tone?: 'chrome' | 'surface'
+  tone?: 'chrome' | 'surface' | 'token'
 }) {
   const preserve = PRESERVE_COLOR[name]
+
+  if (name === 'library') {
+    return (
+      <LibraryIcon
+        aria-hidden
+        strokeWidth={1.75}
+        className={cn('shrink-0', className)}
+      />
+    )
+  }
+
+  if (name === 'home' || name === 'house') {
+    return (
+      <HomeIcon
+        aria-hidden
+        strokeWidth={1.75}
+        className={cn('shrink-0', className)}
+      />
+    )
+  }
+
+  if (tone === 'token') {
+    return (
+      <span
+        aria-hidden
+        className={cn('inline-block shrink-0 bg-current', className)}
+        style={{
+          maskImage: `url(${ICONS[name]})`,
+          WebkitMaskImage: `url(${ICONS[name]})`,
+          maskMode: 'alpha',
+          maskSize: 'contain',
+          WebkitMaskSize: 'contain',
+          maskRepeat: 'no-repeat',
+          WebkitMaskRepeat: 'no-repeat',
+          maskPosition: 'center',
+          WebkitMaskPosition: 'center',
+        }}
+      />
+    )
+  }
 
   return (
     // Figma vectors — keep the exported width/height via CSS size, never stretch.
@@ -172,6 +216,21 @@ export function ShellLogo({
   expanded: boolean
   className?: string
 }) {
+  // Pop only when the rail collapses — not on mount / route changes.
+  const prevExpanded = React.useRef(expanded)
+  const [pop, setPop] = React.useState(false)
+
+  React.useEffect(() => {
+    const wasExpanded = prevExpanded.current
+    prevExpanded.current = expanded
+    if (wasExpanded && !expanded) {
+      setPop(true)
+      const id = window.setTimeout(() => setPop(false), 300)
+      return () => window.clearTimeout(id)
+    }
+    setPop(false)
+  }, [expanded])
+
   return (
     <span className={cn('relative flex h-8 w-full items-center justify-center', className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -187,7 +246,6 @@ export function ShellLogo({
       />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        key={expanded ? 'mark' : 'pop'}
         src="/shell/figma/logos/lettermark.svg"
         alt=""
         width={36}
@@ -196,7 +254,8 @@ export function ShellLogo({
           'h-[26px] w-9 max-w-none object-contain',
           expanded
             ? 'pointer-events-none absolute opacity-0'
-            : 'relative opacity-100 [animation:shell-b-pop_280ms_cubic-bezier(0.2,1.4,0.3,1)]'
+            : 'relative opacity-100',
+          pop && '[animation:shell-b-pop_280ms_cubic-bezier(0.2,1.4,0.3,1)]'
         )}
       />
     </span>

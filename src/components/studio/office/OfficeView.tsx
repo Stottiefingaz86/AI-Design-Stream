@@ -16,10 +16,12 @@ import {
 import type { StudioStoreSnapshot } from '@/lib/studio/types';
 import { COLUMN_COLORS, KanbanBoard } from './KanbanBoard';
 import { OfficeScene, type BoardCard, type OfficeTarget } from './OfficeScene';
-import { StudioChat } from './StudioChat';
+import { CursorRunner, StudioChat } from './StudioChat';
 
 const TICK_MS = 1000;
 const CHAT_KEY = 'design-studio:chat';
+const CHAT_WIDTH_KEY = 'design-studio:chat-width';
+const CHAT_WIDTH_DEFAULT = 720;
 
 export function OfficeView() {
   const [snap, setSnap] = useState<StudioStoreSnapshot | null>(null);
@@ -27,6 +29,12 @@ export function OfficeView() {
   const [chatOpen, setChatOpen] = useState(false);
   const [channelId, setChannelId] = useState<string>(GENERAL_CHANNEL_ID);
   const [boardOpen, setBoardOpen] = useState(false);
+  const [chatWidth, setChatWidth] = useState(() => {
+    if (typeof localStorage === 'undefined') return CHAT_WIDTH_DEFAULT;
+    const n = Number(localStorage.getItem(CHAT_WIDTH_KEY));
+    return Number.isFinite(n) && n >= 480 && n <= 1100 ? n : CHAT_WIDTH_DEFAULT;
+  });
+  const [chatResizing, setChatResizing] = useState(false);
 
   // Load + subscribe to store changes; restore chat state.
   useEffect(() => {
@@ -51,6 +59,14 @@ export function OfficeView() {
     }
   }, [chatOpen, channelId]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_WIDTH_KEY, String(chatWidth));
+    } catch {
+      /* ignore */
+    }
+  }, [chatWidth]);
+
   // Simulated work ticks while the tab is visible.
   useEffect(() => {
     let last = performance.now();
@@ -71,18 +87,24 @@ export function OfficeView() {
     () =>
       BOARD_COLUMNS.map((c, i) =>
         safe.projects
-          .filter((p) => c.statuses.includes(p.status))
+          .filter((p) => !p.archivedAt && c.statuses.includes(p.status))
           .map((p) => ({ id: p.id, title: p.title, color: COLUMN_COLORS[i]! })),
       ),
     [safe.projects],
   );
 
-  const inboxCount =
-    safe.questions.filter((q) => !q.answeredAt).length + safe.approvals.filter((a) => !a.decidedAt).length;
+  const inboxCount = safe.approvals.filter((a) => {
+    if (a.decidedAt) return false;
+    const p = safe.projects.find((x) => x.id === a.projectId);
+    return Boolean(p && !p.archivedAt);
+  }).length;
 
   const unreadTotal = useMemo(() => {
     let n = 0;
-    for (const c of safe.channels) n += unreadCount(safe, c.id);
+    for (const c of safe.channels) {
+      if (c.archived) continue;
+      n += unreadCount(safe, c.id);
+    }
     for (const a of AGENTS) n += unreadCount(safe, dmChannelId(a.id));
     return n;
   }, [safe]);
@@ -90,7 +112,8 @@ export function OfficeView() {
   // Channel validity: if a channel vanished, fall back to #general.
   useEffect(() => {
     if (!snap) return;
-    const ok = channelId.startsWith('dm:') || snap.channels.some((c) => c.id === channelId);
+    const ok =
+      channelId.startsWith('dm:') || snap.channels.some((c) => c.id === channelId && !c.archived);
     if (!ok) setChannelId(GENERAL_CHANNEL_ID);
   }, [snap, channelId]);
 
@@ -107,19 +130,23 @@ export function OfficeView() {
       else if (t.type === 'board') setBoardOpen(true);
       else if (t.type === 'ceo') {
         // Your desk: jump to the channel with the oldest thing waiting on you.
-        const q = safe.questions.filter((x) => !x.answeredAt).sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
-        const a = safe.approvals.filter((x) => !x.decidedAt).sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0];
-        const pid = q && (!a || q.createdAt < a.createdAt) ? q.projectId : a?.projectId;
+        const a = safe.approvals
+          .filter((x) => !x.decidedAt && !safe.projects.find((p) => p.id === x.projectId)?.archivedAt)
+          .sort((x, y) => x.createdAt.localeCompare(y.createdAt))[0];
+        const pid = a?.projectId;
         openChannel(pid ? projectChannelId(pid) : GENERAL_CHANNEL_ID);
       }
     },
-    [openChannel, safe.questions, safe.approvals],
+    [openChannel, safe.approvals, safe.projects],
   );
 
   const working = AGENTS.filter((a) => states[a.id].mood === 'working').length;
 
   return (
-    <div className={`ge-studio ge-studio--afternoon ${chatOpen ? 'has-chat' : ''}`}>
+    <div
+      className={`ge-studio ge-studio--afternoon ${chatOpen ? 'has-chat' : ''} ${chatResizing ? 'is-resizing-chat' : ''}`}
+      style={{ ['--ge-chat-width-user' as string]: `${chatWidth}px` }}
+    >
       <OfficeScene states={states} boardCards={boardCards} inboxCount={inboxCount} selected={selected} onSelect={onSelect} />
       <div className="ge-studio__grade" aria-hidden="true" />
       <div className="ge-studio__vignette" aria-hidden="true" />
@@ -131,24 +158,37 @@ export function OfficeView() {
         </a>
         <div className="ge-studio__stats">
           <span>
-            {safe.projects.length} brief{safe.projects.length === 1 ? '' : 's'} in flight
+            {safe.projects.filter((p) => !p.archivedAt).length} brief{safe.projects.filter((p) => !p.archivedAt).length === 1 ? '' : 's'} in flight
           </span>
           <span>{working} working</span>
           {inboxCount ? <span className="is-warn">{inboxCount} waiting on you</span> : <span>inbox clear</span>}
         </div>
         <nav className="ge-studio__actions" aria-label="Studio">
-          <button type="button" className="ge-pill" onClick={() => setBoardOpen(true)}>
-            Board
+          <button
+            type="button"
+            className="ge-pill ge-pill--icon"
+            data-tip="Board"
+            aria-label="Board"
+            onClick={() => setBoardOpen(true)}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path fill="currentColor" d="M4 4h4.5v16H4V4Zm5.75 0H14.5v10H9.75V4ZM16 4h4v16h-4V4Z" />
+            </svg>
           </button>
-          <a className="ge-pill" href="/projects">
-            Projects
+          <a className="ge-pill ge-pill--icon" href="/projects" data-tip="Projects" aria-label="Projects">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path fill="currentColor" d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z" />
+            </svg>
           </a>
-          <a className="ge-pill ge-pill--primary" href="/new">
-            New brief
+          <a className="ge-pill ge-pill--icon ge-pill--primary" href="/new" data-tip="New brief" aria-label="New brief">
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <path fill="currentColor" d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6V5Z" />
+            </svg>
           </a>
           <button
             type="button"
             className={`ge-pill ge-pill--icon ${chatOpen ? 'is-on' : ''}`}
+            data-tip={chatOpen ? 'Close chat' : 'Chat'}
             onClick={() => setChatOpen((v) => !v)}
             aria-label={chatOpen ? 'Close studio chat' : 'Open studio chat'}
             aria-pressed={chatOpen}
@@ -172,26 +212,34 @@ export function OfficeView() {
             key={a.id}
             className={`ge-team ${selected?.type === 'agent' && selected.id === a.id ? 'is-on' : ''}`}
             onClick={() => onSelect({ type: 'agent', id: a.id })}
-            title={`${a.name} · ${a.role}`}
+            data-tip={`${a.name} · ${a.role}`}
+            aria-label={`${a.name}, ${a.role}`}
           >
             <span className={`ge-presence ge-presence--${states[a.id].mood}`} style={{ background: a.colorCss }} />
             {states[a.id].mood === 'working' ? (
-              <i className="ge-poll" aria-hidden="true" title="Working">
+              <i className="ge-poll" aria-hidden="true">
                 <span />
                 <span />
                 <span />
               </i>
             ) : null}
-            <span className="ge-team__who">
-              <span>{a.name}</span>
-              <small>{a.role}</small>
-            </span>
+            <span className="ge-team__who">{a.name}</span>
           </button>
         ))}
       </div>
 
+      {snap ? <CursorRunner channelId={channelId} /> : null}
+
       {chatOpen && snap ? (
-        <StudioChat snap={snap} states={states} channelId={channelId} onChannel={setChannelId} onClose={() => setChatOpen(false)} />
+        <StudioChat
+          snap={snap}
+          states={states}
+          channelId={channelId}
+          onChannel={setChannelId}
+          onClose={() => setChatOpen(false)}
+          onWidthChange={setChatWidth}
+          onResizing={setChatResizing}
+        />
       ) : null}
 
       {boardOpen && snap ? (

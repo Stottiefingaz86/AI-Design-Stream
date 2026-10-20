@@ -14,8 +14,9 @@ export function PassGate({ children }: { children: ReactNode }) {
     setReady(true)
   }, [])
 
+  // Server and the first client paint MUST match. Do not read window here.
   if (!ready) {
-    return <div className="min-h-svh bg-background" />
+    return <div className="min-h-svh bg-background" aria-busy aria-label="Loading" />
   }
 
   if (authed) return children

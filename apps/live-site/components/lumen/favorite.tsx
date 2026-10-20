@@ -13,6 +13,8 @@ export function Favorite({
   isFavorited = false,
   onFavoriteChange,
   title,
+  /** Inline chrome (game launcher header) — always visible, not tile-absolute. */
+  inline = false,
   className,
 }: {
   favoriteLabel?: string
@@ -20,6 +22,7 @@ export function Favorite({
   isFavorited?: boolean
   onFavoriteChange?: (next: boolean) => void
   title?: string
+  inline?: boolean
   className?: string
 }) {
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -85,18 +88,25 @@ export function Favorite({
           if (e.key === 'Enter' || e.key === ' ') toggle(e)
         }}
         className={cn(
-          'absolute right-1.5 top-1.5 z-40 flex size-8 items-center justify-center overflow-visible rounded-full',
-          'opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100',
+          'flex size-8 items-center justify-center overflow-visible rounded-full',
+          inline
+            ? 'relative z-10 size-7 shrink-0 rounded-lg p-1.5 text-[rgba(255,255,255,0.87)] transition-colors hover:bg-white/10'
+            : 'absolute right-1.5 top-1.5 z-40 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100',
           className
         )}
       >
-        <span
-          className="pointer-events-none absolute inset-0 rounded-full border border-white/15 bg-black/45 shadow-[0_4px_12px_rgba(0,0,0,0.35)] backdrop-blur-md"
-          aria-hidden
-        />
+        {!inline ? (
+          <span
+            className="pointer-events-none absolute inset-0 rounded-full border border-white/15 bg-black/45 shadow-[0_4px_12px_rgba(0,0,0,0.35)] backdrop-blur-md"
+            aria-hidden
+          />
+        ) : null}
         <ParticleBurst playing={animating} count={12}>
           <IconHeart
-            className={cn('relative z-10 size-4 shrink-0', on ? 'fill-pink-500 text-pink-500' : 'text-white')}
+            className={cn(
+              'relative z-10 size-4 shrink-0',
+              on ? 'fill-pink-500 text-pink-500' : inline ? 'text-[rgba(255,255,255,0.87)]' : 'text-white',
+            )}
             strokeWidth={2}
             aria-hidden
           />

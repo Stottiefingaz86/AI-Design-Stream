@@ -1,8 +1,36 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Tooltip } from '../feedback';
-import { Button } from '../index';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 const meta = { title: 'Lumen/System States/Tooltip', component: Tooltip } satisfies Meta<typeof Tooltip>;
 export default meta;
+
 export const Default: StoryObj = {
-  render: () => <div className="pt-10"><Tooltip label="Add to favourites"><Button variant="secondary">Hover me</Button></Tooltip></div>,
+  render: () => (
+    <TooltipProvider delayDuration={0}>
+      <div className="flex h-32 items-center justify-center">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="secondary">Hover me</Button>
+          </TooltipTrigger>
+          <TooltipContent>Add to favourites</TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  ),
+};
+
+export const SideRight: StoryObj = {
+  render: () => (
+    <TooltipProvider delayDuration={0}>
+      <div className="flex h-32 items-center justify-center">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="secondary">Hover me</Button>
+          </TooltipTrigger>
+          <TooltipContent side="right">Casino Lobby</TooltipContent>
+        </Tooltip>
+      </div>
+    </TooltipProvider>
+  ),
 };

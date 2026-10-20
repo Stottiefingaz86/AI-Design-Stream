@@ -28,7 +28,7 @@ export const HEADER_NAV = [
 export const CHIP_NAV = [
   { label: 'Home', href: '/' },
   { label: 'Casino', href: '/casino' },
-  { label: 'Live Casino', href: '/casino' },
+  { label: 'Live Casino', href: '/casino/live' },
   { label: 'Sports', href: '/sports' },
   { label: 'Live Betting', href: '/sports' },
   { label: 'Poker', href: '/poker' },
@@ -94,7 +94,14 @@ export function headerItemActive(label: string, pathname: string) {
 
 export function chipItemActive(label: string, pathname: string) {
   if (label === 'Home') return pathname === '/'
-  if (label === 'Casino') return pathname.startsWith('/casino')
+  if (label === 'Casino')
+    return (
+      pathname === '/casino' ||
+      (pathname.startsWith('/casino') &&
+        !pathname.startsWith('/casino/live') &&
+        !pathname.startsWith('/casino/slots'))
+    )
+  if (label === 'Live Casino') return pathname.startsWith('/casino/live')
   if (label === 'Sports') return pathname.startsWith('/sports')
   if (label === 'Poker') return pathname.startsWith('/poker')
   if (label === 'Promos' || label === 'Contests') return pathname.startsWith('/promotions')
@@ -186,7 +193,7 @@ export function navForProduct(product: ShellProduct): ShellNavGroup[] {
   return [
     {
       items: [
-        { label: 'Casino Home', href: '/casino', icon: 'home', active: true, emphasis: true },
+        { label: 'Casino Lobby', href: '/casino', icon: 'library', active: true, emphasis: true },
         { label: 'Favorite', href: '/casino', icon: 'favorite', emphasis: true },
         { label: 'Play Random', href: '/casino', icon: 'random', emphasis: true },
         { label: 'Last Game Played', href: '/casino', icon: 'lastGame', subtitle: '<Game Name>', emphasis: true },
@@ -195,12 +202,12 @@ export function navForProduct(product: ShellProduct): ShellNavGroup[] {
     {
       items: [
         { label: 'Popular Games', href: '/casino', icon: 'popular' },
-        { label: 'Slots', href: '/casino', icon: 'slots' },
+        { label: 'Slots', href: '/casino/slots', icon: 'slots' },
         { label: 'Blackjack', href: '/casino', icon: 'blackjack' },
         { label: 'Video Poker', href: '/casino', icon: 'videoPoker' },
         { label: 'Specialty Games', href: '/casino', icon: 'specialty' },
         { label: 'Table Games', href: '/casino', icon: 'table' },
-        { label: 'Live Casino', href: '/casino', icon: 'live' },
+        { label: 'Live Casino', href: '/casino/live', icon: 'live' },
         { label: 'Tournaments', href: '/casino', icon: 'tournaments' },
       ],
     },

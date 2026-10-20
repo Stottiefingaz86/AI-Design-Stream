@@ -16,5 +16,7 @@ apps/live-site/.vercel
 # generated tokens (rerun npm run tokens:sync)
 tokens/dist
 
+.studio-rollback
+
 storybook-static
 *storybook.log

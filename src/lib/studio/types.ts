@@ -44,6 +44,8 @@ export interface StudioArtifacts {
   framesUrl?: string;
   /** Clickable prototype (static build) URL. */
   prototypeUrl?: string;
+  /** Set when you actually open the testing ground. Live ship is locked until this exists. */
+  openedPrototypeAt?: string;
   /** Storybook story URL for the approved component. */
   storybookUrl?: string;
   /** Branch / PR on the live-site repo. */
@@ -52,6 +54,8 @@ export interface StudioArtifacts {
   previewUrl?: string;
   /** Production URL once launched. */
   liveUrl?: string;
+  /** Snapshot id so live can be rolled back to the pre-ship files. */
+  rollbackId?: string;
 }
 
 /**
@@ -96,6 +100,10 @@ export interface StudioProject {
   brief: string;
   /** Product spec / PRD / Figma link, if there is one. */
   specUrl: string;
+  /** `chat` = kicked off in Slack (small ask). `brief` = New brief form (bigger work). */
+  origin?: 'brief' | 'chat';
+  /** Channel the team talks in. Chat jobs stay where you asked. */
+  homeChannelId?: string;
   status: StudioProjectStatus;
   references: StudioReference[];
   /** Answers the Design Lead collected from you (brief clarifications). */
@@ -105,6 +113,8 @@ export interface StudioProject {
   escalation?: StudioEscalation;
   createdAt: string;
   updatedAt: string;
+  /** Set when you archive a finished brief. Hidden from the floor until restored. */
+  archivedAt?: string;
 }
 
 /** The studio cast. One agent per discipline. */
@@ -173,7 +183,58 @@ export interface StudioApproval {
 /** Who wrote a chat message. `ceo` is you. */
 export type ChatAuthor = StudioAgentId | 'ceo' | 'system';
 
-export type StudioMessageKind = 'text' | 'question' | 'approval' | 'system' | 'standup' | 'escalation' | 'live' | 'prototype';
+export type StudioMessageKind = 'text' | 'question' | 'approval' | 'system' | 'standup' | 'escalation' | 'live' | 'prototype' | 'cursor';
+
+export interface CursorActivityLine {
+  n: number;
+  text: string;
+  mark?: '+' | '-' | ' ';
+}
+
+export interface CursorActivityFile {
+  path: string;
+  lang?: string;
+  add?: number;
+  del?: number;
+  lines?: CursorActivityLine[];
+}
+
+/** One updating Cursor-style poll block in chat (not a flood of token messages). */
+export interface CursorActivity {
+  summary: string;
+  thinking?: string;
+  files: CursorActivityFile[];
+  live?: boolean;
+  retryable?: boolean;
+  error?: string;
+}
+
+export interface StudioAttachment {
+  kind: 'image';
+  name: string;
+  dataUrl: string;
+}
+
+/** What a studio Cursor run is allowed to finish as. */
+export type CursorRunMode = 'implement' | 'mockup' | 'journey' | 'ship';
+
+/** Events streamed from the local Cursor agent (not cloud). */
+export type CursorStreamEvent =
+  | { type: 'status'; text: string }
+  | { type: 'thinking'; text?: string; durationMs?: number }
+  | {
+      type: 'tool';
+      name: string;
+      status: string;
+      file?: string;
+      kind?: 'read' | 'search' | 'edit' | 'other';
+      add?: number;
+      del?: number;
+      lines?: CursorActivityLine[];
+    }
+  | { type: 'assistant'; text: string }
+  | { type: 'done'; text: string; ok: boolean }
+  | { type: 'error'; text: string };
 
 /**
  * Studio chat message. Channels: `general`, `project:<id>`, `dm:<agentId>`,
@@ -185,10 +246,13 @@ export interface StudioMessage {
   author: ChatAuthor;
   text: string;
   kind?: StudioMessageKind;
+  attachments?: StudioAttachment[];
   /** Question / approval id for inline cards. */
   refId?: string;
   projectId?: string;
   createdAt: string;
+  /** Live Cursor poll block — updated in place, not a new message per token. */
+  activity?: CursorActivity;
 }
 
 export type StudioChannelKind = 'general' | 'project' | 'custom';
@@ -201,6 +265,8 @@ export interface StudioChannel {
   projectId?: string;
   topic?: string;
   createdAt: string;
+  /** Hidden from the rail. Project channels stay archived so they are not recreated. */
+  archived?: boolean;
 }
 
 export interface StudioStoreSnapshot {

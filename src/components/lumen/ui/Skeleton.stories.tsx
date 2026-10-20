@@ -4,10 +4,10 @@ const meta = { title: 'Lumen/Utilities/Skeleton', component: Skeleton } satisfie
 export default meta;
 export const Default: StoryObj = {
   render: () => (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 bg-background p-6">
       <Skeleton className="h-6 w-48" />
-      <div className="flex gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 w-16 rounded-lg" />)}</div>
-      <Skeleton className="h-40 w-full rounded-lg" />
+      <div className="flex gap-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-14 w-16" />)}</div>
+      <Skeleton className="h-40 w-full" />
     </div>
   ),
 };

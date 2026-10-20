@@ -9,8 +9,13 @@ import { ShellSeo } from './shell-seo'
 import { ShellDrawer } from './shell-drawer'
 import { ShellSidebar } from './shell-sidebar'
 import { SiteFooter } from './site-footer'
+import { CashierSheet } from './cashier-sheet'
 import { UbcSheet } from './shell-ubc'
 import { ShellMobileNav } from './shell-mobile-nav'
+import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
+import { CasinoSearchOverlay } from '@/components/lumen/casino-search-overlay'
+import { GameLauncher } from '@/components/lumen/game-launcher'
+import { CasinoSubNav } from './casino-subnav'
 import { cn } from '@/lib/utils'
 
 /**
@@ -21,13 +26,15 @@ import { cn } from '@/lib/utils'
 export function ShellFrame({
   children,
   loggedIn = true,
+  skeleton = false,
 }: {
   children?: ReactNode
   loggedIn?: boolean
+  skeleton?: boolean
 }) {
   return (
-    <ShellProvider loggedIn={loggedIn}>
-      <TooltipProvider delayDuration={200}>
+    <ShellProvider loggedIn={loggedIn} forceSkeleton={skeleton}>
+      <TooltipProvider delayDuration={0}>
         <ShellChrome>{children}</ShellChrome>
       </TooltipProvider>
     </ShellProvider>
@@ -35,7 +42,19 @@ export function ShellFrame({
 }
 
 function ShellChrome({ children }: { children?: ReactNode }) {
-  const { expanded, drawerOpen, setDrawerOpen } = useShell()
+  const {
+    expanded,
+    drawerOpen,
+    setDrawerOpen,
+    cashierOpen,
+    setCashierOpen,
+    product,
+    navigating,
+    casinoSearchOpen,
+    setCasinoSearchOpen,
+    launchedGame,
+    closeGameLauncher,
+  } = useShell()
 
   return (
     <div
@@ -53,17 +72,27 @@ function ShellChrome({ children }: { children?: ReactNode }) {
       >
         <ShellHeader />
         <div id="shell-scroll" className="shell-scroll h-0 min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-          <div className="flex min-h-full flex-col">
+          {/* Large screens: content column max 1440, centered in the shell (header stays full-bleed). */}
+          <div className="mx-auto flex min-h-full w-full max-w-[1440px] flex-col">
             <div className="flex-1 pb-24 lg:pb-0">
-              {children ?? <ShellContent />}
-              <ShellSeo />
+              {product === 'casino' ? <CasinoSubNav glass sticky motion /> : null}
+              {product === 'casino' && navigating ? <CasinoLobbySkeleton /> : (children ?? <ShellContent />)}
+              {/* Never flash SEO under the sub-nav while the page body is empty/loading. */}
+              {!navigating ? <ShellSeo /> : null}
             </div>
             <SiteFooter />
           </div>
         </div>
       </div>
       <ShellMobileNav />
+      <CashierSheet open={cashierOpen} onClose={() => setCashierOpen(false)} />
       <UbcSheet open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      {product === 'casino' ? (
+        <CasinoSearchOverlay open={casinoSearchOpen} onClose={() => setCasinoSearchOpen(false)} />
+      ) : null}
+      {product === 'casino' ? (
+        <GameLauncher open={!!launchedGame} game={launchedGame} onClose={closeGameLauncher} />
+      ) : null}
     </div>
   )
 }

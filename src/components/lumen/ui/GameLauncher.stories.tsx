@@ -13,13 +13,29 @@ export const Default: StoryObj = {
         exitFullscreenLabel="Exit fullscreen"
         favoriteLabel="Favorite game"
         fullscreenLabel="Enter fullscreen"
-        gameName="Take the Bank"
+        gameName="Take The Bank"
+        showJackpot
         onClose={() => {}}
         onFavoriteChange={() => {}}
         onFullscreen={() => {}}
         testId="game-launcher"
       >
-        <iframe className="size-full border-0" src="about:blank" title="Game content" />
+        <div className="flex size-full items-center justify-center bg-black/80 text-sm text-white/70">
+          Game viewport
+        </div>
+      </GameLauncher>
+    </div>
+  ),
+};
+
+export const WithoutJackpot: StoryObj = {
+  parameters: { layout: 'fullscreen' },
+  render: () => (
+    <div className="h-screen w-full">
+      <GameLauncher gameName="Take The Bank" showJackpot={false} onClose={() => {}}>
+        <div className="flex size-full items-center justify-center bg-black/80 text-sm text-white/70">
+          Game viewport
+        </div>
       </GameLauncher>
     </div>
   ),

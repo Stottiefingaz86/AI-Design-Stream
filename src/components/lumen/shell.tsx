@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { Button as UiButton } from '@/components/ui/button';
+import { ShellIcon } from '../../../apps/live-site/components/site/shell-icons';
 import { Button } from './index';
 import { Icon, IconButton, type IconName } from './data';
 
@@ -94,8 +96,12 @@ export function Sidebar({ active = 'Home', collapsed = true }: { active?: string
 export function SubMenu({ items, active = items[0] }: { items: string[]; active?: string }) {
   return (
     <div className="flex items-center gap-2 overflow-x-auto py-3">
-      <IconButton icon="search" label="Search" variant="outline" size="sm" />
-      <IconButton icon="heart" label="Favourites" variant="outline" size="sm" />
+      <UiButton variant="outline" size="icon-lg" aria-label="Search" className="size-9 shrink-0 rounded-full">
+        <ShellIcon name="search" tone="surface" className="size-4" />
+      </UiButton>
+      <UiButton variant="ghost" size="icon-lg" aria-label="Favourites" className="size-9 shrink-0">
+        <ShellIcon name="heart" tone="surface" className="size-4" />
+      </UiButton>
       {items.map((it) => (
         <button key={it} type="button" className={`h-9 shrink-0 rounded-full px-4 text-sm font-medium transition ${it === active ? 'bg-primary text-primary-foreground' : 'bg-card text-foreground hover:bg-accent'}`}>
           {it}

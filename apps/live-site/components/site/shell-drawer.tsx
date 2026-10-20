@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLogo } from './shell-icons'
 import { CHIP_NAV, chipItemActive, navForProduct } from './shell-nav'
@@ -11,9 +12,14 @@ import { cn } from '@/lib/utils'
 /** Mobile/tablet left nav — Figma drawer, not the desktop rail. */
 export function ShellDrawer() {
   const pathname = usePathname()
-  const { navOpen, setNavOpen, product, navigating } = useShell()
+  const { navOpen, setNavOpen, product } = useShell()
   const groups = navForProduct(product)
   const tabsRef = useRef<HTMLElement>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!navOpen) return
@@ -30,9 +36,10 @@ export function ShellDrawer() {
     active?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'auto' })
   }, [navOpen, pathname])
 
-  return (
+  const drawer = (
     <div
       data-shell-drawer=""
+      data-state={navOpen ? 'open' : 'closed'}
       className={cn(
         'fixed inset-0 z-[180] lg:hidden',
         navOpen ? 'pointer-events-auto' : 'pointer-events-none'
@@ -103,14 +110,7 @@ export function ShellDrawer() {
           </nav>
         </div>
         <nav className="shell-scroll flex flex-1 flex-col gap-2 overflow-y-auto px-2 pt-2" aria-label={product}>
-          {navigating
-            ? Array.from({ length: 8 }).map((_, index) => (
-                <div key={index} className="flex h-10 items-center gap-2 rounded-lg px-2">
-                  <span className="size-5 animate-pulse rounded-md bg-white/10" />
-                  <span className="h-3 w-2/3 animate-pulse rounded bg-white/10" />
-                </div>
-              ))
-            : groups.map((group, index) => (
+          {groups.map((group, index) => (
                 <div key={`${group.heading ?? 'group'}-${index}`} className="flex flex-col gap-1.5">
                   {index > 0 ? <div className="h-px w-full bg-[var(--border-inverted)]" /> : null}
                   {group.heading ? (
@@ -157,4 +157,7 @@ export function ShellDrawer() {
       </aside>
     </div>
   )
+
+  if (!mounted) return null
+  return createPortal(drawer, document.body)
 }

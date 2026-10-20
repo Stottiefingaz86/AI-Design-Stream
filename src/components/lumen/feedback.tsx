@@ -97,7 +97,7 @@ export function Progress({ value, tone = 'primary', label }: { value: number; to
 }
 
 export function Skeleton({ className = 'h-4 w-40' }: { className?: string }) {
-  return <span className={`block animate-pulse rounded-md bg-muted ${className}`} aria-hidden />;
+  return <span className={`lm-shimmer block rounded-[10px] bg-[var(--skeleton,#0000000d)] ${className}`} aria-hidden />;
 }
 
 export function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
@@ -110,13 +110,25 @@ export function Shimmer({ className = 'h-24 w-64' }: { className?: string }) {
 }
 
 /* ------------------------------------------------------------- Tooltip etc */
-export function Tooltip({ label, children }: { label: string; children: ReactNode }) {
+export function Tooltip({
+  label,
+  side = 'top',
+  children,
+}: {
+  label: string;
+  side?: 'top' | 'right';
+  children: ReactNode;
+}) {
   return (
     <span className="group relative inline-flex">
       {children}
       <span
         role="tooltip"
-        className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs text-background opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100"
+        className={
+          side === 'right'
+            ? 'pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs text-background opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100'
+            : 'pointer-events-none absolute -top-9 left-1/2 z-50 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-xs text-background opacity-0 transition group-hover:opacity-100 group-focus-within:opacity-100'
+        }
       >
         {label}
       </span>

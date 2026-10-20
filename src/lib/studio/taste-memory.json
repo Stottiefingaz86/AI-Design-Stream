@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "seed-shell",
+      "kind": "rule",
+      "text": "Always the shipped shell: live-site ShellHeader + collapsed ShellSidebar (96px). Never invent a BETONLINE wordmark header.",
+      "source": "seed",
+      "createdAt": "2026-10-14T00:00:00.000Z"
+    },
+    {
+      "id": "seed-icons",
+      "kind": "hate",
+      "text": "No Tabler, no hand-drawn icons, no ToggleGroup rings. Use ShellIcon / Storybook / Lumen.",
+      "source": "seed",
+      "createdAt": "2026-10-14T00:00:00.000Z"
+    },
+    {
+      "id": "seed-figma",
+      "kind": "rule",
+      "text": "When a Figma frame or screenshot is given, match it. Do not redesign. Testing ground first; live stays locked until approved.",
+      "source": "seed",
+      "createdAt": "2026-10-14T00:00:00.000Z"
+    },
+    {
+      "id": "seed-subnav",
+      "kind": "like",
+      "text": "Casino sub-nav is one muted rounded track with pills inside — not separate shadowed cards. Search and heart sit on the same track.",
+      "surface": "Casino",
+      "source": "seed",
+      "createdAt": "2026-10-14T00:00:00.000Z"
+    },
+    {
+      "id": "seed-win",
+      "kind": "moment",
+      "text": "Big win or first deposit: one short toast. Confetti only on a real level-up / VIP tick — once, then quiet.",
+      "surface": "Casino",
+      "why": "Celebrate the moment, don't wallpaper the lobby.",
+      "source": "seed",
+      "createdAt": "2026-10-14T00:00:00.000Z"
+    },
+    {
+      "id": "seed-error",
+      "kind": "moment",
+      "text": "Failed bet, failed payment, or a form error: toast only. Never confetti.",
+      "why": "Errors need a clear recovery, not a party.",
+      "source": "seed",
+      "createdAt": "2026-10-14T00:00:00.000Z"
+    },
+    {
+      "id": "seed-fav",
+      "kind": "moment",
+      "text": "Favourite a game: heart fills. No toast, no confetti.",
+      "surface": "Casino",
+      "source": "seed",
+      "createdAt": "2026-10-14T00:00:00.000Z"
+    },
+    {
+      "id": "taste_119mpiwa",
+      "kind": "like",
+      "text": "approved “casino sub nav”",
+      "surface": "Casino",
+      "source": "approval",
+      "createdAt": "2026-10-14T11:38:57.871Z"
+    },
+    {
+      "id": "taste_wdgcooo9",
+      "kind": "like",
+      "text": "approved “On casino i want to add banner carousel under the sub nav https://www.figma.com/design/omWPnweoGhy1Ulv1AXxx2z/Casino-Lumen?node-id=69-47911&m=dev”",
+      "surface": "Casino",
+      "source": "approval",
+      "createdAt": "2026-10-14T13:46:08.612Z"
+    },
+    {
+      "id": "taste_y5r9wa5q",
+      "kind": "like",
+      "text": "approved “I do not want carousles, just the banner dont build the rest of the page”",
+      "surface": "",
+      "source": "approval",
+      "createdAt": "2026-10-14T17:05:45.095Z"
+    },
+    {
+      "id": "taste_83bflbyb",
+      "kind": "hate",
+      "text": "rejected “Casino casi no carousel”: tags are missing , icon is missijng https://www.figma.com/design/X5GZ0zIujRabAeGcqX5eYd/Casino_Master-File?node-id=509-406894&m=dev",
+      "surface": "Casino",
+      "source": "approval",
+      "createdAt": "2026-10-14T17:10:12.322Z"
+    },
+    {
+      "id": "taste_pwiv66lt",
+      "kind": "like",
+      "text": "approved “poker page”",
+      "surface": "poker",
+      "source": "approval",
+      "createdAt": "2026-10-14T20:15:16.438Z"
+    },
+    {
+      "id": "taste_00qlh6l7",
+      "kind": "hate",
+      "text": "rejected “poker page”: this is shit, you did not check figma mcp and ignored evertrhing. im so unhappy with this",
+      "surface": "poker",
+      "source": "approval",
+      "createdAt": "2026-10-14T20:22:59.560Z"
+    },
+    {
+      "id": "taste_4c13czhd",
+      "kind": "hate",
+      "text": "rejected “poker page”: no actually use the mcp from figma, you are making shit up, https://www.figma.com/design/6MRTcwJHXgYmLxBWxRLz4I/Poker_Landing-Page?node-id=78-163252&m=devhttps://www.figma.com/design/6MRTcwJHXgYmLxBWxRLz4I/Poker_Landing-Page?node-id=78-163252&m=dev",
+      "surface": "poker",
+      "source": "approval",
+      "createdAt": "2026-10-14T20:25:49.636Z"
+    },
+    {
+      "id": "taste_3yyd5i7i",
+      "kind": "hate",
+      "text": "rejected “My account when clicking on the balance open a sheet/draw this is where the wallet/cashier will open, figma reference\nhttps://www.figma.com/design/0wtTKRqpZqC1fnco7NUaXj/Cashier-Widget---Master?node-id=9475-199943&m=dev\n\nhttps://www.figma.com/design/0wtTKRqpZqC1fnco7NUaXj/Cashier-Widget---Master?node-id=9475-199943&m=dev”: https://www.figma.com/design/0wtTKRqpZqC1fnco7NUaXj/Cashier-Widget---Master?node-id=9475-199943&m=devuse the figma mcp",
+      "surface": "My account",
+      "source": "approval",
+      "createdAt": "2026-10-16T15:10:28.976Z"
+    }
+  ]
+}

@@ -379,6 +379,6 @@ export const OFFICE_CALIBRATION: OfficeCalibration = {
   }
 };
 
-export const PLATE_ROOM = "/studio/office/plate-room.webp";
+export const PLATE_ROOM = "/studio/office/plate-room.webp?v=neighbours-back";
 /** legacy single front plate (unused when `props` are present) */
 export const PLATE_FRONT = "/studio/office/plate-front.webp";

@@ -6,14 +6,22 @@ import { DESIGN_SYSTEM, STUDIO_NAME, STUDIO_TAGLINE, figmaFileUrl, getStudioPass
 import { FIGMA_ASK_STEPS, FIGMA_SELECTION_EXAMPLE } from '@/lib/studio/knowledge';
 import {
   addReference,
+  archiveProject,
   createProject,
+  deleteProject,
   getProject,
   isStudioAuthed,
+  listArchivedProjects,
   listProjects,
+  markPrototypeOpened,
   removeReference,
   setStudioAuthed,
+  subscribeStudioStore,
+  unarchiveProject,
 } from '@/lib/studio/store';
-import { deriveMock, storybookIframeUrl, storybookStoryUrl } from '@/lib/studio/mock';
+import { startStudioCursorRun } from '@/lib/studio/cursor-client';
+import { sendTestingGroundFeedback, signOffTestingGround } from '@/lib/studio/pipeline';
+import { deriveMock, figmaUrlFor, liveUrlFor, storybookIframeUrl, storybookStoryUrl, usesTestingGround } from '@/lib/studio/mock';
 import type { StudioArtifacts, StudioProject, StudioProjectKind, StudioReferenceKind } from '@/lib/studio/types';
 import { MockPreview } from './office/OfficePanels';
 import { OfficeView } from './office/OfficeView';
@@ -125,11 +133,88 @@ function Shell({ view, projectId, children }: { view: StudioView; projectId?: st
   );
 }
 
+function BriefRow({
+  project,
+  archived,
+  onChange,
+}: {
+  project: StudioProject;
+  archived?: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <li>
+      <div className="ge-brief-list__row">
+        <a href={`/project?id=${encodeURIComponent(project.id)}`}>
+          <span>
+            <strong>{project.title}</strong>
+            <span className="ge-brief-list__sub">
+              {project.surface || 'No surface'}
+              {project.specUrl ? ' · Figma / spec attached' : ''}
+              {project.references.length ? ` · ${project.references.length} ref${project.references.length === 1 ? '' : 's'}` : ''}
+            </span>
+          </span>
+          <span className="ge-brief-list__kind">{KIND_LABEL[project.kind]}</span>
+          <span className="ge-badge ge-badge--draft">{STATUS_LABEL[project.status]}</span>
+          <time className="ge-brief-list__when" dateTime={project.updatedAt}>
+            {new Date(project.updatedAt).toLocaleString()}
+          </time>
+        </a>
+        <div className="ge-brief-list__ops">
+          {archived ? (
+            <>
+              <button
+                type="button"
+                className="ge-btn ge-btn--ghost ge-btn--sm"
+                onClick={() => {
+                  unarchiveProject(project.id);
+                  onChange();
+                }}
+              >
+                Restore
+              </button>
+              <button
+                type="button"
+                className="ge-btn ge-btn--ghost ge-btn--sm"
+                onClick={() => {
+                  if (!window.confirm(`Delete “${project.title}” for good? This cannot be undone.`)) return;
+                  deleteProject(project.id);
+                  onChange();
+                }}
+              >
+                Delete
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="ge-btn ge-btn--ghost ge-btn--sm"
+              onClick={() => {
+                archiveProject(project.id);
+                onChange();
+              }}
+            >
+              Archive
+            </button>
+          )}
+        </div>
+      </div>
+    </li>
+  );
+}
+
 function DashboardView() {
   const [projects, setProjects] = useState<StudioProject[]>([]);
+  const [archived, setArchived] = useState<StudioProject[]>([]);
+
+  const reload = () => {
+    setProjects(listProjects());
+    setArchived(listArchivedProjects());
+  };
 
   useEffect(() => {
-    setProjects(listProjects());
+    reload();
+    return subscribeStudioStore(reload);
   }, []);
 
   const components = projects.filter((p) => p.kind === 'component').length;
@@ -145,7 +230,7 @@ function DashboardView() {
             <a href="/" style={{ color: '#ffc14a' }}>
               studio floor
             </a>
-            .
+            . Archive a finished brief to get it off the floor — delete it from the archive when you no longer need it.
           </p>
         </div>
         <a className="ge-btn" href="/new">
@@ -157,39 +242,40 @@ function DashboardView() {
         <span>{projects.length} brief{projects.length === 1 ? '' : 's'}</span>
         <span>{components} component{components === 1 ? '' : 's'}</span>
         <span>{approved} live</span>
+        {archived.length ? <span>{archived.length} archived</span> : null}
       </p>
 
       {projects.length === 0 ? (
         <div className="ge-empty">
-          No briefs yet.{' '}
-          <a href="/new" style={{ color: '#ffc14a' }}>
-            Write one
-          </a>
-          .
+          {archived.length ? 'Nothing in flight. Archived briefs are below.' : (
+            <>
+              No briefs yet.{' '}
+              <a href="/new" style={{ color: '#ffc14a' }}>
+                Write one
+              </a>
+              .
+            </>
+          )}
         </div>
       ) : (
         <ul className="ge-brief-list">
           {projects.map((p) => (
-            <li key={p.id}>
-              <a href={`/project?id=${encodeURIComponent(p.id)}`}>
-                <span>
-                  <strong>{p.title}</strong>
-                  <span className="ge-brief-list__sub">
-                    {p.surface || 'No surface'}
-                    {p.specUrl ? ' · Figma / spec attached' : ''}
-                    {p.references.length ? ` · ${p.references.length} ref${p.references.length === 1 ? '' : 's'}` : ''}
-                  </span>
-                </span>
-                <span className="ge-brief-list__kind">{KIND_LABEL[p.kind]}</span>
-                <span className="ge-badge ge-badge--draft">{STATUS_LABEL[p.status]}</span>
-                <time className="ge-brief-list__when" dateTime={p.updatedAt}>
-                  {new Date(p.updatedAt).toLocaleString()}
-                </time>
-              </a>
-            </li>
+            <BriefRow key={p.id} project={p} onChange={reload} />
           ))}
         </ul>
       )}
+
+      {archived.length ? (
+        <section className="ge-archive">
+          <h2>Archive</h2>
+          <p>Finished briefs stay here until you restore or delete them.</p>
+          <ul className="ge-brief-list">
+            {archived.map((p) => (
+              <BriefRow key={p.id} project={p} archived onChange={reload} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </>
   );
 }
@@ -346,11 +432,64 @@ function ProjectView({ projectId }: { projectId: string }) {
           <p>
             {KIND_LABEL[project.kind]} · {project.surface || 'No surface yet'} · status{' '}
             <span className="ge-badge ge-badge--draft">{STATUS_LABEL[project.status]}</span>
+            {project.archivedAt ? ' · archived' : ''}
           </p>
         </div>
-        <a className="ge-btn ge-btn--ghost" href="/projects">
-          All briefs
-        </a>
+        <div className="ge-header__ops">
+          <a className="ge-btn ge-btn--ghost" href="/projects">
+            All briefs
+          </a>
+          {!project.archivedAt && project.status !== 'live' ? (
+            <button
+              type="button"
+              className="ge-btn"
+              onClick={() => {
+                markPrototypeOpened(project.id);
+                const result = signOffTestingGround(project.id);
+                if (result && 'job' in result) startStudioCursorRun(result.job, result.channelId);
+                reload();
+              }}
+            >
+              Put live
+            </button>
+          ) : null}
+          {project.archivedAt ? (
+            <>
+              <button
+                type="button"
+                className="ge-btn ge-btn--ghost"
+                onClick={() => {
+                  unarchiveProject(project.id);
+                  reload();
+                }}
+              >
+                Restore
+              </button>
+              <button
+                type="button"
+                className="ge-btn ge-btn--ghost"
+                onClick={() => {
+                  if (!window.confirm(`Delete “${project.title}” for good? This cannot be undone.`)) return;
+                  deleteProject(project.id);
+                  window.location.href = '/projects';
+                }}
+              >
+                Delete
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="ge-btn ge-btn--ghost"
+              onClick={() => {
+                archiveProject(project.id);
+                reload();
+              }}
+            >
+              Archive
+            </button>
+          )}
+        </div>
       </header>
 
       <EscalationBanner project={project} />
@@ -377,18 +516,21 @@ function ProjectView({ projectId }: { projectId: string }) {
         </div>
         <div className="ge-card">
           <h3>Your calls</h3>
-          {project.briefAnswers && Object.keys(project.briefAnswers).length ? (
+          <p>Always Lumen · mobile, tablet, and desktop.</p>
+          {project.briefAnswers &&
+          Object.entries(project.briefAnswers).filter(([k]) => !['platform', 'theme', 'pattern', 'done_looks_like', 'density', 'stories'].includes(k))
+            .length ? (
             <ul className="ge-list ge-list--plain">
-              {Object.entries(project.briefAnswers).map(([k, v]) => (
-                <li key={k}>
-                  <span>{k.replace(/_/g, ' ')}</span>
-                  <small>{v}</small>
-                </li>
-              ))}
+              {Object.entries(project.briefAnswers)
+                .filter(([k]) => !['platform', 'theme', 'pattern', 'done_looks_like', 'density', 'stories'].includes(k))
+                .map(([k, v]) => (
+                  <li key={k}>
+                    <span>{k.replace(/_/g, ' ')}</span>
+                    <small>{v}</small>
+                  </li>
+                ))}
             </ul>
-          ) : (
-            <p>The Design Lead will ask you on the studio floor.</p>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -549,29 +691,50 @@ function ArtifactsCard({ project }: { project: StudioProject }) {
 function OutputsGallery({ project }: { project: StudioProject }) {
   const id = encodeURIComponent(project.id);
   const spec = deriveMock(project);
-  const frames = project.artifacts.framesUrl ?? `/prototype?id=${id}&view=frames`;
-  const proto = project.artifacts.prototypeUrl ?? `/prototype?id=${id}`;
-  const story = project.artifacts.storybookUrl ?? (project.kind === 'component' ? storybookStoryUrl(spec.archetype) : `/component?id=${id}`);
-  const storyIframe = storybookIframeUrl(story);
-  const delivered = project.artifacts.liveUrl ?? project.artifacts.previewUrl;
+  const proto = project.artifacts.prototypeUrl?.includes('/component')
+    ? `/prototype?id=${id}&ground=1`
+    : (project.artifacts.prototypeUrl ?? `/prototype?id=${id}&ground=1`);
+  const story = project.artifacts.storybookUrl ?? (project.kind === 'component' && !usesTestingGround(project) ? storybookStoryUrl(spec.archetype) : '');
+  const storyIframe = story ? storybookIframeUrl(story) : '';
+  const delivered = liveUrlFor(project) ?? (project.artifacts.previewUrl?.includes('/component') ? proto : project.artifacts.previewUrl);
   return (
     <section className="ge-outputs" aria-label="What was made">
       <header className="ge-outputs__head">
         <h2>What was made</h2>
-        <p>Design frames, Storybook, and the live delivery — not just chat text.</p>
+        <p>Design mock is a new Figma file the agents create in the Lumen folder — frames, flows, happy path, errors. The link you paste is source. Testing ground is the real shell. Live stays locked until you approve.</p>
       </header>
       <div className="ge-outputs__grid">
         <article className="ge-outputs__cell">
-          <h3>Design mock</h3>
-          <MockPreview url={frames} label="Frames · 375 / 1200 / 1440" />
+          <h3>
+            {figmaUrlFor(project) ? (
+              <a href={figmaUrlFor(project)!} target="_blank" rel="noreferrer">
+                Design mock ↗
+              </a>
+            ) : (
+              'Design mock'
+            )}
+          </h3>
+          {figmaUrlFor(project) ? (
+            <MockPreview url={figmaUrlFor(project)!} label="Figma Design file" />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No studio Figma file yet. Agents create one in the Lumen folder with frames, flows, happy path and error states. The file you pasted is the source, not this tile.
+            </p>
+          )}
         </article>
         <article className="ge-outputs__cell">
           <h3>Testing ground</h3>
-          <MockPreview url={proto} label={spec.title} />
+          <MockPreview url={proto.includes('ground=') ? proto : `${proto}${proto.includes('?') ? '&' : '?'}ground=1`} label="Real shell · details lab" />
         </article>
         <article className="ge-outputs__cell">
           <h3>Storybook</h3>
-          <MockPreview url={storyIframe} label={project.kind === 'component' ? `lumen-ui / ${spec.archetype}` : 'Component sheet'} />
+          {project.kind === 'component' && !usesTestingGround(project) ? (
+            <MockPreview url={storyIframe} label={`lumen-ui / ${spec.archetype}`} />
+          ) : (
+            <p className="p-4 text-sm text-muted-foreground">
+              Storybook is for components. This is a page change — use the testing ground.
+            </p>
+          )}
         </article>
         {delivered ? (
           <article className="ge-outputs__cell">
@@ -595,7 +758,7 @@ function EscalationBanner({ project }: { project: StudioProject }) {
   const agent = AGENT_BY_ID[e.agentId];
   return (
     <div
-      className="ge-card"
+      className="ge-card ge-card--escalate"
       style={{ marginBottom: '1.25rem', borderColor: 'rgba(232, 62, 140, 0.6)', background: 'rgba(232, 62, 140, 0.08)' }}
     >
       <h3 style={{ color: '#e83e8c' }}>
@@ -618,7 +781,7 @@ function EscalationBanner({ project }: { project: StudioProject }) {
       {e.kind === 'figma' ? (
         <p style={{ marginTop: '0.6rem', fontSize: '0.8rem' }}>
           Example:{' '}
-          <a href={FIGMA_SELECTION_EXAMPLE} target="_blank" rel="noreferrer">
+          <a href={FIGMA_SELECTION_EXAMPLE} target="_blank" rel="noreferrer" className="ge-break-url">
             {FIGMA_SELECTION_EXAMPLE}
           </a>
         </p>

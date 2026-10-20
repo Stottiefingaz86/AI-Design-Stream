@@ -8,7 +8,7 @@ const PAGES = [
   ['System States', ['Alert', 'Sonner', 'Alert Dialog', 'Calendar', 'Dialog', 'Tooltip', 'Progress', 'Popover', 'Hover Card']],
   ['Data Display', ['Accordion', 'Avatar', 'Badge', 'Dot Badge', 'Drawer', 'Sheet', 'Card', 'Carousel', 'Chart', 'Collapsible', 'Form', 'Form Wizard', 'Pagination', 'Rating', 'Stepper', 'Table', 'Context Menu', 'Timeline']],
   ['Navigation', ['Breadcrumbs', 'Command', 'Dropdown Menu', 'Menu Bar', 'Nav Menu', 'Sidebar', 'Tab Menu']],
-  ['Shell', ['Mobile Dock', 'Side Nav', 'Account Sheet', 'Mobile Top Tabs']],
+  ['Casino', ['Sub Nav', 'Favorite', 'Reward Card', 'Game Launcher', 'Confetti']],
   ['Others', ['Block Heading', 'Component Page Header', 'Misc']],
 ] as const;
 

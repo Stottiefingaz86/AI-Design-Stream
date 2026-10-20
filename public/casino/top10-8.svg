@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="xMidYMax meet" overflow="visible" width="80" height="157" viewBox="0 0 80 157" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g8" x1="40" y1="0" x2="40" y2="157" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1a1a1a"/>
+      <stop offset="0.55" stop-color="#6b6b6b"/>
+      <stop offset="1" stop-color="#d4d4d4"/>
+    </linearGradient>
+  </defs>
+  <g opacity="0.83" style="mix-blend-mode:hard-light">
+    <text x="40" y="148" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="150" font-weight="900" fill="url(#g8)">8</text>
+  </g>
+</svg>

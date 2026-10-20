@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AGENT_BY_ID, BOARD_COLUMNS, KIND_LABEL, STATUS_LABEL } from '@/lib/studio/agents';
-import { projectChannelId } from '@/lib/studio/store';
+import { isAssumedQuestionKey } from '@/lib/studio/pipeline';
+import { archiveProject, projectChannelId } from '@/lib/studio/store';
 import type { StudioProject, StudioStoreSnapshot, StudioTask } from '@/lib/studio/types';
 import { ApprovalCard, Deliverable, Progress, QuestionCard, projectHref } from './OfficePanels';
 
@@ -55,7 +56,9 @@ export function KanbanBoard({ snap, onClose, onOpenChannel, initialProjectId }: 
 
   const open = useMemo(() => snap.projects.find((p) => p.id === openId) ?? null, [snap.projects, openId]);
   const openTasks = open ? snap.tasks.filter((t) => t.projectId === open.id) : [];
-  const openQs = open ? snap.questions.filter((q) => q.projectId === open.id && !q.answeredAt) : [];
+  const openQs = open
+    ? snap.questions.filter((q) => q.projectId === open.id && !q.answeredAt && !isAssumedQuestionKey(q.answerKey))
+    : [];
   const openAs = open ? snap.approvals.filter((a) => a.projectId === open.id && !a.decidedAt) : [];
   const stageOrder = [...new Set(openTasks.map((t) => t.stage))];
 
@@ -80,7 +83,7 @@ export function KanbanBoard({ snap, onClose, onOpenChannel, initialProjectId }: 
         <div className={`ge-kanban__body ${open ? 'has-detail' : ''}`}>
           <div className="ge-kanban__cols">
             {BOARD_COLUMNS.map((col, i) => {
-              const cards = snap.projects.filter((p) => col.statuses.includes(p.status));
+              const cards = snap.projects.filter((p) => !p.archivedAt && col.statuses.includes(p.status));
               return (
                 <div className="ge-kcol" key={col.id}>
                   <h4>
@@ -141,6 +144,16 @@ export function KanbanBoard({ snap, onClose, onOpenChannel, initialProjectId }: 
                   <a className="ge-btn ge-btn--ghost ge-btn--sm" href={projectHref(open.id)}>
                     Project page
                   </a>
+                  <button
+                    type="button"
+                    className="ge-btn ge-btn--ghost ge-btn--sm"
+                    onClick={() => {
+                      archiveProject(open.id);
+                      setOpenId(null);
+                    }}
+                  >
+                    Archive
+                  </button>
                   <button type="button" className="ge-iconbtn" onClick={() => setOpenId(null)} aria-label="Close detail">
                     ×
                   </button>

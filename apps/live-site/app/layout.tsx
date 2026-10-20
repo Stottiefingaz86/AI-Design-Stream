@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Script from 'next/script'
 import { Figtree } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-brand="betonline" className={figtree.variable} suppressHydrationWarning>
       <body className={figtree.className}>
+        <Script src="/lumen-tip.js" strategy="beforeInteractive" />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="lumen-shell-theme">
           <PassGate>
             {children}

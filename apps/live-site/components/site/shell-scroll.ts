@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react'
 
 /**
  * Scroll-aware chrome visibility.
- * `hideOn: 'down'` — chips: hide while scrolling down, show on the way up.
- * `hideOn: 'up'` — dock: opposite of the chips.
+ * `hideOn: 'down'` — hide while scrolling down, show on the way up.
+ * Chips and the mobile dock both use `down` so they show and hide together.
  */
 export function useHideOnScroll(hideOn: 'down' | 'up') {
   const [hidden, setHidden] = useState(false)

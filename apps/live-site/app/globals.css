@@ -26,12 +26,35 @@
   --ds-vip-gold: var(--vip-rewards);
 }
 
+/* Lumen `components/skeleton/contrast` + `white` — flat blocks, never muted+pulse. */
+:root,
+[data-brand] {
+  --skeleton: #0000000d;
+  /* Top 10 rank stroke: exposed side → under card (flips with theme). */
+  --top10-stroke-start: #1a1a1a;
+  --top10-stroke-mid: #6b6b6b;
+  --top10-stroke-end: #c4c4c4;
+}
+.dark {
+  --skeleton: #ffffff17;
+  --top10-stroke-start: #e8e8e8;
+  --top10-stroke-mid: #8a8a8a;
+  --top10-stroke-end: #1a1a1a;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* Mobile dock — same frost as the sub-nav glass, not a flat tint. */
+[data-name='nav-menu-icon-solid'] {
+  background: var(--container) !important;
+  -webkit-backdrop-filter: blur(32px);
+  backdrop-filter: blur(32px);
 }
 
 .shell-scroll {
@@ -53,6 +76,37 @@
   background: rgba(255, 255, 255, 0.36);
 }
 
+/* Same readable rumble as the BetOnline launcher Must Drop ticker. */
+@keyframes must-drop-rumble {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  20% {
+    transform: translate(-0.6px, 0.4px) rotate(-0.35deg);
+  }
+  40% {
+    transform: translate(0.6px, -0.4px) rotate(0.35deg);
+  }
+  60% {
+    transform: translate(-0.4px, -0.6px) rotate(-0.25deg);
+  }
+  80% {
+    transform: translate(0.5px, 0.5px) rotate(0.2deg);
+  }
+}
+
+.jackpot-must-drop-shake {
+  animation: must-drop-rumble 0.32s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jackpot-must-drop-shake {
+    animation: none;
+  }
+}
+
 @keyframes shell-b-pop {
   0% {
     transform: scale(0);
@@ -68,7 +122,8 @@
 [data-name='header-brand'] button,
 [data-name='sidebar-container'] button,
 [data-name='sidebar-container'] a,
-[data-name='nav-menu-icon-solid'] a {
+[data-name='nav-menu-icon-solid'] a,
+[data-name='sub-menu'] button {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -89,6 +144,154 @@
   box-shadow: none !important;
 }
 
+/* Glass is the whole sub-menu bar — same token on mobile and desktop. */
+[data-name='sub-menu'][data-glass='true'] {
+  background: color-mix(in srgb, var(--container) 90%, transparent);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+}
+
+[data-name='sub-menu'][data-glass='false'] {
+  background: var(--background);
+  border-bottom-color: var(--border);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'][data-glass='true'] {
+  background: color-mix(in srgb, var(--header-inverted) 88%, transparent);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border-bottom-color: var(--border);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'][data-glass='false'] {
+  background: var(--background);
+  border-bottom-color: var(--border);
+}
+
+[data-name='sub-menu-icon-chip'],
+[data-name='sub-menu-table-activity'] [data-name='sub-menu-pill-track'] {
+  background: var(--surface-muted-5);
+  box-shadow: none;
+}
+
+/* Label chip sits on the glass bar. The blur stays on the bar, not this fill. */
+[data-name='sub-menu-pill-track'],
+[data-name='sub-menu-icon-chip'] {
+  background: var(--surface-muted-5);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+/* Mobile 69:47903 — full-bleed frosted bar, flush under the header. No slit of page content. */
+@media (max-width: 767px) {
+  [data-name='header-brand'] [data-header-bar] {
+    border-bottom-width: 0 !important;
+  }
+
+  [data-name='sub-menu'][data-glass='true'] {
+    background: color-mix(in srgb, var(--container) 90%, transparent) !important;
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    border-top: 0 !important;
+    /* Paint over any leftover hairline between the header and this bar. */
+    box-shadow: 0 -1px 0 0 var(--header-inverted);
+  }
+
+  [data-brand='betonline'].dark [data-name='sub-menu'][data-glass='true'] {
+    background: color-mix(in srgb, var(--header-inverted) 88%, transparent) !important;
+  }
+
+  [data-name='sub-menu'] > div {
+    min-height: 64px;
+    height: 64px;
+  }
+
+  [data-name='sub-menu-scroll'] {
+    overflow-x: auto !important;
+    max-width: 100%;
+  }
+
+  [data-name='sub-menu-pill-track'] {
+    width: max-content !important;
+    max-width: none !important;
+    flex: none !important;
+    border-radius: 9999px !important;
+    height: 48px !important;
+  }
+}
+
+/* Activity filters reuse casino sub-menu pill colors */
+[data-name='sub-menu-table-activity'] [data-sub-menu-pill][data-active='false'] {
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu-table-activity'] [data-sub-menu-pill][data-active='true'] {
+  background: transparent;
+  color: var(--primary-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu'] [data-sub-menu-pill][data-active='false'] {
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none !important;
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'] [data-sub-menu-pill][data-active='false'] {
+  background: transparent;
+  color: var(--muted-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:hover {
+  background: var(--surface-muted-3);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:hover {
+  background: var(--accent);
+}
+
+[data-name='sub-menu'] [data-sub-menu-pill][data-active='true'] {
+  background: transparent;
+  color: var(--primary-foreground);
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu-icon-chip'] button {
+  box-shadow: none !important;
+}
+
+[data-name='sub-menu-icon-chip'] button[data-sub-menu-search] {
+  background: transparent;
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu-icon-chip'] button[data-sub-menu-search] {
+  background: transparent;
+}
+
+[data-name='sub-menu-icon-chip'] button:hover {
+  background: var(--surface-muted-3);
+}
+
+[data-brand='betonline'].dark [data-name='sub-menu-icon-chip'] button:hover {
+  background: var(--accent);
+}
+
+[data-name='sub-menu-icon-chip'] button {
+  color: var(--muted-foreground);
+}
+[data-name='sub-menu-icon-chip'] button:hover {
+  color: var(--foreground);
+}
+[data-name='sub-menu-icon-chip'] button[aria-pressed='true'] {
+  color: var(--primary);
+}
+
 @keyframes hero-ember-rise {
   0% { transform: translateY(0) translateX(0); opacity: 0; }
   15% { opacity: 0.7; }
@@ -104,6 +307,25 @@
 @keyframes tile-shimmer {
   0% { background-position: -100% 0; }
   100% { background-position: 100% 0; }
+}
+
+.lm-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.lm-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--surface-muted-2, #e5e7eb), transparent);
+  animation: lm-shimmer 1.6s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lm-shimmer::after {
+    animation: none;
+  }
 }
 
 .lm-shimmer-wrap {
@@ -223,7 +445,9 @@ body {
   padding: 0;
 }
 
-/* Mobile: Allow vertical scrolling */
+/* Mobile: vertical page scroll + horizontal Embla carousels.
+   `touch-action: pan-y` on html/body blocks pan-x for ALL descendants
+   (effective touch-action is the intersection with ancestors). */
 @media (max-width: 768px) {
   html, body {
     height: auto;
@@ -231,7 +455,7 @@ body {
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    touch-action: manipulation;
     background-color: var(--background) !important;
     overscroll-behavior-y: contain;
     overscroll-behavior-x: none;
@@ -241,7 +465,7 @@ body {
     overflow-y: auto;
     position: relative;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    touch-action: manipulation;
     overscroll-behavior-y: contain;
     overscroll-behavior-x: none;
     background-color: var(--background) !important;
@@ -618,34 +842,84 @@ header[class*="z-\[100\]"] [role="button"] {
   cursor: pointer !important;
 }
 
-/* Ensure dropdown menus and sheets appear above sub-nav */
-[data-radix-dropdown-menu-content],
-[data-radix-popper-content-wrapper],
-[data-radix-dropdown-menu-content][data-state="open"] {
-  z-index: 120 !important;
-  position: fixed !important;
+/* Do not force-position Radix menus — that unhooks popper and hides Other / tooltips. */
+
+[data-radix-popper-content-wrapper]:has([data-slot='tooltip-content']) {
+  z-index: 400 !important;
 }
 
-/* Ensure dropdown portal appears above sub-nav */
+/* Official Lumen tooltip — Storybook `bg-foreground text-background` (flips with .dark). */
+#lumen-tip {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  display: none;
+  pointer-events: none !important;
+  width: fit-content;
+  max-width: 20rem;
+  align-items: center;
+  overflow: visible;
+  border-radius: 0.375rem;
+  background: var(--foreground) !important;
+  color: var(--background) !important;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.25;
+  opacity: 1 !important;
+  visibility: visible !important;
+  box-shadow: none;
+}
+#lumen-tip.is-on {
+  display: inline-flex !important;
+}
+#lumen-tip::before {
+  content: '';
+  position: absolute;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px;
+  background: var(--foreground);
+  transform: rotate(45deg);
+}
+#lumen-tip[data-side='right']::before {
+  left: 0;
+  top: 50%;
+  margin-left: -5px;
+  margin-top: -5px;
+}
+#lumen-tip[data-side='left']::before {
+  right: 0;
+  top: 50%;
+  margin-right: -5px;
+  margin-top: -5px;
+}
+#lumen-tip[data-side='bottom']::before {
+  left: 50%;
+  top: 0;
+  margin-left: -5px;
+  margin-top: -5px;
+}
+#lumen-tip[data-side='top']::before {
+  left: 50%;
+  bottom: 0;
+  margin-left: -5px;
+  margin-bottom: -5px;
+}
+
 [data-radix-portal] [data-radix-dropdown-menu-content] {
-  z-index: 120 !important;
-  position: fixed !important;
+  z-index: 200 !important;
 }
 
-/* Ensure carousel arrows are ALWAYS visible and NEVER clipped */
-button[class*="CarouselPrevious"],
-button[class*="CarouselNext"] {
+/* Overlay carousel arrows only (direct children). Header arrows use static layout — do not force absolute. */
+[role="region"][aria-roledescription="carousel"] > button[data-slot="carousel-previous"],
+[role="region"][aria-roledescription="carousel"] > button[data-slot="carousel-next"] {
   z-index: 30 !important;
   position: absolute !important;
   display: flex !important;
   visibility: visible !important;
-  opacity: 1 !important;
   pointer-events: auto !important;
-  margin: 0 !important;
 }
 
-/* Ensure ALL parent containers allow overflow for arrows - CRITICAL */
-/* SidebarInset should scroll vertically but allow horizontal overflow for carousels */
+/* SidebarInset: vertical scroll; keep carousel track clip via overflow-hidden on the embla viewport */
 main[data-sidebar="inset"] {
   overflow-x: visible !important;
   overflow-y: auto !important;
@@ -654,153 +928,26 @@ main[data-sidebar="inset"] {
   position: relative !important;
 }
 
-main[data-sidebar="inset"] > div,
-main[data-sidebar="inset"] > div > div,
-div[class*="relative"][class*="px-6"],
-div[class*="relative"][class*="px-6"] > *,
-[role="region"][aria-roledescription="carousel"],
-[role="region"][aria-roledescription="carousel"] > * {
-  overflow: visible !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
-}
-
-/* Ensure carousel container doesn't clip arrows */
 [role="region"][aria-roledescription="carousel"] {
   position: relative !important;
   width: 100% !important;
   overflow: visible !important;
 }
 
-/* The inner scroll container can have overflow-hidden, but arrows must be outside */
-[role="region"][aria-roledescription="carousel"] > div:first-child {
-  overflow: hidden !important; /* This is the scroll container - keep hidden */
-}
-
-/* But arrows are siblings, so they should be visible */
-[role="region"][aria-roledescription="carousel"] > button {
-  overflow: visible !important;
-  position: absolute !important;
-}
-
-/* Ensure carousel arrows are positioned correctly within content area */
+/* Keep lobby content width stable; do not force overflow:visible on embla viewports */
 main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] {
-  position: relative !important;
-  width: 100% !important;
   max-width: 100% !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-}
-
-/* Ensure carousel wrapper doesn't extend beyond viewport */
-main[data-sidebar="inset"] div.relative.px-6 {
-  max-width: 100% !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  overflow: visible !important;
-}
-
-/* CRITICAL: Force carousel arrows to be visible and positioned correctly - use viewport-relative positioning */
-main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] {
-  position: relative !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-}
-
-/* CRITICAL: Position carousel arrows at the edges of the visible content area - ensure they stay within viewport */
-main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] {
-  position: relative !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
-/* CRITICAL: Ensure ALL containers in the content area respect the visible width - target all nested divs */
-main[data-sidebar="inset"] > div,
-main[data-sidebar="inset"] > div > div,
-main[data-sidebar="inset"] > div > div > div,
-main[data-sidebar="inset"] > div > div > div > div,
-main[data-sidebar="inset"] > div > div > div > div > div,
-main[data-sidebar="inset"] div.flex.flex-col.gap-6,
-main[data-sidebar="inset"] div.space-y-8 {
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  overflow: visible !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
   min-width: 0 !important;
-  position: relative !important;
-}
-
-/* CRITICAL: Ensure carousel container respects parent width and doesn't overflow */
-main[data-sidebar="inset"] div.relative.px-6 {
-  width: 100% !important;
-  max-width: 100% !important;
   box-sizing: border-box !important;
-  overflow: visible !important;
-  overflow-x: visible !important;
-  min-width: 0 !important;
-  position: relative !important;
-  padding-right: 2.5rem !important; /* Add padding for arrow */
 }
 
-/* CRITICAL: Force RIGHT carousel arrow to be visible and positioned correctly - use container-relative positioning */
-main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] {
-  position: relative !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow: visible !important;
-  box-sizing: border-box !important;
-  min-width: 0 !important; /* Allow carousel to shrink */
+main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] [data-slot="carousel-content"],
+main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] > div.overflow-hidden {
+  overflow: hidden !important;
 }
 
-main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] button[class*="CarouselNext"] {
-  right: 0 !important;
-  left: auto !important;
-  position: absolute !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  display: flex !important;
-  z-index: 30 !important;
-  transform: translate(50%, -50%) !important;
-  pointer-events: auto !important;
-  top: 50% !important;
-  max-width: none !important;
-  width: 2rem !important;
-  height: 2rem !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-/* Ensure carousel wrapper doesn't clip the arrow */
-main[data-sidebar="inset"] div.relative.px-6[style*="overflow"] {
-  overflow: visible !important;
-  overflow-x: visible !important;
-  overflow-y: visible !important;
-}
-
-main[data-sidebar="inset"] [role="region"][aria-roledescription="carousel"] button[class*="CarouselPrevious"] {
-  left: 1.5rem !important;
-  right: auto !important;
-  position: absolute !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  display: flex !important;
-  z-index: 30 !important;
-  transform: translateY(-50%) !important;
-  pointer-events: auto !important;
-  top: 50% !important;
-  max-width: none !important;
-}
-
-/* Ensure ALL GAMES buttons are visible */
-div.flex.items-center.justify-between button {
+/* Ensure ALL GAMES buttons are visible (navtest shelves only — do not touch lobby IconButtons) */
+main[data-sidebar="inset"] div.flex.items-center.justify-between.mb-4 > button {
   visibility: visible !important;
   opacity: 1 !important;
   display: inline-flex !important;
@@ -1138,10 +1285,11 @@ main[data-sidebar="inset"] > * {
   max-height: none !important;
 }
 
-/* Ensure all parent containers up to body allow sticky */
-body > div:not([data-shell-drawer]):not([data-ubc-root]),
-body > div > div,
-body > div > div > div[class*="flex"] {
+/* Ensure all parent containers up to body allow sticky.
+ * Exclude portaled overlays (UBC / cashier / search / drawer) — they need fixed + full height. */
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]) > div[class*="flex"] {
   overflow: visible !important;
   overflow-x: hidden !important;
   position: relative !important;
@@ -1296,9 +1444,12 @@ div.flex.w-full.min-h-screen.bg-background {
   display: flex !important;
   width: 100% !important;
   min-width: 100% !important;
+  min-height: 28px !important;
   justify-content: center !important;
   align-items: center !important;
   opacity: 1 !important;
+  /* Only the handle dismisses — content swipes must not compete */
+  touch-action: none !important;
 }
 
 [data-ubc-root='mobile'] [data-drag-handle] > span {
@@ -1442,6 +1593,15 @@ button[data-active="true"][class*="SidebarMenuButton"],
   max-height: none !important;
   overflow-x: hidden !important;
   overflow-y: auto !important;
+  /* Allow Embla horizontal drag inside this vertical scroller */
+  touch-action: pan-x pan-y;
+}
+
+/* Embla viewports — both axes so mobile horizontal drag isn’t pointercancel’d */
+[data-name='Product Page'] [data-name='carousel'] > .overflow-hidden,
+[data-name='Product Page'] [data-name='top-10'] > .overflow-hidden,
+[data-name='Product Page'] [data-name='banner-carousel'] .overflow-hidden {
+  touch-action: pan-x pan-y;
 }
 
 [data-ubc-root='desktop'] {
@@ -1467,13 +1627,206 @@ button[data-active="true"][class*="SidebarMenuButton"],
   overflow: hidden !important;
 }
 
+/* Same 300ms ease-in-out in both directions. @starting-style so the first
+   paint is off-canvas — otherwise the panel pops in and only the exit animates. */
+[data-ubc-root] [data-ubc-backdrop] {
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+}
+[data-ubc-root] [data-ubc-backdrop][data-state='open'] {
+  opacity: 1;
+}
+[data-ubc-root] [data-ubc-backdrop][data-state='open'] {
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+[data-ubc-root='desktop'] [data-name='UBC'] {
+  transform: translateX(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-ubc-root='desktop'] [data-name='UBC'][data-state='open'] {
+  transform: translateX(0);
+}
+[data-ubc-root='desktop'] [data-name='UBC'][data-state='open'] {
+  @starting-style {
+    transform: translateX(100%);
+  }
+}
+
+[data-ubc-root='mobile'] [data-name='UBC'] {
+  transform: translateY(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-ubc-root='mobile'] [data-name='UBC'][data-state='open'] {
+  transform: translateY(0);
+}
+[data-ubc-root='mobile'] [data-name='UBC'][data-state='open'] {
+  @starting-style {
+    transform: translateY(100%);
+  }
+}
+[data-ubc-root='mobile'] [data-name='UBC'][data-dragging='true'] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-ubc-root] [data-ubc-backdrop],
+  [data-ubc-root] [data-name='UBC'],
+  [data-cashier-root] [data-cashier-backdrop],
+  [data-cashier-root] [data-name='Cashier'] {
+    transition: none;
+  }
+}
+
+[data-cashier-root='desktop'] {
+  position: fixed !important;
+  top: 68px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  z-index: 40 !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+[data-cashier-root='mobile'] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+[data-cashier-root] [data-cashier-backdrop] {
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+}
+[data-cashier-root] [data-cashier-backdrop][data-state='open'] {
+  opacity: 1;
+}
+[data-cashier-root] [data-cashier-backdrop][data-state='open'] {
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+[data-cashier-root='desktop'] [data-name='Cashier'] {
+  transform: translateX(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-cashier-root='desktop'] [data-name='Cashier'][data-state='open'] {
+  transform: translateX(0);
+}
+[data-cashier-root='desktop'] [data-name='Cashier'][data-state='open'] {
+  @starting-style {
+    transform: translateX(100%);
+  }
+}
+
+[data-cashier-root='mobile'] [data-name='Cashier'] {
+  transform: translateY(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-cashier-root='mobile'] [data-name='Cashier'][data-state='open'] {
+  transform: translateY(0);
+}
+[data-cashier-root='mobile'] [data-name='Cashier'][data-state='open'] {
+  @starting-style {
+    transform: translateY(100%);
+  }
+}
+[data-cashier-root='mobile'] [data-name='Cashier'][data-dragging='true'] {
+  transition: none;
+}
+
+[data-cashier-root='mobile'] [data-drag-handle] {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  min-height: 28px !important;
+  justify-content: center !important;
+  align-items: center !important;
+  opacity: 1 !important;
+  touch-action: none !important;
+}
+
+[data-cashier-root='mobile'] [data-drag-handle] > span {
+  display: block !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  background: var(--surface-muted-2) !important;
+  opacity: 0.7 !important;
+}
+
+/* Casino search overlay — beat legacy `body > div { position:relative; height:auto }` rules. */
+[data-casino-search-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 300 !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: var(--background) !important;
+}
+
+/* Game launcher — same full-viewport overlay treatment as search (always dark). */
+[data-casino-game-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 320 !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  min-height: 100svh !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background-color: #0a0a0a !important;
+}
+
+/* Keep Jackpot Info dropdown unclipped by header chrome */
+[data-casino-game-root] [data-name='jackpot-header'] {
+  overflow: visible !important;
+}
+
+/* Fixed jackpot menu: content-sized, capped, scrollable — never stretch full viewport */
+[data-jackpot-dropdown] {
+  position: fixed !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+[data-jackpot-dropdown] [data-name='Jackpot Info'] {
+  height: auto !important;
+  max-height: min(460px, 70vh) !important;
+  overflow-y: auto !important;
+}
+
 /* Mobile left nav — must beat the legacy `body > div { position:relative; height:auto }` rules. */
-[data-shell-drawer] {
+[data-shell-drawer],
+[data-name='Product Page'] > [data-shell-drawer] {
   position: fixed !important;
   inset: 0 !important;
   z-index: 180 !important;
   width: 100% !important;
   height: 100svh !important;
   max-height: 100svh !important;
+  min-height: 100svh !important;
   overflow: hidden !important;
 }

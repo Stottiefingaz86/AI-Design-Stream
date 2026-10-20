@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { STATUS_LABEL, getAgent } from '@/lib/studio/agents';
-import { BREAKPOINTS, mockUrlFor } from '@/lib/studio/mock';
+import { BREAKPOINTS, mockUrlFor, usesTestingGround } from '@/lib/studio/mock';
 import { answerQuestion, decideApproval } from '@/lib/studio/pipeline';
 import { getProject } from '@/lib/studio/store';
 import type { StudioApproval, StudioQuestion, StudioTask } from '@/lib/studio/types';
@@ -20,6 +20,7 @@ const PREVIEW_HEIGHT = 900;
  * leaving the chat. Picks a device width; scales to the card's width.
  */
 export function MockPreview({ url, label }: { url: string; label?: string }) {
+  const isFigma = /figma\.com\//i.test(url);
   const [bp, setBp] = useState<number>(BREAKPOINTS[0].width);
   const [w, setW] = useState(0);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -30,6 +31,21 @@ export function MockPreview({ url, label }: { url: string; label?: string }) {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+  if (isFigma) {
+    return (
+      <div className="ge-mock">
+        <div className="ge-mock__bar">
+          <span>{label ?? 'Figma'}</span>
+          <a href={url} target="_blank" rel="noreferrer">
+            Open in Figma ↗
+          </a>
+        </div>
+        <a className="ge-mock__figma" href={url} target="_blank" rel="noreferrer">
+          Design mock — open the Figma file
+        </a>
+      </div>
+    );
+  }
   const base = url.replace(/[&?]view=frames/, '');
   const bare = base.includes('?') ? `${base}&bare=1` : `${base}?bare=1`;
   const useW = bp;
@@ -139,7 +155,7 @@ const MOCK_LABEL: Partial<Record<StudioApproval['fromStatus'], string>> = {
   needs_prototype_review: 'Testing ground · prototype',
   needs_storybook_review: 'Component · every variant',
   needs_build_review: 'Preview branch — not live',
-  needs_signoff: 'QA build — last gate before live',
+  needs_signoff: 'Testing ground · mobile / tablet / desktop',
 };
 
 function approveLabel(from: StudioApproval['fromStatus']) {
@@ -149,12 +165,12 @@ function approveLabel(from: StudioApproval['fromStatus']) {
   return 'Approve';
 }
 
-function openLabel(from: StudioApproval['fromStatus']) {
+function openLabel(from: StudioApproval['fromStatus'], pageJob?: boolean) {
   if (from === 'needs_prototype_review') return 'Open testing ground';
   if (from === 'needs_build_review') return 'Open preview (not live)';
-  if (from === 'needs_signoff') return 'Open QA build';
+  if (from === 'needs_signoff') return pageJob ? 'Open testing ground · all sizes' : 'Open QA build';
   if (from === 'needs_design_review') return 'Open frames';
-  if (from === 'needs_storybook_review') return 'Open Storybook';
+  if (from === 'needs_storybook_review') return pageJob ? 'Open testing ground' : 'Open Storybook';
   return 'Open';
 }
 
@@ -162,6 +178,11 @@ export function ApprovalCard({ a, tasks }: { a: StudioApproval; tasks: StudioTas
   const [note, setNote] = useState('');
   const project = getProject(a.projectId);
   const mock = project ? mockUrlFor(project, a.fromStatus) : null;
+  const mustSee =
+    a.fromStatus === 'needs_prototype_review' ||
+    a.fromStatus === 'needs_build_review' ||
+    a.fromStatus === 'needs_signoff';
+  const seen = Boolean(project?.artifacts.openedPrototypeAt);
   if (a.decidedAt) {
     return (
       <div className={`ge-card ge-card--done ${a.decision === 'rejected' ? 'is-rejected' : 'is-approved'}`}>
@@ -177,7 +198,7 @@ export function ApprovalCard({ a, tasks }: { a: StudioApproval; tasks: StudioTas
     );
   }
   return (
-    <div className="ge-card ge-card--approval">
+    <div className="ge-card ge-card--approval" id={`signoff-${a.id}`}>
       <span className="ge-card__kicker">Needs your sign-off</span>
       <h4>{a.title}</h4>
       <p>{a.summary}</p>
@@ -187,7 +208,7 @@ export function ApprovalCard({ a, tasks }: { a: StudioApproval; tasks: StudioTas
       {mock ? (
         <>
           <a className="ge-btn ge-btn--sm" href={mock} target="_blank" rel="noreferrer">
-            {openLabel(a.fromStatus)} ↗
+            {openLabel(a.fromStatus, project ? usesTestingGround(project) : false)} ↗
           </a>
           <MockPreview url={mock} label={MOCK_LABEL[a.fromStatus]} />
         </>
@@ -205,8 +226,16 @@ export function ApprovalCard({ a, tasks }: { a: StudioApproval; tasks: StudioTas
         placeholder="Note for the team (required to send back)"
         aria-label="Decision note"
       />
+      {mustSee && !seen ? (
+        <p className="ge-card__warn">Open the testing ground first. Nothing ships until you’ve clicked through it in the shell.</p>
+      ) : null}
       <div className="ge-inline-actions">
-        <button className="ge-btn ge-btn--sm" type="button" onClick={() => decideApproval(a.id, 'approved', note)}>
+        <button
+          className="ge-btn ge-btn--sm"
+          type="button"
+          disabled={mustSee && !seen}
+          onClick={() => decideApproval(a.id, 'approved', note)}
+        >
           {approveLabel(a.fromStatus)}
         </button>
         <button

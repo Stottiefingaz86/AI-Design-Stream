@@ -21,12 +21,18 @@ export function figmaFileUrl(): string | null {
 export const LUMEN_PROJECTS_FOLDER = 'https://www.figma.com/files/1304356510223900444/folder/625743109';
 
 /**
- * Blank Figma file in that folder for the Design Lead + Product Designer to
- * mock new work. Agents never invent a new file — they frame here.
+ * Legacy sandbox. New mockups create their own Figma file (create_new_file)
+ * so existing product files and this sandbox stay untouched.
  */
 export const STUDIO_MOCK_FIGMA = {
   fileKey: 'wFyCOBCR34AMrgwEbp9tML',
   url: 'https://www.figma.com/design/wFyCOBCR34AMrgwEbp9tML/Studio-mocks',
+};
+
+export const FIGMA_NEW_FILE = {
+  planKey: 'organization::1304356510223900444',
+  projectId: '625743109',
+  editorType: 'design' as const,
 };
 
 /** Where the team's outputs live. Names only — set real values in .env. */

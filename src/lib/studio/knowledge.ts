@@ -8,6 +8,8 @@
  * or is already shipped in `apps/live-site`.
  */
 
+import { tasteBrief } from './taste';
+
 export interface ReferenceFile {
   id: string;
   name: string;
@@ -22,7 +24,7 @@ export const REFERENCE_FILES: ReferenceFile[] = [
     name: 'Casino-Lumen',
     fileKey: 'omWPnweoGhy1Ulv1AXxx2z',
     nodeId: '69-47911',
-    what: 'Casino lobby — "Product Page, Logged Out, Hidden Sidebar | Desktop, Light". Sub-menu pills, banner carousel, game-tile rows, providers, Top 10, activity table, SEO block.',
+    what: 'Casino lobby — "Product Page, Logged Out, Hidden Sidebar | Desktop, Light" (69:47911). Sub-menu: Lobby / Slots / Bonus Buy / Megaways / Originals / Blackjack / Live / Jackpots / Early / Staff Picks / Exclusive / New.',
   },
   {
     id: 'shell',
@@ -38,16 +40,84 @@ export const REFERENCE_FILES: ReferenceFile[] = [
     nodeId: '321-209846',
     what: 'Sport-specific page (M1). Icon tab bar with primary underline, skeleton loading states, same shell.',
   },
+  {
+    id: 'poker',
+    name: 'Poker_Landing-Page',
+    fileKey: '6MRTcwJHXgYmLxBWxRLz4I',
+    nodeId: '78-163252',
+    what: 'Poker product page desktop (78:163252). 🐚 Shell chrome + landing: hero “The BetOnline Poker Platform”, Our Top Features, Getting Started (5 steps), Game Integrity, Download Our Poker App, SEO, footer. No casino sub-nav.',
+  },
+  {
+    id: 'lumen',
+    name: 'Lumen_Desing System',
+    fileKey: 'vCPe93hNKDWWcpu49Vo0kU',
+    nodeId: '4862-20722',
+    what: 'Published Lumen library. Page “Documentation” (4862:20722). Instances only — <Button>, <IconButton>, text-input, search-box, bound to ☀️ Mode / 🚀 Themes / 💨 Tailwind.',
+  },
 ];
 
 export const LUMEN_PROJECTS_FOLDER = 'https://www.figma.com/files/1304356510223900444/folder/625743109';
 
-/** Blank file in that folder — Design Lead + Product Designer mock here. */
+/** Legacy sandbox only. New mockups get their own file — never add pages here. */
 export const STUDIO_MOCK_SPACE = {
   name: 'Studio mocks',
   fileKey: 'wFyCOBCR34AMrgwEbp9tML',
   url: 'https://www.figma.com/design/wFyCOBCR34AMrgwEbp9tML/Studio-mocks',
 };
+
+export const FIGMA_NEW_FILE = {
+  planKey: 'organization::1304356510223900444',
+  projectId: '625743109',
+  editorType: 'design' as const,
+};
+
+/** Product / library files humans paste as source. Never the Design mock tile. */
+const SOURCE_FIGMA_KEYS = new Set<string>([
+  ...REFERENCE_FILES.map((f) => f.fileKey),
+  STUDIO_MOCK_SPACE.fileKey,
+  'pbmNTsL7vz1BSF0ZYWY1n1',
+]);
+
+export function figmaFileKeyFromUrl(url: string): string | null {
+  const m = url.match(/figma\.com\/(?:design|file|board|proto)\/([A-Za-z0-9]+)/i);
+  return m?.[1] ?? null;
+}
+
+/** Casino-Lumen, Shell, Poker landing, DS, Studio-mocks — source, not a studio spec. */
+export function isSourceFigmaUrl(url: string): boolean {
+  const key = figmaFileKeyFromUrl(url);
+  return Boolean(key && SOURCE_FIGMA_KEYS.has(key));
+}
+
+/** A new Design file agents created — the only URL the Design mock tile may show. */
+export function isStudioFigmaUrl(url: string): boolean {
+  return /figma\.com\/(?:design|file)\//i.test(url) && !isSourceFigmaUrl(url);
+}
+
+/** Org folder + library the Figma plugin can write into. MCP cannot list folder contents — catalog known files, then create_new_file into this project. */
+export const FIGMA_WORKSPACE = {
+  folderUrl: LUMEN_PROJECTS_FOLDER,
+  planKey: FIGMA_NEW_FILE.planKey,
+  projectId: FIGMA_NEW_FILE.projectId,
+  libraryName: 'Lumen_Desing System',
+  libraryKey:
+    'lk-40fae532f4d55afe9d90d03a1d23bb174e778ffbae07cd2f0474fa95b2d2d722c963aac1e23b5574fcef93bdd232629e4ba24792340aae1653726545bb15ac8f',
+  libraryFileKey: 'vCPe93hNKDWWcpu49Vo0kU',
+  components: {
+    Button: '0d49e1fe7b73453bc333ff0681468e192218200d',
+    IconButton: 'aff1728c9e52c185c7c4c86531be90d5ff73f56a',
+    textInput: 'a8e777539d783bf9689823e8e225c7d22082cc10',
+    searchBox: '1e18d363b5064671cbbf44890fe94aa0bb24c993',
+  },
+  shellPages: [
+    '11:4 🐚 Shell | Screens',
+    '12:80010 ⚙️ Components',
+    '2563:297761 Navbar (Header)',
+    '3087:21675 Sidebar',
+    '2565:312988 UBC',
+    '11:5 Footer',
+  ],
+} as const;
 
 export function figmaNodeUrl(f: ReferenceFile): string {
   return `https://www.figma.com/design/${f.fileKey}/${encodeURIComponent(f.name)}${f.nodeId ? `?node-id=${f.nodeId}` : ''}`;
@@ -150,6 +220,7 @@ export const SHELL = {
     'Lumen/Shell/Mobile Dock → ShellMobileNav',
     'Lumen/Shell/Side Nav → ShellDrawer',
     'Lumen/Shell/Account Sheet → UbcSheet',
+    'Lumen/Shell/Cashier Sheet → CashierSheet (balance pill)',
     'Lumen/Shell/Mobile Top Tabs → ShellHeader',
   ],
   code: {
@@ -200,18 +271,20 @@ export const PROPSHOPX_SURFACES = [
 
 /** Page sections seen in the casino / sports files. Mocks compose from these. */
 export const SECTION_PATTERNS = {
-  subMenu: 'horizontal pill menu under the header; active pill = primary bg + primary-foreground; search + favourites icon-buttons on the left',
-  carouselRow: 'row title (optional icon) + "See More" link + prev/next icon-buttons (32–36px) on the right; items scroll horizontally',
-  bannerCard: '288–340 × 164 card: title, 1–2 lines body, small primary button, image on the right',
+  subMenu: '76px glass bar; search + heart in a 48px surface-muted-5 capsule (44px / 20px icons); pills Lobby → Slots → Bonus Buy → Megaways → Originals → Blackjack → Live → Jackpots → Early → Staff Picks → Exclusive → New; active = primary fill, text-sm regular',
+  carouselRow: 'row title (optional icon) + "See More" link + prev/next icon-buttons (32px outline, rounded-md) on the right; items scroll horizontally. Banner row uses inside arrows — rounded-full, overlaid on the track, not a header.',
+  bannerCard: '288–340 × 164 card: title, 1–2 lines body, official Button size="sm" (h-7, no custom height/radius/hover), image on the right',
   vipProgress: 'banner card with level name, progress bar (vip-level colours), "Open VIP Hub" link',
   dailyRaces: 'banner card with 3 stat cells (position / wagered / prize)',
   gameTile: 'portrait 152 × 207 tile: image, top-left tag badge (Originals / Live / Exclusive), top-right favourite icon-button; Top 10 variant has a large rank numeral',
   providerChips: 'row of outline chips with provider logo + name',
   activityTable: 'tabs (All Bets / Jackpot Winners / Big Wins) above a table: game, player, bet, multiplier, payout (success for wins)',
   sportTabs: 'icon + label tabs; active tab has muted bg and a 2px primary underline',
-  skeleton: 'rounded muted blocks mirror the final layout while loading (PropShopX M1)',
+  skeleton: 'official Lumen <Skeleton>: flat --skeleton fill (#0000000d light / #ffffff17 dark), 10px radius, no pulse. Casino = CasinoLobbySkeleton: banner row only (4×164). No game-tile shelves. Chrome (header / sidebar) stays real.',
   casinoLobby:
-    'Logged-out desktop: dark header (logo + Casino/Sports/… + search + Join) → banner carousel → pill sub-menu → game-tile rows (Originals, New Games, Live Casino, Providers, Popular, Exclusive, Halloween, Top 10 with rank numerals) → activity table → SEO card (H2 + On this page ToC) → dark footer (Quick Links / products / Need Help? / partners / 18+ / copyright).',
+    'Logged-in desktop: header + collapsed sidebar + casino sub-nav + VIP/Daily Races/promo banner row with official inside carousel arrows (rounded-full, overlaid on the banners). Play Now = Button size="sm". Nothing below the banners — no New Games, Originals, shelves, activity table, or invented lobby content.',
+  pokerLanding:
+    'Poker_Landing-Page 78:163252 inside 🐚 Shell (no casino sub-nav): hero “The BetOnline Poker Platform” + Play Online + iOS/Windows/Android chips + ape art; Our Top Features 6 cards; Getting Started 5 steps; Game Integrity + video still; Download Our Poker App; SEO + footer. Never the PrototypeMock Register/View schedule filler.',
 };
 
 /**
@@ -260,11 +333,19 @@ export function agentKnowledgeBrief(): string {
     `- Desktop: 68px header, 96/256 sidebar (persisted), UBC = 384px right sheet under the header.`,
     `- Mobile: underline product tabs (hide on scroll down); 311px left drawer with the same tabs; casino dock Search / Play Random / Favourites (hide on scroll up); UBC = bottom sheet, 54px centered handle, drag to dismiss.`,
     `- Viewport: [data-name='Product Page'] is fixed; only #shell-scroll scrolls. Do not portal overlays onto body.`,
-    `- Storybook: Lumen/Shell/Mobile Dock, Side Nav, Account Sheet, Mobile Top Tabs.`,
+    `- Storybook: Lumen/Shell/Mobile Dock, Side Nav, Account Sheet, Mobile Top Tabs, Lumen/Casino/Lobby Skeleton. Every shipped UI includes a matching skeleton (CasinoLobbySkeleton) — official flat blocks, never muted+pulse pills.`,
     `- Live site root is http://localhost:3000 (casino shell). /design-system is the token checkoff page — not the product.`,
-    `- Pipeline: prototype = testing ground. Post the /prototype?id= link in chat. Live site only after the human approves that prototype, then a preview branch, then Tess signs off.`,
-    `- Figma: Casino-Lumen ${REFERENCE_FILES.find((f) => f.id === 'casino')?.fileKey}, 🐚 Shell ${REFERENCE_FILES.find((f) => f.id === 'shell')?.fileKey}.`,
-  ].join('\n');
+    `- Pipeline: prototype = testing ground at /prototype?id=&ground=1. QA uses the same page at Mobile 375 / Tablet 768 / Desktop 1440 (toolbar or &view=frames). Never post /component for a page or chat job — that sheet is leftover button/badge variants. “Go live” / approve writes apps/live-site immediately (casino → /casino, poker → /poker). A new Figma Design file is a follow-up — live does not wait on it.`,
+    `- Figma workspace: Lumen folder ${LUMEN_PROJECTS_FOLDER} (projectId ${FIGMA_WORKSPACE.projectId}). Known files: ${REFERENCE_FILES.map((f) => `${f.name} ${f.fileKey}`).join('; ')}. MCP cannot list the folder — call get_metadata (no nodeId) on a fileKey to list pages. New work = create_new_file into that projectId, never Studio-mocks.`,
+    `- Figma implement: create_session + get_design_context + get_screenshot on the SOURCE frame FIRST, then create_new_file in the Lumen folder (projectId ${FIGMA_WORKSPACE.projectId}) named “Lumen studio — <job>”. That new file is the Design mock: annotated frames for happy path, error / empty / loading, and how the flow works. Never post Casino-Lumen / Shell / Poker_Landing / the pasted source as the Design mock. The runner fails the job if the read tools or create_new_file never run. Poker source = Poker_Landing-Page 6MRTcwJHXgYmLxBWxRLz4I / 78:163252 inside PokerProductShell.`,
+    `- Figma design (mockup): NEW Design file in the Lumen folder. create_session, get_libraries, search_design_system scoped to libraryKey ${FIGMA_WORKSPACE.libraryKey} (Lumen_Desing System only — ignore Kraken/MUI/Sportsbook). Assemble with use_figma instances + bound ☀️ Mode variables. Annotate happy path, errors, empty/loading, and the flow. Shell pages: ${FIGMA_WORKSPACE.shellPages.join(', ')}. Frame names follow FRAME_NAMING. Post the NEW file URL. No testing-ground until the human says build it.`,
+    `- Figma journey: FigJam flowchart via generate_diagram (NOT mermaid journey — unsupported). planKey ${FIGMA_WORKSPACE.planKey}. Steps named after real Lumen surfaces (Shell, Casino lobby, Poker landing). Post the board URL.`,
+    `- Figma implement defaults: Casino-Lumen ${REFERENCE_FILES.find((f) => f.id === 'casino')?.fileKey} node ${REFERENCE_FILES.find((f) => f.id === 'casino')?.nodeId}, Poker ${REFERENCE_FILES.find((f) => f.id === 'poker')?.fileKey} node ${REFERENCE_FILES.find((f) => f.id === 'poker')?.nodeId}, 🐚 Shell ${REFERENCE_FILES.find((f) => f.id === 'shell')?.fileKey}.`,
+    `- Chrome: import live-site ShellHeader + ShellSidebar. Never invent a BETONLINE wordmark header. Never use PrototypeMock filler (Register / View schedule / Players online). Hidden Sidebar = 96px collapsed rail.`,
+    tasteBrief(),
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 /** Review checklist derived from the above — the design lead runs this on every mock. */
