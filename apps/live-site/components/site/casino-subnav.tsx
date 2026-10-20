@@ -81,8 +81,12 @@ export function CasinoSubNav({
     const track = trackRef.current;
     const btn = track?.querySelector<HTMLElement>('[data-sub-menu-pill][data-active="true"]');
     if (!track || !btn) return;
-    const x = btn.offsetLeft;
-    const w = btn.offsetWidth;
+    // getBoundingClientRect + scrollLeft is reliable on iOS where offsetLeft can lag.
+    const trackRect = track.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    const x = Math.round(btnRect.left - trackRect.left + track.scrollLeft);
+    const w = Math.round(btnRect.width);
+    if (w <= 0) return;
     setThumb((prev) =>
       prev.ready && prev.x === x && prev.w === w ? prev : { x, w, ready: true },
     );
@@ -177,7 +181,7 @@ export function CasinoSubNav({
             aria-hidden
             data-sub-menu-thumb=""
             className={cn(
-              'pointer-events-none absolute left-0 top-0.5 h-11 rounded-full bg-primary will-change-transform',
+              'pointer-events-none absolute left-0 top-0.5 z-0 h-11 rounded-full bg-primary will-change-transform',
               motion && thumb.ready
                 ? 'transition-[transform,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]'
                 : '',
@@ -204,8 +208,12 @@ export function CasinoSubNav({
                   if (href && href !== pathname) router.push(href);
                 }}
                 className={cn(
-                  'shell-chrome-btn relative z-10 h-11 shrink-0 rounded-full bg-transparent px-4 text-sm font-normal leading-5',
+                  'shell-chrome-btn relative z-10 h-11 shrink-0 rounded-full px-4 text-sm font-normal leading-5',
                   motion && 'transition-colors duration-300',
+                  /* Fallback fill until thumb measures — white active text must sit on primary. */
+                  on
+                    ? cn('text-primary-foreground', !thumb.ready && 'bg-primary')
+                    : 'bg-transparent text-muted-foreground',
                 )}
               >
                 {item}

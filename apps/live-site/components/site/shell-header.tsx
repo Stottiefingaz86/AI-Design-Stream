@@ -23,17 +23,29 @@ export function ShellHeader() {
   const pathname = usePathname()
   const { toggle, loggedIn, setLoggedIn, navOpen, setNavOpen, startNavigating } = useShell()
   const [otherOpen, setOtherOpen] = useState(false)
-  const chipsHidden = useHideOnScroll('down')
+  /** Chip strip is h-12 (48px); compensate shell scroll when it collapses so scroll doesn’t accelerate. */
+  const chipsHidden = useHideOnScroll('down', 48)
 
   return (
     <header data-name="header-brand" className="sticky top-0 z-[60] w-full shrink-0 overflow-visible bg-[var(--header-inverted)]">
+      {/*
+        Height toggles instantly (no max-height tween) — tweening header height while the
+        user scrolls makes #shell-scroll resize mid-gesture and feels like a speed-up.
+        Opacity fades only; scroll compensation lives in useHideOnScroll(layoutDeltaPx).
+      */}
       <div
         className={cn(
-          'max-w-full overflow-hidden border-b border-[var(--border-inverted)] transition-all duration-300 ease-in-out lg:hidden',
-          chipsHidden ? 'max-h-0 border-b-0 opacity-0' : 'max-h-12 opacity-100'
+          'max-w-full overflow-hidden border-b border-[var(--border-inverted)] lg:hidden',
+          chipsHidden ? 'max-h-0 border-b-0' : 'max-h-12',
         )}
+        aria-hidden={chipsHidden}
       >
-        <div className="scrollbar-hide max-w-full overflow-x-auto px-4 pt-1">
+        <div
+          className={cn(
+            'scrollbar-hide max-w-full overflow-x-auto px-4 pt-1 transition-opacity duration-200 ease-out',
+            chipsHidden ? 'pointer-events-none opacity-0' : 'opacity-100',
+          )}
+        >
           <nav className="flex w-max items-center gap-2" aria-label="Products">
             {CHIP_NAV.map((item) => {
               const active = chipItemActive(item.label, pathname)
@@ -44,6 +56,7 @@ export function ShellHeader() {
                   onClick={startNavigating}
                   data-name="nav-item-outline-inverted"
                   data-state={active ? 'active' : 'default'}
+                  tabIndex={chipsHidden ? -1 : undefined}
                   className={cn(
                     'inline-flex min-w-[60px] items-center justify-center border-b-2 px-[14px] py-1.5 text-sm leading-5 transition-colors duration-200 ease-in-out',
                     active
