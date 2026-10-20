@@ -10,12 +10,17 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel';
 import { ShellIcon } from '@/components/site/shell-icons';
+import { useShell } from '@/components/site/shell-context';
 import { Card } from '@/components/ui/card';
 import { Typography } from '@/components/ui/typography';
 import { useGrowProgress } from '@/lib/lumen/use-grow-progress';
 import { cn } from '@/lib/utils';
 
 const BANNER_LAUNCH_MS = 2200;
+
+/** Subtle lift on dark translucent cards — white/8 is visible without looking loud. */
+const BANNER_HOVER =
+  'transition-[background-color,border-color] duration-150 hover:border-white/25 hover:bg-white/[0.08]';
 
 function useLaunchAction(onAction?: () => void) {
   const [loading, setLoading] = useState(false);
@@ -55,14 +60,29 @@ export function VipProgressBanner({
   onOpenHub,
   className,
 }: VipProgressBannerProps) {
+  const { setVipHubOpen } = useShell();
   const pct = Math.min(100, Math.max(0, progressPercent));
   const grown = useGrowProgress(pct);
-  const { loading, launch } = useLaunchAction(onOpenHub);
+  const openHub = () => {
+    if (onOpenHub) onOpenHub();
+    else setVipHubOpen(true);
+  };
 
   return (
     <Card
+      role="button"
+      tabIndex={0}
+      aria-label={hubLabel}
+      onClick={openHub}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openHub();
+        }
+      }}
       className={cn(
-        'flex h-[164px] w-[288px] shrink-0 flex-col justify-between rounded-[10px] border border-border bg-card p-4 shadow-none',
+        'relative flex h-[164px] w-[288px] shrink-0 cursor-pointer flex-col justify-between rounded-[10px] border border-border bg-card p-4 shadow-none',
+        BANNER_HOVER,
         className,
       )}
     >
@@ -70,22 +90,10 @@ export function VipProgressBanner({
         <Typography as="h3" shape="small" weight="semibold">
           VIP Progress
         </Typography>
-        <button
-          type="button"
-          onClick={launch}
-          disabled={loading}
-          aria-busy={loading}
-          className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-70"
-        >
-          {loading ? (
-            <Loader2Icon className="size-3.5 animate-spin" aria-hidden />
-          ) : (
-            <>
-              {hubLabel}
-              <ShellIcon name="external" tone="token" className="size-3.5" aria-hidden />
-            </>
-          )}
-        </button>
+        <span className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium text-foreground">
+          {hubLabel}
+          <ShellIcon name="external" tone="token" className="size-3.5" aria-hidden />
+        </span>
       </div>
       <div>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -150,6 +158,7 @@ export function DailyRacesBanner({
       }}
       className={cn(
         'relative flex h-[164px] w-[288px] shrink-0 cursor-pointer flex-col justify-between rounded-[10px] border border-border bg-card p-4 shadow-none',
+        BANNER_HOVER,
         className,
       )}
     >
@@ -192,6 +201,8 @@ export type PromoLobbyBannerProps = {
   buttonLabel?: string;
   imageSrc?: string;
   imageAlt?: string;
+  /** `bleed` = full-card background (left clear for copy). `panel` = Figma right 160px art slot. */
+  imageMode?: 'panel' | 'bleed';
   onAction?: () => void;
   className?: string;
 };
@@ -203,54 +214,113 @@ export function PromoLobbyBanner({
   buttonLabel = 'Play Now',
   imageSrc,
   imageAlt = '',
+  imageMode = 'panel',
   onAction,
   className,
 }: PromoLobbyBannerProps) {
   const { loading, launch } = useLaunchAction(onAction);
+  const bleed = imageMode === 'bleed';
 
+  /* Figma Banner 340×164 — Play Now hugs content (h-8). */
   return (
     <article
+      role="button"
+      tabIndex={0}
+      aria-label={`${title} — ${buttonLabel}`}
+      aria-busy={loading}
+      onClick={launch}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          launch()
+        }
+      }}
       className={cn(
-        'group flex h-[164px] w-[340px] shrink-0 overflow-hidden rounded-[10px] border border-border bg-card',
+        'relative flex h-[164px] w-[340px] shrink-0 cursor-pointer overflow-hidden rounded-[10px] border border-border bg-card shadow-none',
+        BANNER_HOVER,
         className,
       )}
     >
-      <div className="flex min-w-0 flex-1 flex-col justify-between p-4">
-        <div className="min-w-0">
-          <span className="inline-flex rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium leading-none text-background">
+      {bleed && imageSrc ? (
+        <>
+          <img
+            src={imageSrc}
+            alt=""
+            className="pointer-events-none absolute inset-0 size-full object-cover object-right"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent" />
+        </>
+      ) : null}
+
+      {loading ? (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[10px] bg-background/55 backdrop-blur-[1px]">
+          <Loader2Icon className="size-8 animate-spin text-foreground" aria-hidden />
+        </div>
+      ) : null}
+
+      {/*
+        Figma banner type (Figtree):
+        tag 10/14 medium · title Lead 20/20 bold · body XXS 10/14 regular (12 was too large) ·
+        CTA SM 14 medium h-32 — copy top, CTA bottom
+      */}
+      <div className="relative z-10 flex h-full w-[180px] shrink-0 flex-col justify-between p-4 font-[family-name:var(--font-figtree),ui-sans-serif,sans-serif]">
+        <div className="flex w-[164px] shrink-0 flex-col gap-1">
+          <span
+            className={cn(
+              'inline-flex w-fit rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-[14px]',
+              bleed ? 'bg-white text-black' : 'bg-foreground text-background',
+            )}
+          >
             {tag}
           </span>
-          <Typography as="h3" shape="small" weight="bold" className="mt-2">
+          <h3
+            className={cn(
+              'line-clamp-2 text-[20px] font-extrabold leading-5',
+              bleed ? 'text-white' : 'text-foreground',
+            )}
+          >
             {title}
-          </Typography>
-          <Typography as="p" shape="xxs" variant="muted" className="mt-1 line-clamp-2">
+          </h3>
+          <p
+            className={cn(
+              /* Tight leading — 10px type with 12px line box (was too airy at 14px) */
+              'line-clamp-2 text-[10px] font-normal leading-3',
+              bleed ? 'text-white/75' : 'text-muted-foreground',
+            )}
+          >
             {body}
-          </Typography>
+          </p>
         </div>
         <Button
-          size="sm"
-          className="relative w-[6.5rem] justify-center group-hover:bg-primary/80"
-          onClick={launch}
+          type="button"
+          size="default"
+          tabIndex={-1}
+          className="h-8 w-fit shrink-0 self-start px-3 text-sm font-medium hover:bg-primary/80"
+          onClick={(e) => {
+            e.stopPropagation()
+            launch()
+          }}
           disabled={loading}
           aria-busy={loading}
         >
-          <span className={cn('inline-flex items-center gap-1.5', loading && 'invisible')}>
-            {buttonLabel}
-          </span>
-          {loading ? (
-            <Loader2Icon className="absolute size-4 animate-spin" aria-hidden />
-          ) : null}
+          {buttonLabel}
         </Button>
       </div>
-      <div className="relative w-[132px] shrink-0 border-l border-border bg-surface-muted-2">
-        {imageSrc ? (
-          <img src={imageSrc} alt={imageAlt} className="size-full object-cover" />
-        ) : (
-          <div className="flex size-full flex-col items-center justify-center gap-1 px-2 text-center text-muted-foreground">
-            <span className="text-[10px] leading-tight">safe zone.</span>
-          </div>
-        )}
-      </div>
+
+      {!bleed ? (
+        <div
+          aria-hidden={!imageAlt}
+          className="pointer-events-none absolute inset-y-0 right-0 w-[160px] overflow-hidden rounded-br-[10px] rounded-tr-[10px] bg-surface-muted-2"
+        >
+          {imageSrc ? (
+            <img src={imageSrc} alt={imageAlt} className="size-full object-contain object-center p-2" />
+          ) : (
+            <div className="flex size-full flex-col items-center justify-center gap-1 px-2 text-center text-muted-foreground">
+              <span className="text-[10px] leading-tight">safe zone</span>
+            </div>
+          )}
+        </div>
+      ) : null}
     </article>
   );
 }

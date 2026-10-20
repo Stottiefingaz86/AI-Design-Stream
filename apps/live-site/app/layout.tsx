@@ -9,7 +9,8 @@ import './globals.css'
 const figtree = Figtree({
   subsets: ['latin'],
   variable: '--font-figtree',
-  weight: ['400', '500', '600'],
+  /* 700/800 for lobby promo banner titles */
+  weight: ['400', '500', '600', '700', '800'],
   display: 'swap',
 })
 

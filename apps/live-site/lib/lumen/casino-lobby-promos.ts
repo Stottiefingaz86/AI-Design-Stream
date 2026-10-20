@@ -1,24 +1,26 @@
-import type { PromoLobbyBannerItem } from '@/components/lumen/casino-lobby-banners';
+import type { PromoLobbyBannerItem } from '@/components/lumen/casino-lobby-banners'
 
-/** Figma 69-47911 promo cards — art from live-site `/banners/*`. */
+/** Figma 69-47911 / 111:151972 promo cards. */
 export const CASINO_LOBBY_PROMO_BANNERS: PromoLobbyBannerItem[] = [
   {
-    id: 'diner-match',
-    tag: 'Promo',
-    title: 'Diner Match',
-    body: 'First deposit bonus up to 250%.',
+    id: 'train-heist',
+    tag: 'Game of the Week',
+    title: 'Train Heist Johnny Cash',
+    body: 'Long time no see, Johnny Cash! The daring outlaw cowboy returns in a brand-new BGaming slot',
     buttonLabel: 'Play Now',
-    imageSrc: '/banners/dinerMatchBackground.png',
-    imageAlt: 'Diner Match',
+    imageSrc: '/banners/train-heist-johnny-cash.jpg',
+    imageAlt: 'Train Heist Johnny Cash',
+    imageMode: 'bleed',
   },
   {
-    id: 'originals',
-    tag: 'Originals',
-    title: 'Originals',
-    body: 'Streamlined play for a guaranteed win.',
-    buttonLabel: 'Play Now',
-    imageSrc: '/banners/orginals.png',
-    imageAlt: 'Originals',
+    id: 'halloween',
+    tag: 'Promo',
+    title: 'Halloween Games',
+    body: 'Play a selection of halloween games',
+    buttonLabel: 'See games',
+    imageSrc: '/banners/halloween-games.jpg',
+    imageAlt: 'Halloween Games',
+    imageMode: 'bleed',
   },
   {
     id: 'weekly',
@@ -26,7 +28,7 @@ export const CASINO_LOBBY_PROMO_BANNERS: PromoLobbyBannerItem[] = [
     title: 'Weekly Boost',
     body: 'Reload every week as you climb VIP.',
     buttonLabel: 'Play Now',
-    imageSrc: '/banners/weekly.png',
+    imageSrc: '/banners/promo-weekly-art.png',
     imageAlt: 'Weekly Boost',
   },
   {
@@ -35,7 +37,7 @@ export const CASINO_LOBBY_PROMO_BANNERS: PromoLobbyBannerItem[] = [
     title: 'Free Spins',
     body: '10 free spins for 10 days.',
     buttonLabel: 'Play Now',
-    imageSrc: '/banners/freespins.png',
+    imageSrc: '/banners/promo-freespins-art.png',
     imageAlt: 'Free Spins',
   },
-];
+]
