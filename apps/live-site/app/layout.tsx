@@ -31,7 +31,7 @@ export default function RootLayout({
         {/*
           Static boot overlay — paints before React/PassGate hydrate.
           Critical layout is INLINE so it never lands in document flow above the shell.
-          SiteArrivalLoader removes it after ≥ one logo loop.
+          SiteArrivalLoader removes it after ≥ two logo loops.
         */}
         <div
           id="site-boot-loader"

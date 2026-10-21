@@ -3,8 +3,8 @@
 import { useEffect } from 'react'
 
 const BOOT_ID = 'site-boot-loader'
-/** At least one full logo loop. */
-const BOOT_MIN_MS = 2400
+/** At least two full logo loops (duration 2400ms each). */
+const BOOT_MIN_MS = 4800
 
 /**
  * Removes the static `#site-boot-loader` after first paint.
