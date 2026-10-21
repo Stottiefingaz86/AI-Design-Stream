@@ -122,7 +122,7 @@ const ICONS: Record<ShellIconName, string> = {
   home: '/shell/figma/casino/home.svg',
   house: '/shell/figma/casino/home.svg',
   lastGame: '/shell/figma/dock/last-game.svg',
-  library: '/shell/figma/casino/home.svg',
+  library: '/shell/figma/casino/library.svg',
   list: '/shell/figma/header/menu.svg',
   live: '/shell/figma/casino/live.svg',
   megaphone: '/shell/figma/promo/all.svg',
@@ -181,7 +181,6 @@ export function ShellIcon({
 }) {
   const preserve = PRESERVE_COLOR[name]
 
-  /* library / home / house use the Figma house mask — never Lucide (bg-* was painting a white square). */
   if (tone === 'token') {
     return (
       <span

@@ -90,8 +90,12 @@ export function CasinoWallpaperPage({
             'grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8',
           )}
         >
-          {games.map((game) => (
-            <div key={game.id} className="aspect-[152/207] w-full min-w-0">
+          {games.map((game, index) => (
+            <div
+              key={game.id}
+              className="lm-tile-enter aspect-[152/207] w-full min-w-0"
+              style={{ ['--lm-tile-i' as `--lm-tile-i`]: index }}
+            >
               <CasinoGameTile
                 game={game}
                 onLaunch={launchGame}

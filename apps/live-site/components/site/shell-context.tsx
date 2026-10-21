@@ -171,6 +171,11 @@ export function ShellProvider({
     }
     const next = href?.split('?')[0]?.split('#')[0] || null
     if (next && next === pathname) return
+    /* Casino: skeleton only for lobby — other casino routes just soft-nav / lazy-load. */
+    if (next) {
+      const normalized = next.replace(/\/+$/, '') || '/'
+      if (normalized.startsWith('/casino') && normalized !== '/casino') return
+    }
     if (next) setPendingHref(next)
     setNavigating(true)
   }, [pathname])

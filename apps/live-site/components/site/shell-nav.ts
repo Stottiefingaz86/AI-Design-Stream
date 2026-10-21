@@ -297,7 +297,7 @@ export function navForProduct(product: ShellProduct): ShellNavGroup[] {
   return withVipHub([
     {
       items: [
-        { label: 'Casino Lobby', href: '/casino', icon: 'home', emphasis: true },
+        { label: 'Casino Lobby', href: '/casino', icon: 'library', emphasis: true },
         { label: 'Favorite', href: '/casino/category/favourites', icon: 'favorite', emphasis: true },
         {
           label: 'Play Random',

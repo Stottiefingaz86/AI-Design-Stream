@@ -1,6 +1,4 @@
-import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
-
-/** Parent casino layout owns ShellFrame — only swap page content. */
+/** Soft-nav only — no lobby skeleton on Slots. */
 export default function Loading() {
-  return <CasinoLobbySkeleton />
+  return null
 }

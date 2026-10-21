@@ -78,7 +78,12 @@ function RouteSkeleton({ path }: { path: string }) {
     if (path.startsWith('/promotions/contest')) return <ContestsLobbySkeleton />
     return <PromotionsLobbySkeleton />
   }
-  if (product === 'casino') return <CasinoLobbySkeleton />
+  /* Casino skeleton only on lobby — Live/Slots/etc. skip the overlay. */
+  if (product === 'casino') {
+    const lobby = path.replace(/\/+$/, '') || '/'
+    if (lobby === '/casino') return <CasinoLobbySkeleton />
+    return <ShellContent />
+  }
 
   return <ShellContent />
 }

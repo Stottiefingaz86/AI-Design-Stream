@@ -499,6 +499,29 @@
   color: transparent;
   animation: lm-shimmer-text 2.8s linear infinite;
 }
+/* Lobby / wallpaper tiles — stagger in left→right, top→bottom (set --lm-tile-i). */
+@keyframes lm-tile-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.lm-tile-enter {
+  opacity: 0;
+  animation: lm-tile-enter 0.42s ease-out forwards;
+  animation-delay: calc(min(var(--lm-tile-i, 0), 40) * 42ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lm-tile-enter {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 @keyframes lm-tile-shimmer {
   0% { background-position: -100% 0; }
   100% { background-position: 100% 0; }

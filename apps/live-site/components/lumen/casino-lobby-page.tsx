@@ -337,14 +337,24 @@ function GameRail({
 }) {
   return (
     <CarouselContent className="!ml-0 gap-3 py-4">
-      {games.map((game) => (
+      {games.map((game, index) => (
         <CarouselItem key={game.id} className="basis-auto pl-0 first:pl-6 last:pr-6">
-          <CasinoGameTile game={game} className={tileClassName} onLaunch={onLaunch} />
+          <div
+            className="lm-tile-enter"
+            style={{ ['--lm-tile-i' as `--lm-tile-i`]: index }}
+          >
+            <CasinoGameTile game={game} className={tileClassName} onLaunch={onLaunch} />
+          </div>
         </CarouselItem>
       ))}
       {showPlayRandom ? (
         <CarouselItem key="play-random" className="basis-auto pl-0 first:pl-6 last:pr-6">
-          <PlayRandomTile onLaunch={onLaunch} />
+          <div
+            className="lm-tile-enter"
+            style={{ ['--lm-tile-i' as `--lm-tile-i`]: games.length }}
+          >
+            <PlayRandomTile onLaunch={onLaunch} />
+          </div>
         </CarouselItem>
       ) : null}
     </CarouselContent>

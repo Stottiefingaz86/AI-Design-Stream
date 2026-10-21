@@ -1,5 +1,4 @@
-import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
-
+/** Soft-nav only — no lobby skeleton on provider pages. */
 export default function Loading() {
-  return <CasinoLobbySkeleton />
+  return null
 }
