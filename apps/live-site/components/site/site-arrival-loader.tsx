@@ -6,27 +6,27 @@ const BOOT_ID = 'site-boot-loader'
 /** At least one full logo loop. */
 const BOOT_MIN_MS = 2400
 
-function dismissBoot(el: HTMLElement) {
-  el.classList.add('is-exiting')
-  window.setTimeout(() => {
-    el.hidden = true
-    el.setAttribute('aria-hidden', 'true')
-  }, 280)
-}
-
 /**
- * Dismisses the static `#site-boot-loader` in root layout after first paint.
- * The overlay itself is plain HTML so it shows before React / PassGate hydrate.
+ * Removes the static `#site-boot-loader` after first paint.
+ * Must `remove()` — hiding left it in the body and it was stacking above the shell menu.
  */
 export function SiteArrivalLoader() {
   useEffect(() => {
     const el = document.getElementById(BOOT_ID)
     if (!el) return
 
-    /* Keep above everything — including PassGate blank / shell chrome. */
-    document.body.appendChild(el)
+    /* Pin on <body> with inline fixed styles (already on the node from layout). */
+    if (el.parentElement !== document.body) {
+      document.body.appendChild(el)
+    }
+    el.style.position = 'fixed'
+    el.style.inset = '0'
+    el.style.zIndex = '99999'
+    el.style.display = 'flex'
+    el.style.alignItems = 'center'
+    el.style.justifyContent = 'center'
+    el.style.background = '#1a1a1a'
     el.hidden = false
-    el.classList.remove('is-exiting')
 
     const started = performance.now()
     let finished = false
@@ -36,7 +36,14 @@ export function SiteArrivalLoader() {
       if (finished) return
       finished = true
       const wait = Math.max(0, BOOT_MIN_MS - (performance.now() - started))
-      dismissTimer = window.setTimeout(() => dismissBoot(el), wait)
+      dismissTimer = window.setTimeout(() => {
+        el.classList.add('is-exiting')
+        el.style.opacity = '0'
+        el.style.transition = 'opacity 0.28s ease-out'
+        window.setTimeout(() => {
+          el.remove()
+        }, 280)
+      }, wait)
     }
 
     if (document.readyState === 'complete') {

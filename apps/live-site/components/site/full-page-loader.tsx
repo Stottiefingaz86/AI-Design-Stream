@@ -31,8 +31,9 @@ export function FullPageLoader({ open }: { open: boolean }) {
       aria-busy
       aria-label="Loading"
       className={cn(
-        'pointer-events-auto fixed inset-0 z-[9999] flex items-center justify-center',
-        'bg-[#101012]',
+        'pointer-events-auto fixed inset-0 z-[99999] flex items-center justify-center',
+        /* Match dark-mode --background (#1a1a1a), not a one-off black. */
+        'bg-[var(--background,#1a1a1a)]',
       )}
     >
       <BetOnlineLoader width={320} duration={2400} className="px-6" />

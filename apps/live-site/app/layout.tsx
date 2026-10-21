@@ -30,15 +30,26 @@ export default function RootLayout({
       <body className={figtree.className}>
         {/*
           Static boot overlay — paints before React/PassGate hydrate.
-          SiteArrivalLoader dismisses it after ≥ one logo loop.
+          Critical layout is INLINE so it never lands in document flow above the shell.
+          SiteArrivalLoader removes it after ≥ one logo loop.
         */}
         <div
           id="site-boot-loader"
           role="alertdialog"
           aria-busy="true"
           aria-label="Loading"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            /* Dark-mode page bg — don’t wait for ThemeProvider / .dark class. */
+            background: '#1a1a1a',
+          }}
           dangerouslySetInnerHTML={{
-            __html: '<betonline-loader duration="2400"></betonline-loader>',
+            __html: '<betonline-loader duration="2400" style="--loader-width:min(320px,72vw)"></betonline-loader>',
           }}
         />
         <Script src="/lumen-tip.js" strategy="beforeInteractive" />
