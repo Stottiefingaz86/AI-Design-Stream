@@ -2,11 +2,13 @@
 
 import {
   Fragment,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -35,6 +37,7 @@ import {
 import { LumenTooltip } from '@/components/ui/lumen-tooltip'
 import { BetHistoryFiltersSheet } from '@/components/lumen/bet-history-filters-sheet'
 import {
+  BET_FILTER_STATUSES,
   BET_HISTORY_ROWS,
   BET_STATUS_STYLE,
   BET_WAGER_TYPE_OPTIONS,
@@ -454,11 +457,39 @@ function BetHistoryTable({
  * Expanded: 4275:185619 · Filters: 4473:179048
  */
 export function BetHistoryPage({ className }: { className?: string }) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const statusFromUrl = searchParams.get('status')
+  const initialStatus =
+    statusFromUrl &&
+    (BET_FILTER_STATUSES as readonly string[]).includes(statusFromUrl)
+      ? statusFromUrl
+      : ''
+
   const [week, setWeek] = useState<WeekTab>('this')
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [applied, setApplied] = useState<BetFilters>(EMPTY_BET_FILTERS)
-  const [draft, setDraft] = useState<BetFilters>(EMPTY_BET_FILTERS)
+  const [applied, setApplied] = useState<BetFilters>(() =>
+    initialStatus ? { ...EMPTY_BET_FILTERS, status: initialStatus } : EMPTY_BET_FILTERS,
+  )
+  const [draft, setDraft] = useState<BetFilters>(() =>
+    initialStatus ? { ...EMPTY_BET_FILTERS, status: initialStatus } : EMPTY_BET_FILTERS,
+  )
+
+  /* UBC Pending Bets → ?status=Pending — keep chips in sync when the query changes. */
+  useEffect(() => {
+    const next =
+      statusFromUrl && (BET_FILTER_STATUSES as readonly string[]).includes(statusFromUrl)
+        ? statusFromUrl
+        : ''
+    setApplied((prev) => (prev.status === next ? prev : { ...prev, status: next }))
+    setDraft((prev) => (prev.status === next ? prev : { ...prev, status: next }))
+  }, [statusFromUrl])
+
+  const clearStatusQuery = () => {
+    if (!searchParams.get('status')) return
+    router.replace('/account/bet-history', { scroll: false })
+  }
 
   const activeCount = betFiltersActiveCount(applied)
   const figures = week === 'this' ? THIS_WEEK_FIGURES : LAST_WEEK_FIGURES
@@ -473,6 +504,7 @@ export function BetHistoryPage({ className }: { className?: string }) {
 
   const clearChip = (key: keyof BetFilters) => {
     setApplied((prev) => ({ ...prev, [key]: '' }))
+    if (key === 'status') clearStatusQuery()
   }
 
   const handleWeekChange = (next: WeekTab) => {
@@ -577,10 +609,18 @@ export function BetHistoryPage({ className }: { className?: string }) {
         onClear={() => {
           setDraft({ status: '', dateRange: '', dateFrom: '', dateTo: '', wagerType: '' })
           setApplied({ status: '', dateRange: '', dateFrom: '', dateTo: '', wagerType: '' })
+          clearStatusQuery()
           setFiltersOpen(false)
         }}
         onApply={() => {
           setApplied(draft)
+          if (draft.status && draft.status !== searchParams.get('status')) {
+            router.replace(`/account/bet-history?status=${encodeURIComponent(draft.status)}`, {
+              scroll: false,
+            })
+          } else if (!draft.status) {
+            clearStatusQuery()
+          }
           setFiltersOpen(false)
         }}
       />

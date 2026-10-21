@@ -11,23 +11,36 @@ import { ShellIcon, type ShellIconName } from './shell-icons'
 import { useDragToClose } from './use-drag-to-close'
 import { cn } from '@/lib/utils'
 
-const ACCOUNT_ITEMS: {
+type UbcMenuItem = {
   label: string
   icon: ShellIconName
   badge?: string
   badgeMuted?: boolean
   value?: string
-}[] = [
-  { label: 'My Account', icon: 'user' },
-  { label: 'Pending Bets', icon: 'betslip', badge: '4', badgeMuted: true, value: '$40.00' },
-  { label: 'Transactions History', icon: 'transactions' },
-  { label: 'Bet History', icon: 'accountBetHistory' },
+  /** Soft-nav href. Omit for non-route actions (VIP Hub) or not-yet-built (RAF). */
+  href?: string
+  action?: 'vip-hub'
+}
+
+const ACCOUNT_ITEMS: UbcMenuItem[] = [
+  { label: 'My Account', icon: 'user', href: '/account' },
+  {
+    label: 'Pending Bets',
+    icon: 'betslip',
+    badge: '4',
+    badgeMuted: true,
+    value: '$40.00',
+    href: '/account/bet-history?status=Pending',
+  },
+  { label: 'Transactions History', icon: 'transactions', href: '/account/transactions' },
+  { label: 'Bet History', icon: 'accountBetHistory', href: '/account/bet-history' },
 ]
 
-const REWARDS_ITEMS: { label: string; icon: ShellIconName }[] = [
-  { label: 'My Bonus', icon: 'gift' },
+const REWARDS_ITEMS: UbcMenuItem[] = [
+  { label: 'My Bonus', icon: 'gift', href: '/promotions/my-bonus' },
+  /* RAF not shipped yet — keep visible, no navigation. */
   { label: 'Refer a Friend', icon: 'userPlus' },
-  { label: 'VIP Hub', icon: 'crown' },
+  { label: 'VIP Hub', icon: 'crown', action: 'vip-hub' },
 ]
 
 export function ShellUbc() {
@@ -320,11 +333,12 @@ export function UbcPanel({
               key={item.label}
               item={item}
               onClick={
-                item.label === 'My Account'
+                item.href
                   ? () => {
                       onClose()
-                      startNavigating('/account')
-                      router.push('/account')
+                      const path = item.href!.split('?')[0]!
+                      startNavigating(path)
+                      router.push(item.href!)
                     }
                   : undefined
               }
@@ -338,17 +352,24 @@ export function UbcPanel({
               key={item.label}
               item={{
                 ...item,
-                ...(item.label === 'VIP Hub' && vipClaimCount > 0
+                ...(item.action === 'vip-hub' && vipClaimCount > 0
                   ? { badge: String(vipClaimCount) }
                   : null),
               }}
               onClick={
-                item.label === 'VIP Hub'
+                item.action === 'vip-hub'
                   ? () => {
                       onClose()
                       window.setTimeout(() => setVipHubOpen(true), 180)
                     }
-                  : undefined
+                  : item.href
+                    ? () => {
+                        onClose()
+                        const path = item.href!.split('?')[0]!
+                        startNavigating(path)
+                        router.push(item.href!)
+                      }
+                    : undefined
               }
             />
           ))}
