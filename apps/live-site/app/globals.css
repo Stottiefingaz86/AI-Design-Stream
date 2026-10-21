@@ -4,6 +4,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Static first-paint boot — in layout HTML, dismissed by SiteArrivalLoader. */
+#site-boot-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #101012;
+  transition: opacity 0.28s ease-out;
+}
+#site-boot-loader.is-exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+#site-boot-loader[hidden] {
+  display: none !important;
+}
+#site-boot-loader betonline-loader {
+  --loader-width: min(320px, 72vw);
+  width: var(--loader-width);
+  max-width: 100%;
+}
+
 /* BOL homepage used --ds-* ; map them onto Lumen tokens so copied UI stays on-system. */
 :root,
 [data-brand],

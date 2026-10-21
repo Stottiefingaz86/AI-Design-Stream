@@ -1,40 +1,57 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { FullPageLoader } from './full-page-loader'
+import { useEffect } from 'react'
 
-/** One full logo loop on every hard arrival (root layout mounts once per document load). */
+const BOOT_ID = 'site-boot-loader'
+/** At least one full logo loop. */
 const BOOT_MIN_MS = 2400
 
+function dismissBoot(el: HTMLElement) {
+  el.classList.add('is-exiting')
+  window.setTimeout(() => {
+    el.hidden = true
+    el.setAttribute('aria-hidden', 'true')
+  }, 280)
+}
+
 /**
- * Full-page BetOnline loader for first paint after a refresh / cold open.
- * Lives in the root layout so it is not skipped by sessionStorage or ShellProvider remounts.
- * Deep-link overlays stay in ShellProvider via `startDeepLink`.
+ * Dismisses the static `#site-boot-loader` in root layout after first paint.
+ * The overlay itself is plain HTML so it shows before React / PassGate hydrate.
  */
 export function SiteArrivalLoader() {
-  const [open, setOpen] = useState(true)
-
   useEffect(() => {
+    const el = document.getElementById(BOOT_ID)
+    if (!el) return
+
+    /* Keep above everything — including PassGate blank / shell chrome. */
+    document.body.appendChild(el)
+    el.hidden = false
+    el.classList.remove('is-exiting')
+
     const started = performance.now()
+    let finished = false
     let dismissTimer = 0
-    const dismiss = () => {
+
+    const finish = () => {
+      if (finished) return
+      finished = true
       const wait = Math.max(0, BOOT_MIN_MS - (performance.now() - started))
-      dismissTimer = window.setTimeout(() => setOpen(false), wait)
+      dismissTimer = window.setTimeout(() => dismissBoot(el), wait)
     }
 
     if (document.readyState === 'complete') {
-      dismiss()
+      finish()
     } else {
-      window.addEventListener('load', dismiss, { once: true })
+      window.addEventListener('load', finish, { once: true })
     }
-    const safety = window.setTimeout(dismiss, BOOT_MIN_MS + 2000)
+    const safety = window.setTimeout(finish, BOOT_MIN_MS + 3000)
 
     return () => {
-      window.removeEventListener('load', dismiss)
+      window.removeEventListener('load', finish)
       window.clearTimeout(safety)
       window.clearTimeout(dismissTimer)
     }
   }, [])
 
-  return <FullPageLoader open={open} />
+  return null
 }

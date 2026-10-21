@@ -28,11 +28,24 @@ export default function RootLayout({
   return (
     <html lang="en" data-brand="betonline" className={figtree.variable} suppressHydrationWarning>
       <body className={figtree.className}>
+        {/*
+          Static boot overlay — paints before React/PassGate hydrate.
+          SiteArrivalLoader dismisses it after ≥ one logo loop.
+        */}
+        <div
+          id="site-boot-loader"
+          role="alertdialog"
+          aria-busy="true"
+          aria-label="Loading"
+          dangerouslySetInnerHTML={{
+            __html: '<betonline-loader duration="2400"></betonline-loader>',
+          }}
+        />
         <Script src="/lumen-tip.js" strategy="beforeInteractive" />
         <Script src="/betonline-loader.js" strategy="beforeInteractive" />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="lumen-shell-theme">
+          <SiteArrivalLoader />
           <PassGate>
-            <SiteArrivalLoader />
             {children}
             <Toaster duration={4000} gap={14} position="bottom-right" visibleToasts={3} />
           </PassGate>
