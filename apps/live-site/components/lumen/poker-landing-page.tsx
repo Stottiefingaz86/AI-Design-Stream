@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Typography } from '@/components/ui/typography'
+import { useShell } from '@/components/site/shell-context'
 import {
   POKER_DOWNLOADS,
   POKER_FEATURES,
@@ -219,6 +221,16 @@ function PokerFeatures() {
 }
 
 function PokerGettingStarted() {
+  const router = useRouter()
+  const { startDeepLink } = useShell()
+
+  const onStepAction = (action: string) => {
+    if (action === 'Deposit Promotions') {
+      startDeepLink('/promotions?filter=poker')
+      router.push('/promotions?filter=poker')
+    }
+  }
+
   return (
     <section
       id="poker-getting-started"
@@ -258,7 +270,12 @@ function PokerGettingStarted() {
                     {item.body}
                   </Typography>
                 </div>
-                <Button variant="secondary" size="sm" className="shrink-0">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => onStepAction(item.action)}
+                >
                   {item.action}
                 </Button>
               </div>

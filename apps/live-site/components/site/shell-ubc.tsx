@@ -287,7 +287,7 @@ export function UbcPanel({
   showClose?: boolean
 }) {
   const router = useRouter()
-  const { setLoggedIn, setVipHubOpen, vipClaimCount, displayBalance, startNavigating } =
+  const { setLoggedIn, setVipHubOpen, vipClaimCount, displayBalance, startDeepLink } =
     useShell()
 
   return (
@@ -336,8 +336,7 @@ export function UbcPanel({
                 item.href
                   ? () => {
                       onClose()
-                      const path = item.href!.split('?')[0]!
-                      startNavigating(path)
+                      startDeepLink(item.href!)
                       router.push(item.href!)
                     }
                   : undefined
@@ -365,8 +364,7 @@ export function UbcPanel({
                   : item.href
                     ? () => {
                         onClose()
-                        const path = item.href!.split('?')[0]!
-                        startNavigating(path)
+                        startDeepLink(item.href!)
                         router.push(item.href!)
                       }
                     : undefined

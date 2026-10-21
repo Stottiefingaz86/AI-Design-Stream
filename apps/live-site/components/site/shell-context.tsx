@@ -22,11 +22,16 @@ import {
 import { productFromPath, type ShellProduct } from './shell-nav'
 
 const SIDEBAR_KEY = 'lumen-shell-sidebar-expanded'
+const BOOT_KEY = 'lumen-shell-boot-done'
 const CLAIM_PRELOAD_MS = 1400
 /** From claim press → balance roll-up (confetti + toast fire first at CLAIM_PRELOAD_MS). */
 const BALANCE_ROLL_MS = 3000
 /** Minimum time destination skeleton stays visible after the route lands. */
 const SKELETON_MIN_MS = 420
+/** First arrival — at least one full logo loop. */
+const BOOT_MIN_MS = 2400
+/** Deep-link overlay — long enough to read the motion, short enough to feel snappy. */
+const DEEP_LINK_MIN_MS = 1400
 
 export type VipClaimToastState = { id: number; amount: number }
 
@@ -49,8 +54,18 @@ type ShellContextValue = {
   navigating: boolean
   /** Destination path for the in-flight soft nav (skeleton keyed off this). */
   pendingHref: string | null
-  /** Show destination skeleton immediately. Pass the href you’re navigating to. */
+  /**
+   * Soft-nav within the same chrome (top menu / chips / sub-nav).
+   * Destination skeleton only — never the full-page BetOnline loader.
+   */
   startNavigating: (href?: string) => void
+  /**
+   * Cross-context redirect (UBC → account, poker → promotions?filter=poker, etc.).
+   * Shows the full-page BetOnline loader until the destination lands.
+   */
+  startDeepLink: (href: string) => void
+  /** Full-viewport BetOnline loader (boot + deep links). */
+  fullPageLoader: boolean
   casinoSearchOpen: boolean
   setCasinoSearchOpen: (value: boolean) => void
   launchedGame: CasinoLobbyGame | null
@@ -65,6 +80,37 @@ type ShellContextValue = {
   claimVipReward: (id: string, button?: HTMLButtonElement | null) => void
   vipClaimToast: VipClaimToastState | null
   dismissVipClaimToast: () => void
+}
+
+/** Survives ShellProvider remounts within the same JS session. */
+let sessionBootCompleted = false
+
+function readBootDone() {
+  if (sessionBootCompleted) return true
+  if (typeof window === 'undefined') return true
+  try {
+    return window.sessionStorage.getItem(BOOT_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeBootDone() {
+  sessionBootCompleted = true
+  try {
+    window.sessionStorage.setItem(BOOT_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
+function pathOnly(href: string) {
+  return href.split('?')[0]?.split('#')[0] || href
+}
+
+function normalizePath(p: string) {
+  const trimmed = p.replace(/\/+$/, '')
+  return trimmed.length === 0 ? '/' : trimmed
 }
 
 const ShellContext = createContext<ShellContextValue | null>(null)
@@ -129,6 +175,7 @@ export function ShellProvider({
   const [launchedGame, setLaunchedGame] = useState<CasinoLobbyGame | null>(null)
   const [navigating, setNavigating] = useState(false)
   const [pendingHref, setPendingHref] = useState<string | null>(null)
+  const [fullPageLoader, setFullPageLoader] = useState(() => !readBootDone())
   const [balance, setBalance] = useState(10)
   const [displayBalance, setDisplayBalance] = useState(10)
   const [vipRewards, setVipRewards] = useState<VipReward[]>(() =>
@@ -138,9 +185,26 @@ export function ShellProvider({
   const timerRef = React.useRef<number | null>(null)
   const claimTimersRef = React.useRef<Map<string, number>>(new Map())
   const balanceTimersRef = React.useRef<number[]>([])
+  const deepLinkRef = React.useRef(false)
+  const overlayStartedRef = React.useRef(performance.now())
   const vipRewardsRef = React.useRef(vipRewards)
   vipRewardsRef.current = vipRewards
   const vipClaimCount = claimableCount(vipRewards)
+
+  /* First shell arrival this tab — full-page logo loop, then mark boot done. */
+  useEffect(() => {
+    if (readBootDone()) {
+      setFullPageLoader(false)
+      return
+    }
+    overlayStartedRef.current = performance.now()
+    setFullPageLoader(true)
+    const timer = window.setTimeout(() => {
+      writeBootDone()
+      setFullPageLoader(false)
+    }, BOOT_MIN_MS)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   const dismissVipClaimToast = useCallback(() => {
     setVipClaimToast(null)
@@ -169,33 +233,55 @@ export function ShellProvider({
       window.clearTimeout(timerRef.current)
       timerRef.current = null
     }
-    const next = href?.split('?')[0]?.split('#')[0] || null
+    deepLinkRef.current = false
+    const next = href ? pathOnly(href) : null
     if (next && next === pathname) return
     if (next) setPendingHref(next)
     /* Casino non-lobby: track pending (hide SEO) but skip skeleton — lazy-load content. */
-    const normalized = next ? next.replace(/\/+$/, '') || '/' : null
+    const normalized = next ? normalizePath(next) : null
     const skipSkeleton =
       normalized != null && normalized.startsWith('/casino') && normalized !== '/casino'
     if (!skipSkeleton) setNavigating(true)
   }, [pathname])
 
-  /* Clear pending (and skeleton) once the destination route has landed. */
-  useEffect(() => {
-    if (!navigating && !pendingHref) return
-    const pending = pendingHref
-    const normalize = (p: string) => {
-      const trimmed = p.replace(/\/+$/, '')
-      return trimmed.length === 0 ? '/' : trimmed
+  const startDeepLink = useCallback((href: string) => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current)
+      timerRef.current = null
     }
+    const next = pathOnly(href)
+    if (next === pathname && !href.includes('?')) return
+    deepLinkRef.current = true
+    overlayStartedRef.current = performance.now()
+    setFullPageLoader(true)
+    setNavigating(false)
+    setPendingHref(next)
+  }, [pathname])
+
+  /* Clear pending / skeleton / deep-link overlay once the destination route has landed. */
+  useEffect(() => {
+    if (!navigating && !pendingHref && !deepLinkRef.current) return
+    const pending = pendingHref
     /* Exact match only — never treat /account/payments as “landed” for /account. */
-    const landed = !pending || normalize(pathname) === normalize(pending)
+    const landed = !pending || normalizePath(pathname) === normalizePath(pending)
     if (!landed) return
     if (timerRef.current) window.clearTimeout(timerRef.current)
-    /* Skeleton routes hold briefly; SEO-only pending clears as soon as the page is in. */
-    const holdMs = navigating ? SKELETON_MIN_MS : 0
+
+    const isDeep = deepLinkRef.current
+    const elapsed = performance.now() - overlayStartedRef.current
+    const holdMs = isDeep
+      ? Math.max(0, DEEP_LINK_MIN_MS - elapsed)
+      : navigating
+        ? SKELETON_MIN_MS
+        : 0
+
     timerRef.current = window.setTimeout(() => {
       setNavigating(false)
       setPendingHref(null)
+      if (isDeep) {
+        deepLinkRef.current = false
+        setFullPageLoader(false)
+      }
       timerRef.current = null
     }, holdMs)
     return () => {
@@ -322,6 +408,8 @@ export function ShellProvider({
       navigating: forceSkeleton || navigating,
       pendingHref,
       startNavigating,
+      startDeepLink,
+      fullPageLoader,
       casinoSearchOpen,
       setCasinoSearchOpen,
       launchedGame,
@@ -345,6 +433,7 @@ export function ShellProvider({
       drawerOpen,
       expanded,
       forceSkeleton,
+      fullPageLoader,
       cashierOpen,
       launchGame,
       launchedGame,
@@ -356,6 +445,7 @@ export function ShellProvider({
       openVipHub,
       pendingHref,
       product,
+      startDeepLink,
       startNavigating,
       toggle,
       vipClaimCount,

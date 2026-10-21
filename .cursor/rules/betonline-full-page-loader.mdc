@@ -1,0 +1,29 @@
+---
+description: When to show the BetOnline full-page loader vs soft-nav skeletons
+globs: apps/live-site/**/*.{tsx,ts}
+alwaysApply: false
+---
+
+# BetOnline full-page loader
+
+Use `startDeepLink(href)` + `FullPageLoader` for **cross-context redirects**. Use `startNavigating(href)` for **in-chrome soft nav**.
+
+## Show full-page loader (`startDeepLink`)
+
+- First shell arrival / boot (session once)
+- UBC drawer → My Account, Pending Bets, Transactions, Bet History, My Bonus
+- Poker landing “Deposit Promotions” → `/promotions?filter=poker`
+- Any similar jump that leaves the current product chrome for a different destination
+
+## Do NOT show full-page loader (`startNavigating` only)
+
+- Top header product links (Casino / Sports / Poker / Promotions)
+- Product chips
+- Casino / account / promo sub-nav
+- Sidebar / drawer product nav within the shell
+
+## Implementation
+
+- Component: `apps/live-site/components/site/full-page-loader.tsx` + `betonline-loader.tsx`
+- Script: `apps/live-site/public/betonline-loader.js` (from `public/betonline-loader/`)
+- API: `useShell().startDeepLink(href)` / `useShell().fullPageLoader`

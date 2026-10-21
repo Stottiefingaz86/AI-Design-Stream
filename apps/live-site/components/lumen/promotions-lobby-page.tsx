@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { CasinoLobbyBannerRow } from '@/components/lumen/casino-lobby-banners'
 import { Typography } from '@/components/ui/typography'
@@ -11,6 +12,11 @@ import {
   type PromoFilterId,
 } from '@/lib/lumen/promotions-lobby'
 import { cn } from '@/lib/utils'
+
+function filterFromSearch(raw: string | null): PromoFilterId {
+  if (raw && PROMO_FILTERS.some((f) => f.id === raw)) return raw as PromoFilterId
+  return 'all'
+}
 
 const TILE_SPRING = { type: 'spring' as const, stiffness: 260, damping: 28, mass: 0.85 }
 
@@ -155,7 +161,14 @@ function PromoCard({
 
 /** Promo26_Revamp 8:16195 — banner carousel + All Promotions grid. */
 export function PromotionsLobbyPage({ className }: { className?: string }) {
-  const [filter, setFilter] = useState<PromoFilterId>('all')
+  const searchParams = useSearchParams()
+  const urlFilter = filterFromSearch(searchParams.get('filter'))
+  const [filter, setFilter] = useState<PromoFilterId>(urlFilter)
+
+  /* Poker (and other) deep links → ?filter=poker keeps the pill highlighted. */
+  useEffect(() => {
+    setFilter(urlFilter)
+  }, [urlFilter])
 
   const cards = useMemo(() => {
     if (filter === 'all') return PROMOTIONS_LOBBY_CARDS

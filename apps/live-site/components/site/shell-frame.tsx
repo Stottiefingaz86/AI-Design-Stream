@@ -32,6 +32,7 @@ import { CasinoSubNav } from './casino-subnav'
 import { AccountSubNav } from './account-subnav'
 import { ShellHeader } from './shell-header'
 import { ShellProductChips } from './shell-product-chips'
+import { FullPageLoader } from './full-page-loader'
 import { isAccountPath, productFromPath } from './shell-nav'
 import { cn } from '@/lib/utils'
 
@@ -101,6 +102,7 @@ function ShellChrome({ children }: { children?: ReactNode }) {
     product,
     navigating,
     pendingHref,
+    fullPageLoader,
     casinoSearchOpen,
     setCasinoSearchOpen,
     launchedGame,
@@ -154,12 +156,13 @@ function ShellChrome({ children }: { children?: ReactNode }) {
                 children ?? <ShellContent />
               )}
             </div>
-            {!pendingHref && !navigating ? <ShellSeo /> : null}
+            {!pendingHref && !navigating && !fullPageLoader ? <ShellSeo /> : null}
             <SiteFooter />
           </div>
         </div>
       </div>
       <ShellMobileNav />
+      <FullPageLoader open={fullPageLoader} />
       <CashierSheet open={cashierOpen} onClose={() => setCashierOpen(false)} />
       <UbcSheet open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <VipHubSheet open={vipHubOpen} onClose={() => setVipHubOpen(false)} />
