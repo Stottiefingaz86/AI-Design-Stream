@@ -171,18 +171,17 @@ export function ShellProvider({
     }
     const next = href?.split('?')[0]?.split('#')[0] || null
     if (next && next === pathname) return
-    /* Casino: skeleton only for lobby — other casino routes just soft-nav / lazy-load. */
-    if (next) {
-      const normalized = next.replace(/\/+$/, '') || '/'
-      if (normalized.startsWith('/casino') && normalized !== '/casino') return
-    }
     if (next) setPendingHref(next)
-    setNavigating(true)
+    /* Casino non-lobby: track pending (hide SEO) but skip skeleton — lazy-load content. */
+    const normalized = next ? next.replace(/\/+$/, '') || '/' : null
+    const skipSkeleton =
+      normalized != null && normalized.startsWith('/casino') && normalized !== '/casino'
+    if (!skipSkeleton) setNavigating(true)
   }, [pathname])
 
-  /* When the route lands, keep destination skeleton briefly then reveal content. */
+  /* Clear pending (and skeleton) once the destination route has landed. */
   useEffect(() => {
-    if (!navigating) return
+    if (!navigating && !pendingHref) return
     const pending = pendingHref
     const normalize = (p: string) => {
       const trimmed = p.replace(/\/+$/, '')
@@ -192,11 +191,13 @@ export function ShellProvider({
     const landed = !pending || normalize(pathname) === normalize(pending)
     if (!landed) return
     if (timerRef.current) window.clearTimeout(timerRef.current)
+    /* Skeleton routes hold briefly; SEO-only pending clears as soon as the page is in. */
+    const holdMs = navigating ? SKELETON_MIN_MS : 0
     timerRef.current = window.setTimeout(() => {
       setNavigating(false)
       setPendingHref(null)
       timerRef.current = null
-    }, SKELETON_MIN_MS)
+    }, holdMs)
     return () => {
       if (timerRef.current) {
         window.clearTimeout(timerRef.current)

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import NumberFlow from '@number-flow/react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconChevronLeft, IconChevronRight, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react'
@@ -71,6 +72,7 @@ function ShelfHeader({
   hideSeeMore?: boolean
   seeMoreHref?: string
 }) {
+  const { startNavigating } = useShell()
   const { scrollPrev, scrollNext, canScrollPrev, canScrollNext } = useCarousel()
 
   /** onLight (Christmas): always dark ink on white — never theme foreground (invisible in dark). */
@@ -106,7 +108,11 @@ function ShelfHeader({
       {/* Theme banners (no title): hide floating chrome on mobile — swipe only. */}
       <div className={cn('flex shrink-0 items-center gap-4', !title && 'max-md:hidden')}>
         {hideSeeMore ? null : (
-          <Link href={seeMoreHref} className={seeMoreClass}>
+          <Link
+            href={seeMoreHref}
+            className={seeMoreClass}
+            onClick={() => startNavigating(seeMoreHref)}
+          >
             See More
           </Link>
         )}
@@ -511,6 +517,7 @@ function CasinoThemeBanner({
   imageSrc,
   games,
   tone = 'dark',
+  seeMoreHref,
   onLaunch,
 }: {
   badge: string
@@ -520,6 +527,8 @@ function CasinoThemeBanner({
   games: CasinoLobbyGame[]
   /** `light` = bright art (Christmas) → dark copy; `dark` = white copy. */
   tone?: 'light' | 'dark'
+  /** Wallpaper destination for See More (Halloween Games / Christmas Games). */
+  seeMoreHref: string
   onLaunch?: LaunchHandler
 }) {
   const onLight = tone === 'light'
@@ -577,7 +586,11 @@ function CasinoThemeBanner({
         <Carousel opts={{ align: 'start', dragFree: true }} className="mt-6 w-full">
           {/* Same dark inverted chrome as Halloween — glass on the art, not white buttons. */}
           <div className="px-6">
-            <ShelfHeader inverted />
+            <ShelfHeader
+              inverted={!onLight}
+              onLight={onLight}
+              seeMoreHref={seeMoreHref}
+            />
           </div>
           <GameRail
             games={games}
@@ -1068,14 +1081,44 @@ export function CasinoActivity() {
   )
 }
 
+const JOHNNY_CASH_GAME: CasinoLobbyGame = {
+  id: 'train-heist-johnny-cash',
+  title: 'Train Heist Johnny Cash',
+  imageSrc: '/banners/train-heist-johnny-cash.jpg',
+  vendor: 'BGaming',
+  vendorLogo: '/vendot_logos/betsoft.svg',
+  tag: 'Original',
+}
+
 /** Casino-Lumen 69:47911 lobby — banners through activity. Shell owns sub-nav + SEO. */
 export function CasinoLobby() {
-  const { launchGame } = useShell()
+  const router = useRouter()
+  const { launchGame, startNavigating } = useShell()
+
+  const lobbyPromos = useMemo(
+    () =>
+      CASINO_LOBBY_PROMO_BANNERS.map((promo) => {
+        if (promo.id === 'train-heist') {
+          return { ...promo, onAction: () => launchGame(JOHNNY_CASH_GAME) }
+        }
+        if (promo.id === 'halloween') {
+          return {
+            ...promo,
+            onAction: () => {
+              startNavigating('/casino/category/halloween')
+              router.push('/casino/category/halloween')
+            },
+          }
+        }
+        return promo
+      }),
+    [launchGame, router, startNavigating],
+  )
 
   return (
     <div data-name="lobby_content" className="w-full bg-background pb-8">
       <div className="py-4">
-        <CasinoLobbyBannerRow promos={CASINO_LOBBY_PROMO_BANNERS} />
+        <CasinoLobbyBannerRow promos={lobbyPromos} />
       </div>
       <CasinoGameShelf
         title="Continue Playing"
@@ -1112,7 +1155,11 @@ export function CasinoLobby() {
         seeMoreHref="/casino/category/popular"
         onLaunch={launchGame}
       />
-      <CasinoThemeBanner {...HALLOWEEN_PROMO} onLaunch={launchGame} />
+      <CasinoThemeBanner
+        {...HALLOWEEN_PROMO}
+        seeMoreHref="/casino/category/halloween"
+        onLaunch={launchGame}
+      />
       <CasinoGameShelf
         title="Exclusives"
         games={EXCLUSIVE_GAMES}
@@ -1131,7 +1178,11 @@ export function CasinoLobby() {
         seeMoreHref="/casino/slots"
         onLaunch={launchGame}
       />
-      <CasinoThemeBanner {...CHRISTMAS_PROMO} onLaunch={launchGame} />
+      <CasinoThemeBanner
+        {...CHRISTMAS_PROMO}
+        seeMoreHref="/casino/category/christmas"
+        onLaunch={launchGame}
+      />
     </div>
   )
 }

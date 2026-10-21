@@ -142,8 +142,9 @@ function ShellChrome({ children }: { children?: ReactNode }) {
             {showAccountNav ? <AccountSubNav /> : null}
           </div>
           {/*
-            Content flex-1 fills the viewport so SEO + footer stay pinned below the fold
-            (never jump under the sub-nav while lobby/skeleton is short or loading).
+            Content flex-1 fills the viewport so SEO + footer stay pinned below the fold.
+            Hide SEO while any soft-nav is in flight (pendingHref) — including casino
+            routes that skip the skeleton — so it never flashes under the sub-nav.
           */}
           <div className="flex min-h-full w-full flex-col">
             <div className="mx-auto w-full max-w-[1440px] min-h-0 flex-1 pb-24 lg:pb-0">
@@ -153,7 +154,7 @@ function ShellChrome({ children }: { children?: ReactNode }) {
                 children ?? <ShellContent />
               )}
             </div>
-            <ShellSeo />
+            {!pendingHref && !navigating ? <ShellSeo /> : null}
             <SiteFooter />
           </div>
         </div>

@@ -89,6 +89,11 @@ export const WALLPAPER_CATEGORIES: Record<string, WallpaperConfig> = {
     title: 'Halloween Games',
     games: wallpaperFrom('halloween', HALLOWEEN_GAMES.concat(SLOTS_WALLPAPER_GAMES)),
   },
+  christmas: {
+    slug: 'christmas',
+    title: 'Christmas Games',
+    games: wallpaperFrom('christmas', HALLOWEEN_GAMES.concat(ORIGINALS_GAMES).concat(SLOTS_WALLPAPER_GAMES)),
+  },
   'continue-playing': {
     slug: 'continue-playing',
     title: 'Continue Playing',
