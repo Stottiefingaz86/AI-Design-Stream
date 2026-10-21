@@ -21,6 +21,10 @@ import { ContestsLobbySkeleton } from '@/components/lumen/contests-lobby-skeleto
 import { MyBonusSkeleton } from '@/components/lumen/my-bonus-skeleton'
 import { MyAccountSkeleton } from '@/components/lumen/my-account-skeleton'
 import { BetHistorySkeleton } from '@/components/lumen/bet-history-skeleton'
+import { PaymentsSkeleton } from '@/components/lumen/payments-skeleton'
+import { TransactionsSkeleton } from '@/components/lumen/transactions-skeleton'
+import { SecurityCentralSkeleton } from '@/components/lumen/security-central-skeleton'
+import { ProfileSettingsSkeleton } from '@/components/lumen/profile-settings-skeleton'
 import { PromotionsLobbySkeleton } from '@/components/lumen/promotions-lobby-skeleton'
 import { CasinoSearchOverlay } from '@/components/lumen/casino-search-overlay'
 import { GameLauncher } from '@/components/lumen/game-launcher'
@@ -28,7 +32,7 @@ import { CasinoSubNav } from './casino-subnav'
 import { AccountSubNav } from './account-subnav'
 import { ShellHeader } from './shell-header'
 import { ShellProductChips } from './shell-product-chips'
-import { isAccountPath } from './shell-nav'
+import { isAccountPath, productFromPath } from './shell-nav'
 import { cn } from '@/lib/utils'
 
 /**
@@ -54,6 +58,31 @@ export function ShellFrame({
   )
 }
 
+/** Skeleton for the destination route — never the page you’re leaving. */
+function RouteSkeleton({ path }: { path: string }) {
+  if (path === '/') return <HomepageLobbySkeleton />
+
+  if (isAccountPath(path)) {
+    if (path.startsWith('/account/bet-history')) return <BetHistorySkeleton />
+    if (path.startsWith('/account/transactions')) return <TransactionsSkeleton />
+    if (path.startsWith('/account/payments')) return <PaymentsSkeleton />
+    if (path.startsWith('/account/security')) return <SecurityCentralSkeleton />
+    if (path.startsWith('/account/settings')) return <ProfileSettingsSkeleton />
+    return <MyAccountSkeleton />
+  }
+
+  const product = productFromPath(path)
+  if (product === 'poker') return <PokerLandingSkeleton />
+  if (product === 'promotions') {
+    if (path.startsWith('/promotions/my-bonus')) return <MyBonusSkeleton />
+    if (path.startsWith('/promotions/contest')) return <ContestsLobbySkeleton />
+    return <PromotionsLobbySkeleton />
+  }
+  if (product === 'casino') return <CasinoLobbySkeleton />
+
+  return <ShellContent />
+}
+
 function ShellChrome({ children }: { children?: ReactNode }) {
   const pathname = usePathname()
   const {
@@ -66,6 +95,7 @@ function ShellChrome({ children }: { children?: ReactNode }) {
     setVipHubOpen,
     product,
     navigating,
+    pendingHref,
     casinoSearchOpen,
     setCasinoSearchOpen,
     launchedGame,
@@ -74,20 +104,23 @@ function ShellChrome({ children }: { children?: ReactNode }) {
 
   /** Homepage_SHADCN — full-bleed content, no left rail (Figma). */
   const isHome = pathname === '/'
+  const skeletonPath = pendingHref ?? pathname
+  const showAccountNav = isAccountPath(pathname) || isAccountPath(skeletonPath)
+  const showCasinoNav = pathname.startsWith('/casino') || skeletonPath.startsWith('/casino')
 
   return (
     <div
       data-name="Product Page"
       className="fixed inset-0 flex flex-col overflow-hidden bg-background font-sans text-foreground"
     >
-      {isHome ? null : <ShellSidebar />}
+      {isHome && !pendingHref ? null : <ShellSidebar />}
       <ShellDrawer />
       <div
         data-shell-column=""
         className={cn(
           'flex h-full min-h-0 min-w-0 flex-1 flex-col transition-[padding] duration-300 ease-in-out',
-          !isHome && 'lg:pl-24',
-          !isHome && expanded && 'lg:pl-64',
+          !(isHome && !pendingHref) && 'lg:pl-24',
+          !(isHome && !pendingHref) && expanded && 'lg:pl-64',
         )}
       >
         {/*
@@ -100,36 +133,14 @@ function ShellChrome({ children }: { children?: ReactNode }) {
           {/* Above in-page z-50+ (e.g. VIP carousel CTA) so scroll content can’t paint over the header. */}
           <div data-shell-sticky-chrome="" className="sticky top-0 z-[70]">
             <ShellHeader />
-            {pathname.startsWith('/casino') ? <CasinoSubNav glass sticky={false} motion /> : null}
-            {isAccountPath(pathname) ? <AccountSubNav /> : null}
+            {showCasinoNav ? <CasinoSubNav glass sticky={false} motion /> : null}
+            {showAccountNav ? <AccountSubNav /> : null}
           </div>
           {/* Full-width column so footer bg bleeds edge-to-edge; page body stays max 1440. */}
           <div className="flex min-h-full w-full flex-col">
             <div className="mx-auto w-full max-w-[1440px] flex-1 pb-24 lg:pb-0">
               {navigating ? (
-                isAccountPath(pathname) ? (
-                  pathname.startsWith('/account/bet-history') ? (
-                    <BetHistorySkeleton />
-                  ) : (
-                    <MyAccountSkeleton />
-                  )
-                ) : product === 'poker' ? (
-                  <PokerLandingSkeleton />
-                ) : product === 'promotions' ? (
-                  pathname.startsWith('/promotions/my-bonus') ? (
-                    <MyBonusSkeleton />
-                  ) : pathname.startsWith('/promotions/contest') ? (
-                    <ContestsLobbySkeleton />
-                  ) : (
-                    <PromotionsLobbySkeleton />
-                  )
-                ) : pathname === '/' ? (
-                  <HomepageLobbySkeleton />
-                ) : product === 'casino' ? (
-                  <CasinoLobbySkeleton />
-                ) : (
-                  children ?? <ShellContent />
-                )
+                <RouteSkeleton path={skeletonPath} />
               ) : (
                 children ?? <ShellContent />
               )}

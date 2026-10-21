@@ -37,7 +37,7 @@ export function ShellHeader() {
       <div data-header-bar="" className="grid h-[68px] w-full grid-cols-[minmax(0,1fr)_auto] items-center border-b border-[var(--border-inverted)] px-4 lg:px-6">
         <div className="flex min-w-0 items-center gap-2">
           {isHome ? (
-            <ShellWordmark onNavigate={startNavigating} />
+            <ShellWordmark onNavigate={() => startNavigating('/')} />
           ) : (
             <>
               <button
@@ -51,7 +51,7 @@ export function ShellHeader() {
               >
                 <ShellIcon name="menu" className="size-4" />
               </button>
-              <ShellLettermark className="lg:hidden" onNavigate={startNavigating} />
+              <ShellLettermark className="lg:hidden" onNavigate={() => startNavigating('/')} />
             </>
           )}
           {!isHome ? (
@@ -64,7 +64,7 @@ export function ShellHeader() {
                 <Link
                   key={item.label}
                   href={item.href}
-                  onClick={startNavigating}
+                  onClick={() => startNavigating(item.href)}
                   data-state={active ? 'active' : 'default'}
                   className={cn(
                     navItemClass,
@@ -92,7 +92,7 @@ export function ShellHeader() {
                 <Link
                   key={item.label}
                   href={item.href}
-                  onClick={startNavigating}
+                  onClick={() => startNavigating(item.href)}
                   data-state={active ? 'active' : 'default'}
                   className={cn(
                     navItemClass,
@@ -196,7 +196,7 @@ function OtherMenu({
                 className="flex items-center rounded px-2 py-1.5 hover:bg-accent"
                 onClick={() => {
                   onOpenChange(false)
-                  startNavigating()
+                  startNavigating(item.href)
                 }}
               >
                 {item.label}

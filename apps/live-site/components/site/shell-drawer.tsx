@@ -83,7 +83,7 @@ export function ShellDrawer() {
               expanded
               onNavigate={() => {
                 setNavOpen(false)
-                startNavigating()
+                startNavigating('/')
               }}
               className="rounded-md transition-colors duration-200 ease-in-out hover:bg-[var(--surface-muted-1-inverted)]"
             />
@@ -109,7 +109,10 @@ export function ShellDrawer() {
                   href={item.href}
                   data-name="tab-item-outline"
                   data-state={active ? 'active' : 'default'}
-                  onClick={() => setNavOpen(false)}
+                  onClick={() => {
+                    startNavigating(item.href)
+                    setNavOpen(false)
+                  }}
                   className={cn(
                     'inline-flex shrink-0 items-center justify-center border-b-2 px-3.5 py-1.5 text-sm leading-5 transition-colors duration-200 ease-in-out',
                     active
@@ -228,6 +231,7 @@ export function ShellDrawer() {
                             requestAnimationFrame(() => scrollShellToId(id))
                             return
                           }
+                          startNavigating(item.href)
                           setNavOpen(false)
                         }}
                         className={itemClass}

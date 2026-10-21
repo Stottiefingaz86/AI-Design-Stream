@@ -323,7 +323,7 @@ export function UbcPanel({
                 item.label === 'My Account'
                   ? () => {
                       onClose()
-                      startNavigating()
+                      startNavigating('/account')
                       router.push('/account')
                     }
                   : undefined

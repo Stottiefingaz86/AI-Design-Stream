@@ -60,7 +60,7 @@ function dockForPath(pathname: string, product: ShellProduct): DockItem[] {
 /** Figma `nav-menu-icon-solid` — floating dock. Labels sit under the icons. */
 export function ShellMobileNav() {
   const pathname = usePathname()
-  const { product, setCasinoSearchOpen, launchGame } = useShell()
+  const { product, setCasinoSearchOpen, launchGame, startNavigating } = useShell()
   const hidden = useHideOnScroll('down')
   const items = dockForPath(pathname, product)
   const [selected, setSelected] = useState<string | null>(null)
@@ -110,7 +110,9 @@ export function ShellMobileNav() {
                 if (item.action === 'last-game') {
                   e.preventDefault()
                   launchGame(gameForNavAction('launch-last-game'))
+                  return
                 }
+                startNavigating(item.href)
               }}
               className={cn(
                 /* Wider than Figma’s 64px slot so “Last Game” fits without ellipsis. */

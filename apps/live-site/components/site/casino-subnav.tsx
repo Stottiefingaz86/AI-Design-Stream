@@ -235,7 +235,10 @@ export function CasinoSubNav({
               fav ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
               motion && 'transition-[transform,background-color,color] duration-200 active:scale-95',
             )}
-            onClick={() => router.push('/casino/category/favourites')}
+            onClick={() => {
+              shell?.startNavigating('/casino/category/favourites')
+              router.push('/casino/category/favourites')
+            }}
           >
             <ShellIcon name="heart" tone="token" className="size-5" />
           </button>
@@ -288,7 +291,10 @@ export function CasinoSubNav({
                       onClick={() => {
                         setActive(item)
                         const href = SUBNAV_HREF[item]
-                        if (href && href !== pathname) router.push(href)
+                        if (href && href !== pathname) {
+                          shell?.startNavigating(href)
+                          router.push(href)
+                        }
                       }}
                       className={cn(
                         'shell-chrome-btn relative z-10 inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-transparent px-4 text-sm font-normal leading-5 whitespace-nowrap',

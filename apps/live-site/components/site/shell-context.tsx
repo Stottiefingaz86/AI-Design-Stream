@@ -25,6 +25,8 @@ const SIDEBAR_KEY = 'lumen-shell-sidebar-expanded'
 const CLAIM_PRELOAD_MS = 1400
 /** From claim press → balance roll-up (confetti + toast fire first at CLAIM_PRELOAD_MS). */
 const BALANCE_ROLL_MS = 3000
+/** Minimum time destination skeleton stays visible after the route lands. */
+const SKELETON_MIN_MS = 160
 
 export type VipClaimToastState = { id: number; amount: number }
 
@@ -45,7 +47,10 @@ type ShellContextValue = {
   navOpen: boolean
   setNavOpen: (value: boolean) => void
   navigating: boolean
-  startNavigating: () => void
+  /** Destination path for the in-flight soft nav (skeleton keyed off this). */
+  pendingHref: string | null
+  /** Show destination skeleton immediately. Pass the href you’re navigating to. */
+  startNavigating: (href?: string) => void
   casinoSearchOpen: boolean
   setCasinoSearchOpen: (value: boolean) => void
   launchedGame: CasinoLobbyGame | null
@@ -122,7 +127,8 @@ export function ShellProvider({
   const [navOpen, setNavOpen] = useState(false)
   const [casinoSearchOpen, setCasinoSearchOpen] = useState(false)
   const [launchedGame, setLaunchedGame] = useState<CasinoLobbyGame | null>(null)
-  const [navigating, setNavigating] = useState(true)
+  const [navigating, setNavigating] = useState(false)
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
   const [balance, setBalance] = useState(10)
   const [displayBalance, setDisplayBalance] = useState(10)
   const [vipRewards, setVipRewards] = useState<VipReward[]>(() =>
@@ -158,18 +164,41 @@ export function ShellProvider({
     setLaunchedGame(null)
   }, [])
 
-  const startNavigating = useCallback(() => {
-    setNavigating(true)
-    if (timerRef.current) window.clearTimeout(timerRef.current)
-    timerRef.current = window.setTimeout(() => setNavigating(false), 520)
-  }, [])
-
-  useEffect(() => {
-    startNavigating()
-    return () => {
-      if (timerRef.current) window.clearTimeout(timerRef.current)
+  const startNavigating = useCallback((href?: string) => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current)
+      timerRef.current = null
     }
-  }, [pathname, startNavigating])
+    const next = href?.split('?')[0]?.split('#')[0] || null
+    if (next && next === pathname) return
+    if (next) setPendingHref(next)
+    setNavigating(true)
+  }, [pathname])
+
+  /* When the route lands, keep destination skeleton briefly then reveal content. */
+  useEffect(() => {
+    if (!navigating) return
+    const pending = pendingHref
+    const normalize = (p: string) => {
+      const trimmed = p.replace(/\/+$/, '')
+      return trimmed.length === 0 ? '/' : trimmed
+    }
+    /* Exact match only — never treat /account/payments as “landed” for /account. */
+    const landed = !pending || normalize(pathname) === normalize(pending)
+    if (!landed) return
+    if (timerRef.current) window.clearTimeout(timerRef.current)
+    timerRef.current = window.setTimeout(() => {
+      setNavigating(false)
+      setPendingHref(null)
+      timerRef.current = null
+    }, SKELETON_MIN_MS)
+    return () => {
+      if (timerRef.current) {
+        window.clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
+  }, [pathname, navigating, pendingHref])
 
   const toggle = useCallback(() => {
     setExpanded((open) => {
@@ -285,6 +314,7 @@ export function ShellProvider({
       navOpen,
       setNavOpen,
       navigating: forceSkeleton || navigating,
+      pendingHref,
       startNavigating,
       casinoSearchOpen,
       setCasinoSearchOpen,
@@ -318,6 +348,7 @@ export function ShellProvider({
       openCashier,
       openDrawer,
       openVipHub,
+      pendingHref,
       product,
       startNavigating,
       toggle,

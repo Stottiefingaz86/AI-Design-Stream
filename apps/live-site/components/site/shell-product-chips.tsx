@@ -28,7 +28,7 @@ export function ShellProductChips() {
               <Link
                 key={item.label}
                 href={item.href}
-                onClick={startNavigating}
+                onClick={() => startNavigating(item.href)}
                 data-name="nav-item-outline-inverted"
                 data-state={active ? 'active' : 'default'}
                 className={cn(

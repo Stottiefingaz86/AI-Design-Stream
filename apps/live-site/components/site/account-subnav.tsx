@@ -138,7 +138,7 @@ export function AccountSubNav({ motion = true }: { motion?: boolean }) {
                     onClick={() => {
                       setActive(item.href)
                       if (item.href !== pathname) {
-                        startNavigating()
+                        startNavigating(item.href)
                         router.push(item.href)
                       }
                     }}

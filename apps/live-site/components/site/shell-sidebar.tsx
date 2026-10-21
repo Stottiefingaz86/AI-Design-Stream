@@ -48,7 +48,7 @@ export function ShellSidebar() {
       <div className="flex h-16 w-full shrink-0 items-center justify-center p-2">
         <ShellLogo
           expanded={expanded}
-          onNavigate={startNavigating}
+          onNavigate={() => startNavigating('/')}
           className="shell-chrome-btn rounded-md border-0 bg-transparent"
         />
       </div>
@@ -104,7 +104,7 @@ function NavItem({
   item: ShellNavItem
   expanded: boolean
   pathname: string
-  onNavigate: () => void
+  onNavigate: (href?: string) => void
   onLaunch: (game: CasinoLobbyGame) => void
   onOpenVipHub: () => void
 }) {
@@ -213,7 +213,7 @@ function NavItem({
           scrollShellToId(id)
           return
         }
-        onNavigate()
+        onNavigate(item.href)
       }}
       aria-label={item.label}
       aria-current={item.active ? 'page' : undefined}
