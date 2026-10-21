@@ -22,14 +22,11 @@ import {
 import { productFromPath, type ShellProduct } from './shell-nav'
 
 const SIDEBAR_KEY = 'lumen-shell-sidebar-expanded'
-const BOOT_KEY = 'lumen-shell-boot-done'
 const CLAIM_PRELOAD_MS = 1400
 /** From claim press → balance roll-up (confetti + toast fire first at CLAIM_PRELOAD_MS). */
 const BALANCE_ROLL_MS = 3000
 /** Minimum time destination skeleton stays visible after the route lands. */
 const SKELETON_MIN_MS = 420
-/** First arrival — at least one full logo loop. */
-const BOOT_MIN_MS = 2400
 /** Deep-link overlay — long enough to read the motion, short enough to feel snappy. */
 const DEEP_LINK_MIN_MS = 1400
 
@@ -80,28 +77,6 @@ type ShellContextValue = {
   claimVipReward: (id: string, button?: HTMLButtonElement | null) => void
   vipClaimToast: VipClaimToastState | null
   dismissVipClaimToast: () => void
-}
-
-/** Survives ShellProvider remounts within the same JS session. */
-let sessionBootCompleted = false
-
-function readBootDone() {
-  if (sessionBootCompleted) return true
-  if (typeof window === 'undefined') return true
-  try {
-    return window.sessionStorage.getItem(BOOT_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-function writeBootDone() {
-  sessionBootCompleted = true
-  try {
-    window.sessionStorage.setItem(BOOT_KEY, '1')
-  } catch {
-    /* ignore */
-  }
 }
 
 function pathOnly(href: string) {
@@ -175,7 +150,8 @@ export function ShellProvider({
   const [launchedGame, setLaunchedGame] = useState<CasinoLobbyGame | null>(null)
   const [navigating, setNavigating] = useState(false)
   const [pendingHref, setPendingHref] = useState<string | null>(null)
-  const [fullPageLoader, setFullPageLoader] = useState(() => !readBootDone())
+  /** Deep-link overlay only — boot is `SiteArrivalLoader` in the root layout. */
+  const [fullPageLoader, setFullPageLoader] = useState(false)
   const [balance, setBalance] = useState(10)
   const [displayBalance, setDisplayBalance] = useState(10)
   const [vipRewards, setVipRewards] = useState<VipReward[]>(() =>
@@ -190,21 +166,6 @@ export function ShellProvider({
   const vipRewardsRef = React.useRef(vipRewards)
   vipRewardsRef.current = vipRewards
   const vipClaimCount = claimableCount(vipRewards)
-
-  /* First shell arrival this tab — full-page logo loop, then mark boot done. */
-  useEffect(() => {
-    if (readBootDone()) {
-      setFullPageLoader(false)
-      return
-    }
-    overlayStartedRef.current = performance.now()
-    setFullPageLoader(true)
-    const timer = window.setTimeout(() => {
-      writeBootDone()
-      setFullPageLoader(false)
-    }, BOOT_MIN_MS)
-    return () => window.clearTimeout(timer)
-  }, [])
 
   const dismissVipClaimToast = useCallback(() => {
     setVipClaimToast(null)

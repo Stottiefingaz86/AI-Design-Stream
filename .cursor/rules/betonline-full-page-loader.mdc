@@ -8,12 +8,10 @@ alwaysApply: false
 
 Use `startDeepLink(href)` + `FullPageLoader` for **cross-context redirects**. Use `startNavigating(href)` for **in-chrome soft nav**.
 
-## Show full-page loader (`startDeepLink`)
+## Show full-page loader
 
-- First shell arrival / boot (session once)
-- UBC drawer → My Account, Pending Bets, Transactions, Bet History, My Bonus
-- Poker landing “Deposit Promotions” → `/promotions?filter=poker`
-- Any similar jump that leaves the current product chrome for a different destination
+- **Hard refresh / cold open** — `SiteArrivalLoader` in the root layout (every document load)
+- **Deep links** — `startDeepLink(href)`: UBC → account pages, poker → `/promotions?filter=poker`, etc.
 
 ## Do NOT show full-page loader (`startNavigating` only)
 

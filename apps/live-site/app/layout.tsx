@@ -4,6 +4,7 @@ import { Figtree } from 'next/font/google'
 import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { PassGate } from '@/components/site/pass-gate'
+import { SiteArrivalLoader } from '@/components/site/site-arrival-loader'
 import './globals.css'
 
 const figtree = Figtree({
@@ -28,8 +29,10 @@ export default function RootLayout({
     <html lang="en" data-brand="betonline" className={figtree.variable} suppressHydrationWarning>
       <body className={figtree.className}>
         <Script src="/lumen-tip.js" strategy="beforeInteractive" />
+        <Script src="/betonline-loader.js" strategy="beforeInteractive" />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="lumen-shell-theme">
           <PassGate>
+            <SiteArrivalLoader />
             {children}
             <Toaster duration={4000} gap={14} position="bottom-right" visibleToasts={3} />
           </PassGate>

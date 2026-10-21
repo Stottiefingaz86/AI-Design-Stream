@@ -16,13 +16,13 @@ import { cn } from '@/lib/utils'
  * (Casino ↔ Sports ↔ Poker ↔ Promotions) — those use soft-nav skeletons only.
  */
 export function FullPageLoader({ open }: { open: boolean }) {
-  const [portalReady, setPortalReady] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    setPortalReady(true)
+    setMounted(true)
   }, [])
 
-  if (!portalReady || !open) return null
+  if (!mounted || !open) return null
 
   return createPortal(
     <div
@@ -31,8 +31,8 @@ export function FullPageLoader({ open }: { open: boolean }) {
       aria-busy
       aria-label="Loading"
       className={cn(
-        'fixed inset-0 z-[300] flex items-center justify-center',
-        'bg-[var(--background,#101012)]',
+        'pointer-events-auto fixed inset-0 z-[9999] flex items-center justify-center',
+        'bg-[#101012]',
       )}
     >
       <BetOnlineLoader width={320} duration={2400} className="px-6" />
