@@ -164,7 +164,7 @@ function MobileVipHub({ open, onClose }: { open: boolean; onClose: () => void })
  * (Nested h-full panels were clipping content and blocking scroll.)
  */
 function VipHubChrome({ onClose }: { onClose: () => void }) {
-  const { vipRewards, claimVipReward, vipHubOpen, vipHubTab } = useShell()
+  const { vipRewards, claimVipReward, vipHubOpen, vipHubTab, loggedIn } = useShell()
   const [tab, setTab] = useState<VipHubTab>(vipHubTab)
 
   useEffect(() => {
@@ -205,7 +205,12 @@ function VipHubChrome({ onClose }: { onClose: () => void }) {
             <VipProgressCard />
             <div data-name="Click2Claim" className="flex flex-col gap-3">
               {vipRewards.map((reward) => (
-                <VipClaimRow key={reward.id} reward={reward} onClaim={claimVipReward} />
+                <VipClaimRow
+                  key={reward.id}
+                  reward={reward}
+                  loggedOut={!loggedIn}
+                  onClaim={claimVipReward}
+                />
               ))}
             </div>
           </div>
@@ -430,12 +435,19 @@ function EmptyVipTab({ label }: { label: string }) {
 
 function VipClaimRow({
   reward,
+  loggedOut = false,
   onClaim,
 }: {
   reward: VipReward
+  /** Logged-out hub — claimable/disabled rows show Login CTA. */
+  loggedOut?: boolean
   onClaim: (id: string, button: HTMLButtonElement | null) => void
 }) {
+  const { setLoggedIn } = useShell()
   const btnRef = useRef<HTMLButtonElement>(null)
+  const showLogin =
+    loggedOut && (reward.state === 'enable' || reward.state === 'disabled' || reward.state === 'logout')
+  const displayReward: VipReward = showLogin ? { ...reward, state: 'logout' } : reward
 
   return (
     <LoyaltyRewardCard
@@ -448,10 +460,16 @@ function VipClaimRow({
         termsLabel: 'Terms and Conditions',
       }}
       action={{
-        state: reward.state as LoyaltyClaimState,
-        label: claimButtonLabel(reward),
+        state: displayReward.state as LoyaltyClaimState,
+        label: claimButtonLabel(displayReward),
         buttonRef: btnRef,
-        onClick: () => onClaim(reward.id, btnRef.current),
+        onClick: () => {
+          if (showLogin) {
+            setLoggedIn(true)
+            return
+          }
+          onClaim(reward.id, btnRef.current)
+        },
       }}
     />
   )

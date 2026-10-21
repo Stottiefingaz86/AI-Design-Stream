@@ -5,6 +5,12 @@ import { cn } from '@/lib/utils'
 
 export type ShellIconName =
   | 'account'
+  | 'accountBetHistory'
+  | 'accountHome'
+  | 'accountPayments'
+  | 'accountSecurity'
+  | 'accountSettings'
+  | 'accountTransactions'
   | 'bets'
   | 'bell'
   | 'betslip'
@@ -17,9 +23,12 @@ export type ShellIconName =
   | 'clock'
   | 'contests'
   | 'crown'
+  | 'crownMuted'
   | 'crownGold'
   | 'desktop'
+  | 'dice'
   | 'diamond'
+  | 'football'
   | 'download'
   | 'drawer'
   | 'external'
@@ -73,9 +82,17 @@ export type ShellIconName =
 
 const ICONS: Record<ShellIconName, string> = {
   account: '/shell/figma/header/account.svg',
+  /** My Account sidebar — Figma WIP My Account SidebarContent */
+  accountHome: '/shell/figma/account/nav-user.svg',
+  accountBetHistory: '/shell/figma/account/nav-bet-history.svg',
+  accountTransactions: '/shell/figma/account/nav-transactions.svg',
+  accountPayments: '/shell/figma/account/nav-payments.svg',
+  accountSecurity: '/shell/figma/account/nav-security.svg',
+  accountSettings: '/shell/figma/account/nav-settings.svg',
   bets: '/shell/figma/sports/bets.svg',
   bell: '/shell/figma/ubc/bell.svg',
-  betslip: '/shell/figma/ubc/betslip.svg',
+  /** Sports dock — Shell 4308:278679 */
+  betslip: '/shell/figma/dock/betslip.svg',
   blackjack: '/shell/figma/casino/blackjack.svg',
   bonus: '/shell/figma/promo/bonus.svg',
   broadcast: '/shell/figma/sports/live.svg',
@@ -85,21 +102,27 @@ const ICONS: Record<ShellIconName, string> = {
   clock: '/shell/figma/ubc/betslip.svg',
   contests: '/shell/figma/promo/contests.svg',
   crown: '/shell/figma/ubc/crown.svg',
+  /** Shell header logged-out VIP — white @ 60% (preserve; do not chrome-invert). */
+  crownMuted: '/shell/figma/header/crown.svg',
   crownGold: '/shell/figma/header/crown-gold.svg',
   desktop: '/shell/figma/casino/video-poker.svg',
+  /** Homepage dock — Shell 4308:278685 */
+  dice: '/shell/figma/dock/casino-dice.svg',
   diamond: '/shell/figma/poker/diamond.svg',
   download: '/shell/figma/poker/download.svg',
   drawer: '/shell/figma/ubc/drawer.svg',
   external: '/shell/figma/promo/external.svg',
-  favorite: '/shell/figma/casino/favorite.svg',
+  /** Casino dock — Shell 4308:278672 */
+  favorite: '/shell/figma/dock/favorite.svg',
   fire: '/shell/figma/casino/popular.svg',
+  football: '/shell/figma/dock/sports-football.svg',
   gear: '/shell/figma/sports/gear.svg',
   gift: '/shell/figma/poker/gift.svg',
   globe: '/shell/rocket.svg',
-  heart: '/shell/figma/casino/favorite.svg',
+  heart: '/shell/figma/dock/favorite.svg',
   home: '/shell/figma/casino/home.svg',
   house: '/shell/figma/casino/home.svg',
-  lastGame: '/shell/figma/casino/last-game.svg',
+  lastGame: '/shell/figma/dock/last-game.svg',
   library: '/shell/figma/casino/home.svg',
   list: '/shell/figma/header/menu.svg',
   live: '/shell/figma/casino/live.svg',
@@ -110,11 +133,11 @@ const ICONS: Record<ShellIconName, string> = {
   popular: '/shell/figma/casino/popular.svg',
   promos: '/shell/figma/promo/promos.svg',
   puzzle: '/shell/figma/casino/specialty.svg',
-  random: '/shell/figma/casino/random.svg',
+  random: '/shell/figma/dock/random.svg',
   receipt: '/shell/figma/ubc/transactions.svg',
   refer: '/shell/figma/promo/refer.svg',
   rocket: '/shell/figma/poker/rocket.svg',
-  search: '/shell/figma/header/search.svg',
+  search: '/shell/figma/dock/search.svg',
   shield: '/shell/figma/poker/shield.svg',
   shuffle: '/shell/figma/casino/random.svg',
   signOut: '/shell/figma/ubc/logout.svg',
@@ -142,6 +165,7 @@ const ICONS: Record<ShellIconName, string> = {
 }
 
 const PRESERVE_COLOR: Partial<Record<ShellIconName, true>> = {
+  crownMuted: true,
   crownGold: true,
 }
 

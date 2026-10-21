@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import NumberFlow from '@number-flow/react'
 import { IconMaximize, IconMinimize, IconSettings, IconX } from '@tabler/icons-react'
 import { Favorite } from '@/components/lumen/favorite'
@@ -142,15 +142,143 @@ function SwitchControl({
 
 function LauncherAmount({ value, className }: { value: number; className?: string }) {
   return (
-    <span className={cn('inline-flex items-baseline tabular-nums', className)}>
+    <span className={cn('inline-flex items-center tabular-nums leading-none', className)}>
       <span>$</span>
       <NumberFlow
         value={value}
         isolate
         format={{ minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: true }}
         transformTiming={{ duration: 550, easing: 'ease-out' }}
+        className="inline-flex items-center leading-none"
       />
     </span>
+  )
+}
+
+function JackpotTierContent({
+  item,
+  amount,
+  countdown,
+}: {
+  item: (typeof JACKPOT_TIERS)[number]
+  amount: number
+  countdown: string
+}) {
+  const isMust = item.tone === 'must'
+  return (
+    <>
+      {isMust ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/casino/jackpot-fire.svg" alt="" width={16} height={16} className="size-4 shrink-0" />
+          <span className={TICKER_TIER_CLASS.must}>{item.label.toUpperCase()}</span>
+          <LauncherAmount value={amount} className="text-white" />
+          <span className="text-[10px] font-semibold leading-none text-[#edc555] tabular-nums">
+            in {countdown}
+          </span>
+        </>
+      ) : (
+        <>
+          <span className={TICKER_TIER_CLASS[item.tone]}>{item.label.toUpperCase()}</span>
+          <LauncherAmount value={amount} className="text-[rgba(255,255,255,0.87)]" />
+        </>
+      )}
+    </>
+  )
+}
+
+/** Mobile — one tier at a time, reel-spin through Must Drop → Mini → Minor → Major → Mega. */
+function JackpotRowMobile({
+  countdown,
+  amounts,
+}: {
+  countdown: string
+  amounts: Record<JackpotTierId, number>
+}) {
+  const [index, setIndex] = useState(0)
+  const item = JACKPOT_TIERS[index] ?? JACKPOT_TIERS[0]!
+  const isMust = item.tone === 'must'
+
+  const advance = useCallback(() => {
+    setIndex((i) => (i + 1) % JACKPOT_TIERS.length)
+  }, [])
+
+  useEffect(() => {
+    const tick = window.setInterval(advance, 3600)
+    return () => window.clearInterval(tick)
+  }, [advance])
+
+  return (
+    <button
+      type="button"
+      data-name="jackpot-row"
+      aria-label={`${item.label} $${amounts[item.id].toFixed(2)}`}
+      onClick={advance}
+      className={cn(
+        /* Square strip — parent header overflow:hidden clips to 14px radius (no bottom gap). */
+        'flex h-8 w-full shrink-0 items-center justify-center overflow-hidden',
+        isMust ? MUST_DROP_BG : 'bg-[#212121]',
+      )}
+    >
+      <span className="relative flex h-full w-full items-center justify-center overflow-hidden">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={item.id}
+            initial={{ y: 28, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -28, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className={cn(
+              'absolute inset-x-0 top-0 flex h-8 items-center justify-center gap-1 px-2 text-sm font-bold leading-none',
+              isMust && 'jackpot-must-drop-shake',
+            )}
+          >
+            <JackpotTierContent item={item} amount={amounts[item.id]} countdown={countdown} />
+          </motion.span>
+        </AnimatePresence>
+      </span>
+    </button>
+  )
+}
+
+/** Desktop — full segmented ticker; square edges clipped by header radius. */
+function JackpotRowDesktop({
+  className,
+  countdown,
+  amounts,
+}: {
+  className?: string
+  countdown: string
+  amounts: Record<JackpotTierId, number>
+}) {
+  return (
+    <div
+      data-name="jackpot-row"
+      className={cn('flex h-8 w-full shrink-0 items-center overflow-hidden', className)}
+      role="list"
+      aria-label="Jackpot tiers"
+    >
+      {JACKPOT_TIERS.map((item, index) => {
+        const isMust = item.tone === 'must'
+        return (
+          <div key={item.id} className="flex h-full min-w-0 flex-1 items-stretch">
+            {index > 0 ? <span className="w-px shrink-0 self-stretch bg-white/[0.08]" aria-hidden /> : null}
+            <div
+              data-name="jackpot-label"
+              role="listitem"
+              className={cn(
+                'flex h-full min-w-0 flex-1 items-center justify-center gap-1 px-2 text-sm font-bold leading-none',
+                isMust && MUST_DROP_BG,
+              )}
+            >
+              <span className={cn('inline-flex items-center justify-center gap-1', isMust && 'jackpot-must-drop-shake')}>
+                <JackpotTierContent item={item} amount={amounts[item.id]} countdown={countdown} />
+              </span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
   )
 }
 
@@ -164,52 +292,14 @@ function JackpotRow({
   amounts: Record<JackpotTierId, number>
 }) {
   return (
-    <div
-      data-name="jackpot-row"
-      className={cn('flex h-8 w-full shrink-0 items-center', className)}
-      role="list"
-      aria-label="Jackpot tiers"
-    >
-      {JACKPOT_TIERS.map((item, index) => {
-        const isMust = item.tone === 'must'
-        return (
-          <div
-            key={item.id}
-            className={cn(
-              'flex h-full min-w-0 items-stretch',
-              isMust ? 'flex-1' : 'hidden flex-1 md:flex',
-            )}
-          >
-            {index > 0 ? <span className="w-px shrink-0 self-stretch bg-white/[0.08]" aria-hidden /> : null}
-            <div
-              data-name="jackpot-label"
-              role="listitem"
-              className={cn(
-                'flex h-full min-w-0 flex-1 items-center justify-center gap-1 px-2 text-sm font-bold leading-5',
-                isMust && MUST_DROP_BG,
-                isMust && 'jackpot-must-drop-shake',
-              )}
-            >
-              {isMust ? (
-                <>
-                  <img src="/casino/jackpot-fire.svg" alt="" width={16} height={16} className="size-4 shrink-0" />
-                  <span className={TICKER_TIER_CLASS.must}>{item.label.toUpperCase()}</span>
-                  <LauncherAmount value={amounts[item.id]} className="text-white" />
-                  <span className="text-[10px] font-semibold leading-[14px] text-[#edc555] tabular-nums">
-                    in {countdown}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className={TICKER_TIER_CLASS[item.tone]}>{item.label.toUpperCase()}</span>
-                  <LauncherAmount value={amounts[item.id]} className="text-[rgba(255,255,255,0.87)]" />
-                </>
-              )}
-            </div>
-          </div>
-        )
-      })}
-    </div>
+    <>
+      <div className="w-full md:hidden">
+        <JackpotRowMobile countdown={countdown} amounts={amounts} />
+      </div>
+      <div className="hidden w-full md:block">
+        <JackpotRowDesktop className={className} countdown={countdown} amounts={amounts} />
+      </div>
+    </>
   )
 }
 
@@ -498,7 +588,7 @@ export function GameLauncher({
     >
       <motion.div
         data-name="jackpot-header"
-        className="relative z-10 flex w-full shrink-0 flex-col overflow-visible rounded-[14px] border border-white/[0.08] bg-[#212121]"
+        className="relative z-10 flex w-full shrink-0 flex-col overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#212121]"
         initial={{ opacity: 0, y: '-120%' }}
         animate={{ opacity: 1, y: 0 }}
         transition={HEADER_DROP}
@@ -507,7 +597,7 @@ export function GameLauncher({
               Desktop: 3-col grid keeps the title truly centered.
               Mobile: favourite + title left, controls right.
             */}
-            <div className="relative z-20 grid grid-cols-[1fr_auto] items-center gap-2 overflow-visible p-2 md:grid-cols-[1fr_auto_1fr]">
+            <div className="relative z-20 grid grid-cols-[1fr_auto] items-center gap-2 p-2 md:grid-cols-[1fr_auto_1fr]">
               <div className="flex min-w-0 items-center gap-2 md:justify-start">
                 <Favorite
                   inline

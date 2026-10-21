@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLettermark, ShellWordmark } from './shell-icons'
 import { HEADER_NAV, OTHER_NAV, TABLET_NAV, headerItemActive } from './shell-nav'
-import { ShellUbc } from './shell-ubc'
+import { ShellUbc, VipButton } from './shell-ubc'
 import { cn } from '@/lib/utils'
 
 const navItemClass =
@@ -19,7 +19,16 @@ const navItemClass =
  */
 export function ShellHeader() {
   const pathname = usePathname()
-  const { toggle, loggedIn, setLoggedIn, navOpen, setNavOpen, startNavigating } = useShell()
+  const {
+    toggle,
+    loggedIn,
+    setLoggedIn,
+    navOpen,
+    setNavOpen,
+    startNavigating,
+    vipHubOpen,
+    setVipHubOpen,
+  } = useShell()
   const [otherOpen, setOtherOpen] = useState(false)
   const isHome = pathname === '/'
 
@@ -105,6 +114,11 @@ export function ShellHeader() {
             <ShellUbc />
           ) : (
             <>
+              <VipButton
+                variant="loggedOut"
+                open={vipHubOpen}
+                onClick={() => setVipHubOpen(!vipHubOpen)}
+              />
               <Button
                 variant="outline"
                 className="h-9 border-[var(--border-inverted)] bg-transparent px-4 text-sm font-medium text-[var(--secondary-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)] hover:text-[var(--foreground-inverted)]"

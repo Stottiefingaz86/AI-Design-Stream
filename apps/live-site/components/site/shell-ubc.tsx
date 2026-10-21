@@ -1,6 +1,7 @@
 'use client'
 
 import { useTheme } from 'next-themes'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import NumberFlow from '@number-flow/react'
@@ -20,7 +21,7 @@ const ACCOUNT_ITEMS: {
   { label: 'My Account', icon: 'user' },
   { label: 'Pending Bets', icon: 'betslip', badge: '4', badgeMuted: true, value: '$40.00' },
   { label: 'Transactions History', icon: 'transactions' },
-  { label: 'Bet History', icon: 'ticket' },
+  { label: 'Bet History', icon: 'accountBetHistory' },
 ]
 
 const REWARDS_ITEMS: { label: string; icon: ShellIconName }[] = [
@@ -86,9 +87,24 @@ function BalanceButton({ onClick, open = false }: { onClick: () => void; open?: 
   )
 }
 
-function VipButton({ onClick, open = false }: { onClick: () => void; open?: boolean }) {
-  const { vipClaimCount } = useShell()
-  const needsAttention = vipClaimCount > 0
+/**
+ * Header crown — Shell Figma:
+ * - `loggedOut`: muted IconButton (secondary fill + white/60 crown)
+ * - `default` / claimable: gold bronze VIP chrome
+ */
+export function VipButton({
+  onClick,
+  open = false,
+  variant = 'default',
+}: {
+  onClick: () => void
+  open?: boolean
+  /** Shell header logged-out VIP IconButton (3191:780450). */
+  variant?: 'loggedOut' | 'default'
+}) {
+  const { vipClaimCount, loggedIn } = useShell()
+  const needsAttention = loggedIn && vipClaimCount > 0
+  const loggedOut = variant === 'loggedOut'
 
   return (
     <button
@@ -101,12 +117,20 @@ function VipButton({ onClick, open = false }: { onClick: () => void; open?: bool
           : 'VIP Hub'
       }
       className={cn(
-        'shell-chrome-btn relative inline-flex size-9 items-center justify-center rounded-lg border border-[rgba(227,158,61,0.55)] bg-[rgba(227,158,61,0.18)] opacity-80 transition-[background-color,border-color,opacity] duration-200 ease-in-out hover:border-[rgba(227,158,61,0.95)] hover:bg-[rgba(227,158,61,0.42)] hover:opacity-100',
-        needsAttention && 'vip-crown-wobble opacity-100',
+        'shell-chrome-btn relative inline-flex size-9 items-center justify-center rounded-lg transition-[background-color,border-color,opacity] duration-200 ease-in-out',
+        loggedOut
+          ? 'border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] hover:bg-white/10'
+          : 'border border-[rgba(227,158,61,0.55)] bg-[rgba(227,158,61,0.18)] opacity-80 hover:border-[rgba(227,158,61,0.95)] hover:bg-[rgba(227,158,61,0.42)] hover:opacity-100',
+        needsAttention && !loggedOut && 'vip-crown-wobble opacity-100',
       )}
     >
-      <ShellIcon name="crownGold" className="size-4 opacity-100" />
-      {needsAttention ? (
+      {loggedOut ? (
+        /* Shell 3191:780450 — secondary IconButton + white/60 crown */
+        <ShellIcon name="crownMuted" className="size-4" />
+      ) : (
+        <ShellIcon name="crownGold" className="size-4 opacity-100" />
+      )}
+      {needsAttention && !loggedOut ? (
         <span className="absolute -right-1.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-white">
           {vipClaimCount > 9 ? '9+' : vipClaimCount}
         </span>
@@ -249,7 +273,9 @@ export function UbcPanel({
   onClose: () => void
   showClose?: boolean
 }) {
-  const { setLoggedIn, setVipHubOpen, vipClaimCount, displayBalance } = useShell()
+  const router = useRouter()
+  const { setLoggedIn, setVipHubOpen, vipClaimCount, displayBalance, startNavigating } =
+    useShell()
 
   return (
     <div data-name="UBC_content" className="flex w-full flex-col gap-5 pb-6">
@@ -290,7 +316,19 @@ export function UbcPanel({
         <Divider />
         <div className="flex flex-col gap-2">
           {ACCOUNT_ITEMS.map((item) => (
-            <MenuRow key={item.label} item={item} />
+            <MenuRow
+              key={item.label}
+              item={item}
+              onClick={
+                item.label === 'My Account'
+                  ? () => {
+                      onClose()
+                      startNavigating()
+                      router.push('/account')
+                    }
+                  : undefined
+              }
+            />
           ))}
         </div>
         <Divider />
@@ -326,7 +364,7 @@ export function UbcPanel({
             onClose()
           }}
         >
-          <ShellIcon name="signOut" tone="surface" className="size-4" />
+          <ShellIcon name="signOut" tone="token" className="size-4 bg-current" />
           LogOut
         </Button>
       </div>
@@ -350,7 +388,7 @@ export function ThemeToggleButton({ className }: { className?: string }) {
       )}
       aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      <ShellIcon name={dark ? 'moon' : 'sun'} tone="surface" className="size-4" />
+      <ShellIcon name={dark ? 'moon' : 'sun'} tone="token" className="size-4" />
     </button>
   )
 }
@@ -372,10 +410,11 @@ function MenuRow({
     <button
       type="button"
       onClick={onClick}
-      className="shell-chrome-btn flex h-11 w-full items-center gap-2 rounded-lg px-4 text-left text-sm font-medium leading-5 text-foreground transition-colors duration-200 ease-in-out hover:bg-accent"
+      className="shell-chrome-btn group flex h-11 w-full items-center gap-2 rounded-lg px-4 text-left text-sm font-medium leading-5 text-muted-foreground transition-colors duration-200 ease-in-out hover:bg-accent hover:text-foreground active:text-foreground"
     >
-      <span className="flex size-6 items-center justify-center">
-        <ShellIcon name={item.icon} tone="surface" className="size-5" />
+      <span className="flex size-6 items-center justify-center text-muted-foreground group-hover:text-foreground group-active:text-foreground">
+        {/* Mask icons: muted by default → full on hover/press (solid SVG alpha; color from text-*). */}
+        <ShellIcon name={item.icon} tone="token" className="size-5 !bg-current" />
       </span>
       <span className="min-w-0 flex-1">{item.label}</span>
       {item.badge ? (

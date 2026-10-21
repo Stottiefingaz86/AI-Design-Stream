@@ -259,11 +259,11 @@ function TablePager({
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span className="hidden sm:inline">Rows per page</span>
         <span className="sm:hidden">Rows per…</span>
-        <Select value={rowsPerPage} onValueChange={onRowsChange}>
+        <Select value={rowsPerPage} onValueChange={onRowsChange} modal={false}>
           <SelectTrigger className="h-8 w-[72px] border-border bg-background">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="z-[220]">
+          <SelectContent className="z-[220]" position="popper" sideOffset={4}>
             {['10', '25', '50'].map((n) => (
               <SelectItem key={n} value={n}>
                 {n}

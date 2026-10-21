@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import NumberFlow from '@number-flow/react'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -252,7 +252,7 @@ function JackpotTierBar({
   )
 }
 
-/** Mobile — single rotating jackpot banner. */
+/** Mobile — cycles every jackpot tier with a vertical reel spin. */
 function JackpotRotatingBanner({
   activeId,
   onSelect,
@@ -266,15 +266,26 @@ function JackpotRotatingBanner({
 }) {
   const item = tiers.find((t) => t.id === activeId) ?? tiers[0]!
   const isMust = item.tone === 'must'
+  const onSelectRef = useRef(onSelect)
+  const tiersRef = useRef(tiers)
+  const activeRef = useRef(activeId)
+  onSelectRef.current = onSelect
+  tiersRef.current = tiers
+  activeRef.current = activeId
+
+  const advance = useCallback(() => {
+    const list = tiersRef.current
+    if (list.length < 2) return
+    const idx = list.findIndex((t) => t.id === activeRef.current)
+    const next = list[(idx + 1 + list.length) % list.length]!
+    onSelectRef.current(next.id)
+  }, [])
 
   useEffect(() => {
-    const tick = window.setInterval(() => {
-      const idx = tiers.findIndex((t) => t.id === activeId)
-      const next = tiers[(idx + 1) % tiers.length]!
-      onSelect(next.id)
-    }, 3200)
+    if (tiers.length < 2) return
+    const tick = window.setInterval(advance, 3600)
     return () => window.clearInterval(tick)
-  }, [activeId, onSelect, tiers])
+  }, [advance, tiers.length])
 
   return (
     <div className="mb-3 px-6">
@@ -282,26 +293,26 @@ function JackpotRotatingBanner({
         type="button"
         data-name="jackpot-label-mobile"
         aria-label={`${item.label} $${amounts[item.id].toFixed(2)}`}
-        onClick={() => {
-          const idx = tiers.findIndex((t) => t.id === activeId)
-          const next = tiers[(idx + 1) % tiers.length]!
-          onSelect(next.id)
-        }}
+        onClick={advance}
         className={cn(
-          'flex h-[50px] w-full items-center justify-center gap-1.5 overflow-hidden rounded-[10px] px-3 text-sm font-bold leading-5',
+          'relative isolate flex h-[50px] w-full items-center justify-center overflow-hidden rounded-[10px] px-3 text-sm font-bold leading-5',
           isMust
             ? 'bg-[linear-gradient(90deg,#c48633_0%,#722d10_20%,#a65615_50%,#c48633_75%,#722d10_100%)]'
             : 'border border-border bg-card',
         )}
+        style={{ borderRadius: 10 }}
       >
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="popLayout" initial={false}>
           <motion.span
             key={item.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.22 }}
-            className={cn('inline-flex items-center justify-center gap-1.5', isMust && 'jackpot-must-drop-shake')}
+            initial={{ y: '110%', opacity: 0.35 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: '-110%', opacity: 0.35 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 28, mass: 0.85 }}
+            className={cn(
+              'absolute inset-0 inline-flex items-center justify-center gap-1.5 px-3',
+              isMust && 'jackpot-must-drop-shake',
+            )}
           >
             <JackpotTierLabel item={item} amount={amounts[item.id]} />
           </motion.span>
@@ -678,9 +689,10 @@ export function CasinoJackpots({
   hideMustDrop?: boolean
   onLaunch?: LaunchHandler
 }) {
-  const tiers = hideMustDrop
-    ? JACKPOT_TIERS.filter((t) => t.tone !== 'must')
-    : JACKPOT_TIERS
+  const tiers = useMemo(
+    () => (hideMustDrop ? JACKPOT_TIERS.filter((t) => t.tone !== 'must') : JACKPOT_TIERS),
+    [hideMustDrop],
+  )
   const defaultTier = (tiers[0]?.id ?? 'mini') as JackpotTierId
   const [tier, setTier] = useState<JackpotTierId>(defaultTier)
   const setTierStable = useCallback((id: JackpotTierId) => setTier(id), [])

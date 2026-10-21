@@ -351,15 +351,17 @@
 }
 
 /*
-  Sticky chrome = header bar + casino sub-nav. Quick-links sit above this in
-  scroll flow and push away first; content only frosts under sub-nav after that.
-  z-index below UBC/cashier (40) so account panels stay on top.
+  Sticky chrome = header bar + casino/account sub-nav. Quick-links sit above this
+  in scroll flow and push away first; content only frosts under sub-nav after that.
+  Must beat in-page stacks (VIP flip cards z~40, Explore CTA) so scroll content
+  cannot paint over the header. Desktop hubs (UBC / Cashier / VIP) are fixed at
+  z≥100 so they still open above this sticky stack — especially casino sub-nav.
 */
 [data-name='Product Page'] [data-shell-sticky-chrome] {
   position: sticky !important;
   top: 0 !important;
-  /* Above game-tile hover (z-10); below UBC/cashier (40). */
-  z-index: 35 !important;
+  /* Above VIP carousel / motion z-indexes; below desktop hubs (100) and sheets. */
+  z-index: 70 !important;
   flex-shrink: 0 !important;
 }
 
@@ -1403,12 +1405,12 @@ main[data-sidebar="inset"] > * {
 
 /* Ensure all parent containers up to body allow sticky.
  * Exclude portaled overlays (UBC / cashier / VIP hub / search / drawer / claim toast /
- * my-bonus filters / Radix portals) — they need fixed + full height. Without this
+ * my-bonus + bet-history filters / Radix portals) — they need fixed + full height. Without this
  * carve-out, `position: relative !important` overrides Floating UI / overlay `fixed`
  * and menus/sheets land off-screen. */
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]),
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]),
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-pick-a-game-menu]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]) > div[class*="flex"] {
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]) > div[class*="flex"] {
   overflow: visible !important;
   overflow-x: hidden !important;
   position: relative !important;
@@ -1430,8 +1432,11 @@ body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]
   z-index: 220 !important;
 }
 
-/* My Bonus filters sheet — same carve-out treatment as VIP Hub / search. */
-[data-my-bonus-filters-root] {
+/* My Bonus / Bet History / Transactions / Payments filters sheets — same carve-out as VIP Hub / search. */
+[data-my-bonus-filters-root],
+[data-bet-history-filters-root],
+[data-transactions-filters-root],
+[data-payments-filters-root] {
   position: fixed !important;
   inset: 0 !important;
   z-index: 200 !important;
@@ -1442,11 +1447,35 @@ body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]
   pointer-events: none !important;
 }
 
-[data-my-bonus-filters-root] [data-my-bonus-filters] {
+/* Security Central remove-device confirm. */
+[data-security-remove-dialog] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 220 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+[data-my-bonus-filters-root] [data-my-bonus-filters],
+[data-bet-history-filters-root] [data-bet-history-filters],
+[data-transactions-filters-root] [data-transactions-filters],
+[data-payments-filters-root] [data-payments-filters] {
   pointer-events: none;
 }
 
-[data-my-bonus-filters-root] [data-my-bonus-filters].pointer-events-auto {
+[data-my-bonus-filters-root] [data-my-bonus-filters].pointer-events-auto,
+[data-bet-history-filters-root] [data-bet-history-filters].pointer-events-auto,
+[data-transactions-filters-root] [data-transactions-filters].pointer-events-auto,
+[data-payments-filters-root] [data-payments-filters].pointer-events-auto {
+  pointer-events: auto !important;
+}
+
+/* In-sheet selects — portaled listboxes under the filters root. */
+[data-bet-history-filters-root] [data-bet-history-select-menu],
+[data-transactions-filters-root] [data-transactions-select-menu],
+[data-payments-filters-root] [data-payments-select-menu] {
   pointer-events: auto !important;
 }
 
@@ -1764,7 +1793,8 @@ button[data-active="true"][class*="SidebarMenuButton"],
   right: 0 !important;
   bottom: 0 !important;
   left: 0 !important;
-  z-index: 40 !important;
+  /* Above sticky chrome (70) + sidebar (80); below mobile sheets (200). */
+  z-index: 100 !important;
   width: auto !important;
   height: auto !important;
   max-height: none !important;
@@ -1844,7 +1874,8 @@ button[data-active="true"][class*="SidebarMenuButton"],
   right: 0 !important;
   bottom: 0 !important;
   left: 0 !important;
-  z-index: 40 !important;
+  /* Above sticky chrome (70) + sidebar (80); below mobile sheets (200). */
+  z-index: 100 !important;
   width: auto !important;
   height: auto !important;
   max-height: none !important;
@@ -1951,7 +1982,8 @@ button[data-active="true"][class*="SidebarMenuButton"],
   right: 0 !important;
   bottom: 0 !important;
   left: 0 !important;
-  z-index: 40 !important;
+  /* Above sticky chrome (70) + sidebar (80); below mobile sheets (200). */
+  z-index: 100 !important;
   width: auto !important;
   height: auto !important;
   max-height: none !important;
@@ -2062,9 +2094,12 @@ button[data-active="true"][class*="SidebarMenuButton"],
   background-color: #0a0a0a !important;
 }
 
-/* Keep Jackpot Info dropdown unclipped by header chrome */
+/*
+  Clip the ticker flush to the header’s 14px radius (Info panel is portaled to body,
+  so it does not need overflow:visible on the header).
+*/
 [data-casino-game-root] [data-name='jackpot-header'] {
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 
 /* Fixed jackpot menu: content-sized, capped, scrollable — never stretch full viewport */

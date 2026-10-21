@@ -63,13 +63,22 @@ function DownloadChipIcon({ id }: { id: string }) {
   return <AndroidIcon />
 }
 
-function DownloadChip({ id, label }: { id: string; label: string }) {
+function DownloadChip({
+  id,
+  label,
+  className,
+}: {
+  id: string
+  label: string
+  className?: string
+}) {
   return (
     <button
       type="button"
       className={cn(
-        'inline-flex items-center gap-2 rounded-lg border border-border bg-secondary p-3 text-secondary-foreground',
+        'inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-secondary p-3 text-secondary-foreground',
         CHIP_HOVER,
+        className,
       )}
     >
       <DownloadChipIcon id={id} />
@@ -98,6 +107,9 @@ function PokerHeroArt() {
 }
 
 function PokerHero() {
+  /** Mobile hero (Figma 78:163511) — iOS + Android side-by-side; Windows stays in download block. */
+  const heroDownloads = POKER_DOWNLOADS.filter((item) => item.id !== 'windows')
+
   return (
     <section
       id="poker-start"
@@ -106,7 +118,7 @@ function PokerHero() {
     >
       <div className="overflow-hidden rounded-3xl bg-card">
         <div className="flex flex-col md:flex-row md:items-stretch">
-          <div className="flex min-w-0 flex-1 flex-col items-start gap-6 px-6 py-10 md:min-w-[476px] md:py-14 md:pl-14 md:pr-6">
+          <div className="flex min-w-0 flex-1 flex-col items-stretch gap-6 px-6 py-10 md:min-w-[476px] md:items-start md:py-14 md:pl-14 md:pr-6">
             <Typography
               as="h1"
               shape="h1"
@@ -125,11 +137,22 @@ function PokerHero() {
             >
               Play online or download the BetOnline poker app today, available on IOS, PC, and Android.
             </Typography>
-            <Button size="lg" className="w-fit">
+            <Button size="lg" className="w-full md:w-fit">
               Play Online
             </Button>
             <div className="h-px w-full bg-border" />
-            <div className="flex flex-wrap content-center items-center gap-4">
+            {/* Mobile: equal-width iOS | Android. Desktop: all three chips. */}
+            <div className="flex w-full gap-4 md:hidden">
+              {heroDownloads.map((item) => (
+                <DownloadChip
+                  key={item.id}
+                  id={item.id}
+                  label={item.label}
+                  className="min-w-0 flex-1"
+                />
+              ))}
+            </div>
+            <div className="hidden flex-wrap content-center items-center gap-4 md:flex">
               {POKER_DOWNLOADS.map((item) => (
                 <DownloadChip key={item.id} id={item.id} label={item.label} />
               ))}
@@ -200,7 +223,7 @@ function PokerGettingStarted() {
     <section
       id="poker-getting-started"
       data-name="poker_steps"
-      className="scroll-mt-24 bg-surface-muted-1 px-6 py-14 md:px-8"
+      className="scroll-mt-24 bg-surface-muted-1 px-4 py-12 md:px-8 md:py-14"
     >
       <div className="mx-auto flex max-w-[740px] flex-col items-center gap-11">
         <div className="flex flex-col items-center gap-4 text-center">
@@ -211,26 +234,34 @@ function PokerGettingStarted() {
             Five quick steps from sign-up to your first hand at the tables.
           </Typography>
         </div>
+        {/* Figma 60:118989 — badge | (title → body → CTA), not badge | text | CTA. */}
         <div className="flex w-full flex-col gap-3">
-          {POKER_STEPS.map((item) => (
+          {POKER_STEPS.map((item, index) => (
             <div
               key={item.step}
-              className="flex items-start gap-6 rounded-[10px] bg-card p-6 shadow-none"
+              className="flex w-full items-start gap-6 rounded-[10px] border border-border bg-card p-6"
             >
-              <span className="grid size-[38px] shrink-0 place-items-center rounded-full bg-primary text-lg font-bold text-primary-foreground">
-                {item.step}
-              </span>
-              <div className="min-w-0 flex-1">
-                <Typography as="h3" shape="lead" weight="semibold">
-                  {item.title}
-                </Typography>
-                <Typography as="p" shape="small" variant="muted" className="mt-3">
-                  {item.body}
-                </Typography>
+              <div className="flex w-[37px] shrink-0 flex-col items-center gap-1 self-stretch">
+                <span className="grid size-[38px] place-items-center rounded-full bg-primary text-lg font-medium text-primary-foreground">
+                  {item.step}
+                </span>
+                {index < POKER_STEPS.length - 1 ? (
+                  <span className="w-0.5 flex-1 bg-white/20" aria-hidden />
+                ) : null}
               </div>
-              <Button variant="outline" size="sm" className="shrink-0">
-                {item.action}
-              </Button>
+              <div className="flex min-w-0 flex-1 flex-col items-start gap-6">
+                <div className="flex w-full flex-col gap-3">
+                  <Typography as="h3" shape="lead" weight="semibold" className="w-full">
+                    {item.title}
+                  </Typography>
+                  <Typography as="p" shape="small" variant="muted" className="w-full">
+                    {item.body}
+                  </Typography>
+                </div>
+                <Button variant="secondary" size="sm" className="shrink-0">
+                  {item.action}
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -287,9 +318,9 @@ function PokerDownload() {
     <section
       id="poker-download"
       data-name="poker_download"
-      className="scroll-mt-24 bg-surface-muted-1 px-6 py-14 md:px-8"
+      className="scroll-mt-24 bg-surface-muted-1 px-4 py-14 md:px-8"
     >
-      <div className="mx-auto flex max-w-[1300px] flex-col items-center gap-11 rounded-3xl bg-card px-8 py-14">
+      <div className="mx-auto flex w-full max-w-[1300px] flex-col items-center gap-11 rounded-3xl bg-card p-8 md:px-8 md:py-14">
         <div className="flex flex-col items-center gap-4 text-center">
           <Typography as="h2" shape="h2" weight="semibold">
             Download Our Poker App
@@ -298,9 +329,15 @@ function PokerDownload() {
             Available on all major platforms. Get the best poker experience on any device.
           </Typography>
         </div>
-        <div className="flex w-full max-w-[792px] flex-wrap justify-center gap-4">
+        {/* Mobile: full-width stack (Figma 217:123296). Desktop: centered wrap. */}
+        <div className="flex w-full max-w-[792px] flex-col gap-4 md:flex-row md:flex-wrap md:justify-center">
           {POKER_DOWNLOADS.map((item) => (
-            <DownloadChip key={item.id} id={item.id} label={item.label} />
+            <DownloadChip
+              key={item.id}
+              id={item.id}
+              label={item.label}
+              className="w-full md:w-auto"
+            />
           ))}
         </div>
       </div>

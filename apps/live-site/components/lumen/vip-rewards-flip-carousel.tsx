@@ -400,7 +400,7 @@ export function VipRewardsFlipCarousel({
   const stageHeight = stageTop + cardH + arcBottomPad
 
   const arrowBtnClass = cn(
-    'absolute z-50 flex size-8 items-center justify-center rounded-md',
+    'absolute z-10 flex size-8 items-center justify-center rounded-md',
     'border border-border bg-secondary text-foreground backdrop-blur-sm',
     'transition-colors hover:bg-muted',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -425,7 +425,7 @@ export function VipRewardsFlipCarousel({
           >
             {!compact ? (
               <div
-                className="pointer-events-none absolute inset-x-0 z-50"
+                className="pointer-events-none absolute inset-x-0 z-10"
                 style={{ top: stageTop, height: cardH }}
               >
                 <button
@@ -518,7 +518,7 @@ export function VipRewardsFlipCarousel({
               type="button"
               onClick={onExplore}
               className={cn(
-                'relative z-[60] h-10 shrink-0 rounded-md bg-primary font-bold uppercase tracking-wider text-primary-foreground transition-[filter] duration-150 hover:brightness-110',
+                'relative z-10 h-10 shrink-0 rounded-md bg-primary font-bold uppercase tracking-wider text-primary-foreground transition-[filter] duration-150 hover:brightness-110',
                 compact ? 'mx-4 w-[calc(100%-2rem)] text-[11px]' : 'w-full max-w-[240px] text-xs',
               )}
             >

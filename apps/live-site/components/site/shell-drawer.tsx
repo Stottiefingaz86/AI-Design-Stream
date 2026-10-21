@@ -12,7 +12,7 @@ import {
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLogo } from './shell-icons'
 import { gameForNavAction } from './shell-nav-launch'
-import { CHIP_NAV, chipItemActive, navForProduct, withNavActive } from './shell-nav'
+import { CHIP_NAV, chipItemActive, navForPathname, withNavActive } from './shell-nav'
 import { cn } from '@/lib/utils'
 
 /** Mobile/tablet left nav — Figma drawer, not the desktop rail. */
@@ -20,7 +20,7 @@ export function ShellDrawer() {
   const pathname = usePathname()
   const [hash, setHash] = useState('')
   const { navOpen, setNavOpen, product, launchGame, setVipHubOpen, startNavigating } = useShell()
-  const groups = withNavActive(navForProduct(product), pathname, hash)
+  const groups = withNavActive(navForPathname(pathname, product), pathname, hash)
   const tabsRef = useRef<HTMLElement>(null)
   const [mounted, setMounted] = useState(false)
 
@@ -135,12 +135,16 @@ export function ShellDrawer() {
                     </p>
                   ) : null}
                   {group.items.map((item) => {
+                    const iconGlyphClass = cn(
+                      'size-5',
+                      item.active ? '!bg-white' : '!bg-white/60 group-hover:!bg-white',
+                    )
                     const itemClass = cn(
-                      'flex w-full items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left text-sm font-medium leading-5 transition-colors duration-200 ease-in-out',
+                      'group flex w-full items-center gap-2 rounded-lg border-0 bg-transparent px-2 text-left text-sm font-medium leading-5 transition-colors duration-200 ease-in-out',
                       item.emphasis ? 'h-11' : 'h-10',
                       item.active
-                        ? 'bg-[var(--sidebar-primary)] font-semibold text-[var(--sidebar-primary-foreground)]'
-                        : 'text-[var(--muted-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)] hover:text-[var(--foreground-inverted)]',
+                        ? 'bg-[var(--sidebar-primary)] font-semibold text-white'
+                        : 'text-white/60 hover:bg-[var(--surface-muted-1-inverted)] hover:text-white',
                     )
                     const body = (
                       <>
@@ -159,7 +163,12 @@ export function ShellDrawer() {
                               className="size-full rounded-md object-cover object-top"
                             />
                           ) : (
-                            <ShellIcon name={item.icon} active={item.active} className="size-5" />
+                            <ShellIcon
+                              name={item.icon}
+                              tone="token"
+                              active={item.active}
+                              className={iconGlyphClass}
+                            />
                           )}
                         </span>
                         <span className="min-w-0 flex-1">
@@ -170,7 +179,9 @@ export function ShellDrawer() {
                             </span>
                           ) : null}
                         </span>
-                        {item.trailing ? <ShellIcon name={item.trailing} className="size-5" /> : null}
+                        {item.trailing ? (
+                          <ShellIcon name={item.trailing} tone="token" className={iconGlyphClass} />
+                        ) : null}
                       </>
                     )
                     if (item.action === 'open-vip-hub') {

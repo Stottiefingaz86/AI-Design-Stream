@@ -12,7 +12,7 @@ import {
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLogo } from './shell-icons'
 import { gameForNavAction } from './shell-nav-launch'
-import { navForProduct, withNavActive, type ShellNavItem } from './shell-nav'
+import { navForPathname, withNavActive, type ShellNavItem } from './shell-nav'
 import { cn } from '@/lib/utils'
 
 function useLocationHash() {
@@ -34,7 +34,7 @@ export function ShellSidebar() {
   const pathname = usePathname()
   const hash = useLocationHash()
   const { expanded, product, startNavigating, launchGame, setVipHubOpen } = useShell()
-  const groups = withNavActive(navForProduct(product), pathname, hash)
+  const groups = withNavActive(navForPathname(pathname, product), pathname, hash)
 
   return (
     <aside
@@ -111,11 +111,17 @@ function NavItem({
   const className = cn(
     'group relative flex w-full items-center border-0 bg-transparent p-0 text-left text-sm leading-5 outline-none ring-0 transition-colors duration-200 ease-in-out focus:outline-none focus-visible:outline-none',
     expanded ? 'h-11 justify-start gap-2 overflow-hidden rounded-lg px-2' : 'h-12 justify-center overflow-visible',
-    expanded && item.active && 'bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)]',
+    expanded && item.active && 'bg-[var(--sidebar-primary)] text-white',
     expanded &&
       !item.active &&
-      'text-[var(--muted-foreground-inverted)] hover:bg-[var(--surface-muted-1-inverted)] hover:text-[var(--foreground-inverted)]',
-    !expanded && 'text-[var(--muted-foreground-inverted)] hover:text-[var(--foreground-inverted)]',
+      'text-white/60 hover:bg-[var(--surface-muted-1-inverted)] hover:text-white',
+    !expanded && 'text-white/60 hover:text-white',
+  )
+
+  /* Mask icons paint via background — set bg-* directly (currentColor was staying muted). */
+  const iconGlyphClass = cn(
+    'size-5',
+    item.active ? '!bg-white' : '!bg-white/60 group-hover:!bg-white',
   )
 
   const body = (
@@ -124,7 +130,7 @@ function NavItem({
         className={cn(
           'flex shrink-0 items-center justify-center rounded-[8px] transition-colors duration-200 ease-in-out',
           expanded ? (item.emphasis || item.active ? 'size-8' : 'size-6') : 'size-10',
-          item.active && 'bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)]',
+          item.active && 'bg-[var(--sidebar-primary)]',
           !item.active && item.emphasis && 'bg-[var(--surface-muted-1-inverted)]',
           !expanded && !item.active && 'group-hover:bg-[var(--surface-muted-1-inverted)]',
         )}
@@ -137,7 +143,12 @@ function NavItem({
             className="size-full rounded-[6px] object-cover object-top"
           />
         ) : (
-          <ShellIcon name={item.icon} tone="token" active={item.active} className="size-5" />
+          <ShellIcon
+            name={item.icon}
+            tone="token"
+            active={item.active}
+            className={iconGlyphClass}
+          />
         )}
       </span>
       {expanded ? (
@@ -152,7 +163,9 @@ function NavItem({
               </span>
             ) : null}
           </span>
-          {item.trailing ? <ShellIcon name={item.trailing} tone="token" className="size-5" /> : null}
+          {item.trailing ? (
+            <ShellIcon name={item.trailing} tone="token" className={iconGlyphClass} />
+          ) : null}
         </>
       ) : null}
     </>

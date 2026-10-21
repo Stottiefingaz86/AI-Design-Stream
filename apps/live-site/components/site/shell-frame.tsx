@@ -19,12 +19,16 @@ import { HomepageLobbySkeleton } from '@/components/lumen/homepage-lobby-skeleto
 import { PokerLandingSkeleton } from '@/components/lumen/poker-landing-skeleton'
 import { ContestsLobbySkeleton } from '@/components/lumen/contests-lobby-skeleton'
 import { MyBonusSkeleton } from '@/components/lumen/my-bonus-skeleton'
+import { MyAccountSkeleton } from '@/components/lumen/my-account-skeleton'
+import { BetHistorySkeleton } from '@/components/lumen/bet-history-skeleton'
 import { PromotionsLobbySkeleton } from '@/components/lumen/promotions-lobby-skeleton'
 import { CasinoSearchOverlay } from '@/components/lumen/casino-search-overlay'
 import { GameLauncher } from '@/components/lumen/game-launcher'
 import { CasinoSubNav } from './casino-subnav'
+import { AccountSubNav } from './account-subnav'
 import { ShellHeader } from './shell-header'
 import { ShellProductChips } from './shell-product-chips'
+import { isAccountPath } from './shell-nav'
 import { cn } from '@/lib/utils'
 
 /**
@@ -93,15 +97,23 @@ function ShellChrome({ children }: { children?: ReactNode }) {
         */}
         <div id="shell-scroll" className="shell-scroll h-0 min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
           <ShellProductChips />
-          <div data-shell-sticky-chrome="" className="sticky top-0 z-20">
+          {/* Above in-page z-50+ (e.g. VIP carousel CTA) so scroll content can’t paint over the header. */}
+          <div data-shell-sticky-chrome="" className="sticky top-0 z-[70]">
             <ShellHeader />
             {pathname.startsWith('/casino') ? <CasinoSubNav glass sticky={false} motion /> : null}
+            {isAccountPath(pathname) ? <AccountSubNav /> : null}
           </div>
           {/* Full-width column so footer bg bleeds edge-to-edge; page body stays max 1440. */}
           <div className="flex min-h-full w-full flex-col">
             <div className="mx-auto w-full max-w-[1440px] flex-1 pb-24 lg:pb-0">
               {navigating ? (
-                product === 'poker' ? (
+                isAccountPath(pathname) ? (
+                  pathname.startsWith('/account/bet-history') ? (
+                    <BetHistorySkeleton />
+                  ) : (
+                    <MyAccountSkeleton />
+                  )
+                ) : product === 'poker' ? (
                   <PokerLandingSkeleton />
                 ) : product === 'promotions' ? (
                   pathname.startsWith('/promotions/my-bonus') ? (

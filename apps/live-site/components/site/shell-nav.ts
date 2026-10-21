@@ -104,6 +104,31 @@ export function productFromPath(pathname: string): ShellProduct {
   return 'casino'
 }
 
+/** My Account area — Figma WIP sidebar-by-brand with account sections. */
+export function isAccountPath(pathname: string) {
+  return pathname.startsWith('/account')
+}
+
+/** Account left-nav / mobile tabs — Figma SidebarContent + nav-menu-solid. */
+export const ACCOUNT_NAV: ShellNavGroup[] = [
+  {
+    items: [
+      { label: 'My Account', href: '/account', icon: 'accountHome', emphasis: true },
+      { label: 'Bet History', href: '/account/bet-history', icon: 'accountBetHistory' },
+      { label: 'Transactions', href: '/account/transactions', icon: 'accountTransactions' },
+      { label: 'Payments', href: '/account/payments', icon: 'accountPayments' },
+      { label: 'Security Central', href: '/account/security', icon: 'accountSecurity' },
+      { label: 'Profile Settings', href: '/account/settings', icon: 'accountSettings' },
+    ],
+  },
+]
+
+/** Sidebar/drawer groups for the current URL (account overrides product). */
+export function navForPathname(pathname: string, product: ShellProduct): ShellNavGroup[] {
+  if (isAccountPath(pathname)) return ACCOUNT_NAV
+  return navForProduct(product)
+}
+
 export function headerItemActive(label: string, pathname: string) {
   if (label === 'Casino') return pathname.startsWith('/casino')
   if (label === 'Sports') return pathname.startsWith('/sports')
@@ -155,6 +180,13 @@ export function navItemActive(
   }
   if (item.label === 'My Bonus') return pathname.startsWith('/promotions/my-bonus')
   if (item.label === 'Contests') return pathname.startsWith('/promotions/contest')
+
+  if (item.href === '/account') {
+    return pathname === '/account' || pathname === '/account/'
+  }
+  if (item.href.startsWith('/account/')) {
+    return pathname.startsWith(item.href)
+  }
 
   /* Poker landing section anchors — Promotions stays a real route.
      Emphasis CTAs (Play Online / Download) are never "active" from hash. */
