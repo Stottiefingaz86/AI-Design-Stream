@@ -141,17 +141,19 @@ function ShellChrome({ children }: { children?: ReactNode }) {
             {showCasinoNav ? <CasinoSubNav glass sticky={false} motion /> : null}
             {showAccountNav ? <AccountSubNav /> : null}
           </div>
-          {/* Full-width column so footer bg bleeds edge-to-edge; page body stays max 1440. */}
+          {/*
+            Content flex-1 fills the viewport so SEO + footer stay pinned below the fold
+            (never jump under the sub-nav while lobby/skeleton is short or loading).
+          */}
           <div className="flex min-h-full w-full flex-col">
-            <div className="mx-auto w-full max-w-[1440px] flex-1 pb-24 lg:pb-0">
+            <div className="mx-auto w-full max-w-[1440px] min-h-0 flex-1 pb-24 lg:pb-0">
               {navigating ? (
                 <RouteSkeleton path={skeletonPath} />
               ) : (
                 children ?? <ShellContent />
               )}
-              {/* Never flash SEO under the sub-nav while the page body is empty/loading. */}
-              {!navigating ? <ShellSeo /> : null}
             </div>
+            <ShellSeo />
             <SiteFooter />
           </div>
         </div>
