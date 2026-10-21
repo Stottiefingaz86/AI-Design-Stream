@@ -26,7 +26,7 @@ const CLAIM_PRELOAD_MS = 1400
 /** From claim press → balance roll-up (confetti + toast fire first at CLAIM_PRELOAD_MS). */
 const BALANCE_ROLL_MS = 3000
 /** Minimum time destination skeleton stays visible after the route lands. */
-const SKELETON_MIN_MS = 160
+const SKELETON_MIN_MS = 420
 
 export type VipClaimToastState = { id: number; amount: number }
 

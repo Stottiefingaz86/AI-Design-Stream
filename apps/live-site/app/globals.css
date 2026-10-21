@@ -436,7 +436,7 @@
   transform: translateX(-100%);
   pointer-events: none;
   background: linear-gradient(90deg, transparent, var(--surface-muted-2, #e5e7eb), transparent);
-  animation: lm-shimmer 1.6s infinite;
+  animation: lm-shimmer 2.4s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .lm-shimmer::after {
@@ -472,10 +472,10 @@
   100% { transform: translateX(100%); }
 }
 .lm-shimmer-wrap[data-active][data-trigger='always']::after {
-  animation: lm-shimmer 1.6s infinite;
+  animation: lm-shimmer 2.4s ease-in-out infinite;
 }
 .lm-shimmer-wrap[data-active][data-trigger='hover']:hover::after {
-  animation: lm-shimmer 1.2s infinite;
+  animation: lm-shimmer 2s ease-in-out infinite;
 }
 @keyframes lm-confetti {
   0% { transform: translateY(-10%) rotate(0deg); opacity: 1; }

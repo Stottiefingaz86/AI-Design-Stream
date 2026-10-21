@@ -1,6 +1,5 @@
 import React from 'react'
 import Link from 'next/link'
-import { HomeIcon, LibraryIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type ShellIconName =
@@ -182,26 +181,7 @@ export function ShellIcon({
 }) {
   const preserve = PRESERVE_COLOR[name]
 
-  if (name === 'library') {
-    return (
-      <LibraryIcon
-        aria-hidden
-        strokeWidth={1.75}
-        className={cn('shrink-0', className)}
-      />
-    )
-  }
-
-  if (name === 'home' || name === 'house') {
-    return (
-      <HomeIcon
-        aria-hidden
-        strokeWidth={1.75}
-        className={cn('shrink-0', className)}
-      />
-    )
-  }
-
+  /* library / home / house use the Figma house mask — never Lucide (bg-* was painting a white square). */
   if (tone === 'token') {
     return (
       <span
