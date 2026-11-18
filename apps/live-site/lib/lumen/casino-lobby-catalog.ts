@@ -161,13 +161,18 @@ export const LAST_GAME_PLAYED: CasinoLobbyGame = originals(
   '/games/originals/chicken.png',
 )
 
-/** Recent games only — Play Random is appended after these in the lobby rail.
- * First tile = last game played (Chicken). */
+/** Recent games — cap 10. No See More; Play Random is appended in the rail. */
 export const CONTINUE_PLAYING: CasinoLobbyGame[] = [
   LAST_GAME_PLAYED,
-  originals('continue-blackjack'),
+  originals('continue-diamonds', 'Diamonds', '/games/originals/diamonds.png'),
   live('continue-roulette', 'roulette', 'LIVE Roulette', 0),
-  slot('continue-plinko', SLOT_TITLES[0], SLOT_ART[0]),
+  originals('continue-plinko', 'Plinko', '/games/originals/plinko.png'),
+  originals('continue-dice', 'Dice', '/games/originals/dice.png'),
+  originals('continue-mines', 'Mines', '/games/originals/mines.png'),
+  live('continue-bj', 'blackjack', 'LIVE Blackjack', 1, { occupied: 3, total: 7 }),
+  originals('continue-keno', 'Keno', '/games/originals/keno.png'),
+  originals('continue-crash', 'Crash', '/games/originals/crash.png'),
+  originals('continue-hilo', 'Hilo', '/games/originals/hilo.png'),
 ]
 
 export const ORIGINALS_GAMES: CasinoLobbyGame[] = ORIGINALS_ROSTER.map((game) =>
@@ -465,10 +470,22 @@ export const JACKPOT_TIERS = [
 export type JackpotTierId = (typeof JACKPOT_TIERS)[number]['id']
 
 export const ACTIVITY_ROWS = [
-  { user: 'Hidden', crown: 'gold', game: 'Diner Match', bet: '$1,076.54', multi: '8.28x', payout: '+$999,999.99', win: true },
-  { user: 'Hidden', crown: 'purple', game: 'Winter Fishing Day', bet: '$102.53', multi: '6.69x', payout: '-$502.76', win: false },
+  { user: 'Hidden', crown: 'gold', game: 'Diamonds', bet: '$1,076.54', multi: '8.28x', payout: '+$999,999.99', win: true },
+  { user: 'Hidden', crown: 'purple', game: 'Keno', bet: '$102.53', multi: '6.69x', payout: '-$502.76', win: false },
   { user: 'Hidden', crown: 'silver', game: 'Plinko', bet: '$1,076.54', multi: '0.49x', payout: '+$25.96', win: true },
-  { user: 'Hidden', crown: 'gold', game: 'Chicken Vegas', bet: '$352.98', multi: '1.26x', payout: '-$1,452.97', win: false },
-  { user: 'Hidden', crown: 'purple', game: 'Diner Match', bet: '$1,076.54', multi: '8.28x', payout: '+$999,999.99', win: true },
-  { user: 'Hidden', crown: 'silver', game: 'Plinko', bet: '$1,076.54', multi: '0.49x', payout: '+$25.96', win: true },
+  { user: 'Hidden', crown: 'gold', game: 'Chicken', bet: '$352.98', multi: '1.26x', payout: '-$1,452.97', win: false },
+  { user: 'Hidden', crown: 'purple', game: 'Crash', bet: '$88.20', multi: '12.40x', payout: '+$1,093.68', win: true },
+  { user: 'Hidden', crown: 'silver', game: 'Mines', bet: '$250.00', multi: '0.00x', payout: '-$250.00', win: false },
+  { user: 'Hidden', crown: 'gold', game: 'Dice', bet: '$45.00', multi: '1.96x', payout: '+$88.20', win: true },
+  { user: 'Hidden', crown: 'purple', game: 'Limbo', bet: '$500.00', multi: '2.15x', payout: '+$1,075.00', win: true },
+  { user: 'Hidden', crown: 'silver', game: 'Wheel', bet: '$75.50', multi: '0.50x', payout: '-$37.75', win: false },
+  { user: 'Hidden', crown: 'gold', game: 'Hilo', bet: '$120.00', multi: '3.40x', payout: '+$408.00', win: true },
+  { user: 'Hidden', crown: 'purple', game: 'Blackjack', bet: '$200.00', multi: '2.00x', payout: '+$400.00', win: true },
+  { user: 'Hidden', crown: 'silver', game: "Dragon's Tower", bet: '$60.00', multi: '0.00x', payout: '-$60.00', win: false },
 ] as const
+
+/** Resolve an activity feed title to a launchable lobby game (with matching art). */
+export function activityGameFromTitle(title: string): CasinoLobbyGame {
+  const match = ORIGINALS_GAMES.find((g) => g.title.toLowerCase() === title.toLowerCase())
+  return match ?? ORIGINALS_GAMES.find((g) => g.id === 'plinko') ?? ORIGINALS_GAMES[0]!
+}

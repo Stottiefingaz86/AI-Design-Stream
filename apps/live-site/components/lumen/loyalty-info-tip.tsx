@@ -18,6 +18,8 @@ export function LoyaltyInfoTip({
   termsLabel,
   onTermsClick,
   label = 'More information',
+  /** Show label text beside the info icon (e.g. leaderboard “How it works”). */
+  showLabel = false,
   onOpenChange,
 }: {
   title: string
@@ -25,6 +27,7 @@ export function LoyaltyInfoTip({
   termsLabel?: string
   onTermsClick?: () => void
   label?: string
+  showLabel?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -97,7 +100,11 @@ export function LoyaltyInfoTip({
         aria-label={label}
         aria-expanded={open}
         aria-controls={open ? tipId : undefined}
-        className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        className={
+          showLabel
+            ? 'inline-flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-lg px-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground'
+            : 'inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground'
+        }
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => {
           e.preventDefault()
@@ -112,7 +119,8 @@ export function LoyaltyInfoTip({
           setOpenSafe(true)
         }}
       >
-        <IconInfoCircle className="size-4" strokeWidth={1.75} />
+        <IconInfoCircle className="size-4 shrink-0" strokeWidth={1.75} />
+        {showLabel ? <span>{label}</span> : null}
       </button>
       {open && portalEl
         ? createPortal(

@@ -3,10 +3,13 @@
 import {
   Fragment,
   useEffect,
+  useId,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -20,13 +23,6 @@ import {
 } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -36,6 +32,7 @@ import {
 } from '@/components/ui/table'
 import { LumenTooltip } from '@/components/ui/lumen-tooltip'
 import { BetHistoryFiltersSheet } from '@/components/lumen/bet-history-filters-sheet'
+import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
 import {
   BET_FILTER_STATUSES,
   BET_HISTORY_ROWS,
@@ -54,9 +51,9 @@ import {
 } from '@/lib/lumen/bet-history'
 import { cn } from '@/lib/utils'
 
-const ROW_HOVER = 'hover:!bg-surface-muted-3'
-const ROW_OPEN = 'bg-surface-muted-3'
-const EXPAND_EASE = 'duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]'
+export const ROW_HOVER = 'hover:!bg-surface-muted-3'
+export const ROW_OPEN = 'bg-surface-muted-3'
+export const EXPAND_EASE = 'duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]'
 
 type WeekTab = 'this' | 'last'
 
@@ -81,7 +78,7 @@ function StatusBadge({
 }
 
 /** Figma expand labels — semibold label + regular value on one line. */
-function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+export function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1 text-xs leading-4 text-foreground">
       <span className="shrink-0 font-semibold">{label}</span>
@@ -90,7 +87,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   )
 }
 
-function ExpandPanel({ open, children }: { open: boolean; children: ReactNode }) {
+export function ExpandPanel({ open, children }: { open: boolean; children: ReactNode }) {
   return (
     <div
       className={cn(
@@ -104,7 +101,144 @@ function ExpandPanel({ open, children }: { open: boolean; children: ReactNode })
   )
 }
 
-function TablePager({
+const ROWS_PER_PAGE_OPTIONS = ['10', '25', '50'] as const
+
+/**
+ * Body-portaled rows picker — Radix Select was getting eaten by shell scroll /
+ * stacking near the dock; same portal pattern as bet-history filter selects.
+ */
+function RowsPerPageSelect({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (next: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [menuBox, setMenuBox] = useState<{
+    top: number
+    left: number
+    width: number
+    openUp: boolean
+  } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLUListElement>(null)
+  const listId = useId()
+
+  const placeMenu = () => {
+    const trigger = triggerRef.current
+    if (!trigger) return
+    const rect = trigger.getBoundingClientRect()
+    const menuHeight = 140
+    const spaceBelow = window.innerHeight - rect.bottom
+    const openUp = spaceBelow < menuHeight && rect.top > spaceBelow
+    setMenuBox({
+      top: openUp ? rect.top - 4 : rect.bottom + 4,
+      left: rect.left,
+      width: Math.max(rect.width, 72),
+      openUp,
+    })
+  }
+
+  useEffect(() => {
+    if (!open) {
+      setMenuBox(null)
+      return
+    }
+    placeMenu()
+    const onDoc = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return
+      }
+      setOpen(false)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    const onReposition = () => placeMenu()
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    window.addEventListener('resize', onReposition)
+    window.addEventListener('scroll', onReposition, true)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+      window.removeEventListener('resize', onReposition)
+      window.removeEventListener('scroll', onReposition, true)
+    }
+  }, [open])
+
+  const menu =
+    open && menuBox && typeof document !== 'undefined'
+      ? createPortal(
+          <ul
+            ref={menuRef}
+            id={listId}
+            role="listbox"
+            aria-label="Rows per page"
+            style={{
+              position: 'fixed',
+              top: menuBox.top,
+              left: menuBox.left,
+              width: menuBox.width,
+              transform: menuBox.openUp ? 'translateY(-100%)' : undefined,
+              zIndex: 300,
+            }}
+            className="overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-md"
+          >
+            {ROWS_PER_PAGE_OPTIONS.map((option) => {
+              const selected = value === option
+              return (
+                <li key={option} role="option" aria-selected={selected}>
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex w-full rounded-md px-2 py-2 text-left text-sm tabular-nums transition-colors',
+                      selected
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-foreground hover:bg-accent hover:text-accent-foreground',
+                    )}
+                    onMouseDown={(event) => {
+                      event.preventDefault()
+                      onChange(option)
+                      setOpen(false)
+                    }}
+                  >
+                    {option}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>,
+          document.body,
+        )
+      : null
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex h-8 w-[72px] items-center justify-between gap-1 rounded-md border border-border bg-background px-2.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="tabular-nums">{value}</span>
+        <IconChevronDown
+          className={cn('size-4 opacity-50 transition-transform', open && 'rotate-180')}
+          stroke={2}
+          aria-hidden
+        />
+      </button>
+      {menu}
+    </>
+  )
+}
+
+export function TablePager({
   page,
   pageCount,
   rowsPerPage,
@@ -118,22 +252,11 @@ function TablePager({
   onRowsChange: (rows: string) => void
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+    <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span className="hidden sm:inline">Rows per page</span>
         <span className="sm:hidden">Rows per…</span>
-        <Select value={rowsPerPage} onValueChange={onRowsChange} modal={false}>
-          <SelectTrigger className="h-8 w-[72px] border-border bg-background">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="z-[220]" position="popper" sideOffset={4}>
-            {['10', '25', '50'].map((n) => (
-              <SelectItem key={n} value={n}>
-                {n}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <RowsPerPageSelect value={rowsPerPage} onChange={onRowsChange} />
       </div>
       <div className="flex items-center gap-1 text-sm text-muted-foreground">
         <Button
@@ -350,18 +473,24 @@ function BetHistoryTable({
   return (
     <div
       data-name="table-bet-history"
-      className="rounded-[10px] border border-border bg-card shadow-[0_0_16px_rgba(0,0,0,0.06)]"
+      className={cn(
+        'rounded-[10px] border border-border bg-card shadow-[0_0_16px_rgba(0,0,0,0.06)]',
+        /* Mobile Figma — Description | Status; no side scroll. */
+        '[&>div]:overflow-x-hidden md:[&>div]:overflow-x-auto',
+      )}
     >
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            <TableHead className="h-11 w-[120px] text-xs">Date</TableHead>
+            <TableHead className="hidden h-11 w-[120px] text-xs md:table-cell">Date</TableHead>
             <TableHead className="h-11 text-xs">Description</TableHead>
             <TableHead className="hidden h-11 text-xs md:table-cell">Type</TableHead>
             <TableHead className="hidden h-11 text-xs md:table-cell">Risk</TableHead>
             <TableHead className="hidden h-11 text-xs lg:table-cell">To Win</TableHead>
-            <TableHead className="h-11 text-xs">Status</TableHead>
-            <TableHead className="h-11 w-[60px] text-center text-xs">More</TableHead>
+            <TableHead className="h-11 w-px whitespace-nowrap text-xs">Status</TableHead>
+            <TableHead className="hidden h-11 w-[60px] text-center text-xs md:table-cell">
+              More
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -393,9 +522,13 @@ function BetHistoryTable({
                       }
                     }}
                   >
-                    <TableCell className="py-3 font-medium tabular-nums">{row.date}</TableCell>
-                    <TableCell className="max-w-[280px] truncate py-3 lg:max-w-none">
-                      {row.description}
+                    <TableCell className="hidden py-3 font-medium tabular-nums md:table-cell">
+                      {row.date}
+                    </TableCell>
+                    <TableCell className="min-w-0 py-3 font-medium md:max-w-[280px] md:truncate lg:max-w-none">
+                      <span className="whitespace-normal break-words md:truncate md:whitespace-nowrap">
+                        {row.description}
+                      </span>
                     </TableCell>
                     <TableCell className="hidden py-3 md:table-cell">{row.type}</TableCell>
                     <TableCell className="hidden py-3 tabular-nums md:table-cell">
@@ -404,10 +537,26 @@ function BetHistoryTable({
                     <TableCell className="hidden py-3 tabular-nums lg:table-cell">
                       {row.toWin}
                     </TableCell>
-                    <TableCell className="py-3">
-                      <StatusBadge status={row.status} />
+                    <TableCell className="w-px whitespace-nowrap py-3 align-middle">
+                      <div className="inline-flex items-center gap-1.5">
+                        <StatusBadge status={row.status} />
+                        {/* Mobile: chevron with Status (Figma has no More col). */}
+                        <span
+                          className="inline-flex size-8 shrink-0 items-center justify-center md:hidden"
+                          aria-hidden
+                        >
+                          <IconChevronDown
+                            className={cn(
+                              'size-4 text-muted-foreground transition-transform',
+                              EXPAND_EASE,
+                              open && 'rotate-180',
+                            )}
+                            stroke={2}
+                          />
+                        </span>
+                      </div>
                     </TableCell>
-                    <TableCell className="py-3 text-center">
+                    <TableCell className="hidden py-3 text-center md:table-cell">
                       <span
                         className="inline-flex size-8 items-center justify-center"
                         aria-hidden
@@ -600,6 +749,11 @@ export function BetHistoryPage({ className }: { className?: string }) {
         wagerTypeFilter={applied.wagerType}
         dayDateKey={selectedDay?.dateKey ?? null}
       />
+
+      {/* Casino social proof under account tables. */}
+      <div className="-mx-4 mt-8 lg:-mx-6">
+        <CasinoLiveWinsCarousel />
+      </div>
 
       <BetHistoryFiltersSheet
         open={filtersOpen}

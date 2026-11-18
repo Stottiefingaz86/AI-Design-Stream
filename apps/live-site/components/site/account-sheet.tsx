@@ -12,7 +12,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Typography } from '@/components/ui/typography'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 
 export function AccountSheet({
   open,

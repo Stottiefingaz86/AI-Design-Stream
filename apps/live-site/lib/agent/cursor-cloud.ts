@@ -158,6 +158,6 @@ export function storybookLineForHost(): string {
       process.env.NEXT_PUBLIC_VERCEL_ENV ||
       process.env.VERCEL_ENV,
   )
-  if (hosted) return 'Storybook: /storybook (hosted gallery).'
-  return 'Storybook: http://127.0.0.1:6006 (local) or /storybook when hosted.'
+  if (hosted) return 'Lumen gallery: /lumen'
+  return 'Lumen gallery: /lumen (hosted) · local tooling optional at :6006'
 }

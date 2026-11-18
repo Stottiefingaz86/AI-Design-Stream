@@ -4,8 +4,8 @@ import {
   DailyRacesBanner,
   PromoLobbyBanner,
   VipProgressBanner,
-} from '@/components/lumen/casino-lobby-banners';
-import { CasinoBannerSkeleton } from '@/components/lumen/casino-lobby-skeleton';
+} from '../../../../apps/live-site/components/lumen/casino-lobby-banners';
+import { CasinoBannerSkeleton } from '../../../../apps/live-site/components/lumen/casino-lobby-skeleton';
 import { StoryNote } from '../story-kit';
 
 const PROMO_ART =

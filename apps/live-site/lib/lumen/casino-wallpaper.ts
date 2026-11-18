@@ -166,10 +166,8 @@ export const WALLPAPER_CATEGORIES: Record<string, WallpaperConfig> = {
   favourites: {
     slug: 'favourites',
     title: 'Favourites',
-    games: wallpaperFrom(
-      'favourites',
-      CONTINUE_PLAYING.concat(POPULAR_GAMES).concat(ORIGINALS_GAMES).concat(SLOTS_WALLPAPER_GAMES),
-    ),
+    /* Games come from shell favorites — never seed fake tiles. */
+    games: [],
   },
 }
 

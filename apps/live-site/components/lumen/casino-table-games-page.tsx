@@ -14,7 +14,7 @@ export function CasinoTableGamesLobby() {
   const { launchGame } = useShell()
 
   return (
-    <div data-name="table-games_content" className="w-full bg-background pb-8">
+    <div data-name="table-games_content" className="w-full bg-background pb-8 pt-4">
       <CasinoGameShelf
         title="Roulette"
         games={TABLE_ROULETTE_GAMES}

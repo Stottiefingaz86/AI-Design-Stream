@@ -54,6 +54,25 @@ export function MyAccountSkeleton({ className }: { className?: string }) {
           </div>
         </div>
       </div>
+
+      <div className="rounded-[10px] border border-border bg-card p-4 shadow-[0_0_16px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center justify-between gap-3">
+          <Skeleton className="h-6 w-28 rounded-md" />
+          <Skeleton className="h-9 w-[156px] rounded-lg" />
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-4 w-16 rounded-md" />
+            <Skeleton className="h-9 w-36 rounded-md" />
+            <div className="grid grid-cols-3 gap-3">
+              <Skeleton className="h-14 rounded-lg" />
+              <Skeleton className="h-14 rounded-lg" />
+              <Skeleton className="h-14 rounded-lg" />
+            </div>
+          </div>
+          <Skeleton className="h-[148px] w-full rounded-lg" />
+        </div>
+      </div>
     </section>
   )
 }

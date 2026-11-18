@@ -23,15 +23,12 @@ import { startStudioCursorRun } from '@/lib/studio/cursor-client';
 import { sendTestingGroundFeedback, signOffTestingGround } from '@/lib/studio/pipeline';
 import { deriveMock, figmaUrlFor, liveUrlFor, storybookIframeUrl, storybookStoryUrl, usesTestingGround } from '@/lib/studio/mock';
 import type { StudioArtifacts, StudioProject, StudioProjectKind, StudioReferenceKind } from '@/lib/studio/types';
-import { MockPreview } from './office/OfficePanels';
-import { OfficeView } from './office/OfficeView';
+import { MockPreview } from './MockPreview';
 import '@/styles/studio.css';
-import '@/styles/studio-floor.css';
 
-export type StudioView = 'office' | 'dashboard' | 'new' | 'project' | 'design-system' | 'storybook' | 'settings';
+export type StudioView = 'dashboard' | 'new' | 'project' | 'design-system' | 'storybook' | 'settings';
 
 const NAV: { href: string; label: string; view: StudioView; soon?: boolean; external?: boolean }[] = [
-  { href: '/', label: 'Studio floor', view: 'office' },
   { href: '/projects', label: 'Briefs', view: 'dashboard' },
   { href: '/new', label: 'New brief', view: 'new' },
   { href: '/design-system', label: `${DESIGN_SYSTEM.name} coverage`, view: 'design-system', soon: true },
@@ -127,7 +124,7 @@ function Shell({ view, projectId, children }: { view: StudioView; projectId?: st
             simulated until Figma and Storybook jobs are wired in.
           </p>
         </aside>
-        <main className={view === 'office' ? 'ge-main ge-main--office' : 'ge-main'}>{children}</main>
+        <main className="ge-main">{children}</main>
       </div>
     </div>
   );
@@ -821,15 +818,6 @@ export function StudioApp({ view, projectId }: { view: StudioView; projectId?: s
 
   if (!ready) {
     return <LoginGate onAuthed={() => setReady(true)} />;
-  }
-
-  // The studio floor is a full-screen scene — no admin chrome.
-  if (view === 'office') {
-    return (
-      <div className="ge-root ge-root--studio">
-        <OfficeView />
-      </div>
-    );
   }
 
   let body: React.ReactNode = null;

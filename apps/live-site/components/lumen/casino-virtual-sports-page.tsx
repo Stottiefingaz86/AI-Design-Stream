@@ -9,7 +9,7 @@ export function CasinoVirtualSportsLobby() {
   const { launchGame } = useShell()
 
   return (
-    <div data-name="virtual-sports_content" className="w-full bg-background pb-8">
+    <div data-name="virtual-sports_content" className="w-full bg-background pb-8 pt-4">
       <CasinoGameShelf title="Esports" games={VIRTUAL_ESPORTS} onLaunch={launchGame} />
       <CasinoGameShelf title="Sports" games={VIRTUAL_SPORTS} onLaunch={launchGame} />
       <CasinoActivity />

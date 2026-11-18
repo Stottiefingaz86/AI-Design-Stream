@@ -1,0 +1,57 @@
+import type { PromoLobbyBannerItem } from '@/components/lumen/casino-lobby-banners'
+
+/** Homepage strip under hero (logged out). */
+export const HOMEPAGE_PROMO_BANNERS: PromoLobbyBannerItem[] = [
+  {
+    id: 'free-spins-welcome',
+    tag: 'Welcome',
+    title: '100 Welcome Free Spins',
+    body: 'Get rewarded with 100 Free Spins when you make your first deposit.',
+    buttonLabel: 'Deposit',
+    imageSrc: '/banners/100-free-spins.jpg',
+    imageAlt: '100 Welcome Free Spins',
+    imageMode: 'bleed',
+    imageClassName: 'scale-[1.28] object-[88%_center] origin-right',
+    bleedScrim: 'strong',
+  },
+  {
+    id: 'vip-match',
+    tag: 'Become a VIP',
+    title: 'Instant VIP Match',
+    body: 'Instantly get access to VIP Host, Lossback & exclusive benefits.',
+    buttonLabel: 'Match Status Now',
+    imageSrc: '/banners/vip-match.jpg',
+    imageAlt: 'Instant VIP Match',
+    imageMode: 'bleed',
+  },
+  {
+    id: 'casino-rakeback',
+    tag: 'VIP',
+    title: 'Casino Rakeback',
+    body: 'All VIP levels. No catch. Just cash.',
+    buttonLabel: 'Learn More',
+    imageSrc: '/banners/casino-rakeback.jpg',
+    imageAlt: 'Casino Rakeback',
+    imageMode: 'bleed',
+  },
+  {
+    id: '25k-daily-race',
+    tag: 'Race',
+    title: '$25k Daily Race',
+    body: 'The more you wager the higher you climb.',
+    buttonLabel: 'Join Race',
+    imageSrc: '/banners/25k-daily-race.jpg',
+    imageAlt: '$25k Daily Race',
+    imageMode: 'bleed',
+  },
+  {
+    id: 'cash-boosts',
+    tag: 'VIP',
+    title: 'Cash Boosts',
+    body: 'Simply click and claim. Cash — no strings attached.',
+    buttonLabel: 'Claim Now',
+    imageSrc: '/banners/cash-boosts.jpg',
+    imageAlt: 'Cash Boosts',
+    imageMode: 'bleed',
+  },
+]

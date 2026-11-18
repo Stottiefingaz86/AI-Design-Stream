@@ -1,4 +1,5 @@
-/** Soft-nav only — no lobby skeleton on Live Casino. */
+import { CasinoLiveSkeleton } from '@/components/lumen/casino-lobby-skeleton'
+
 export default function Loading() {
-  return null
+  return <CasinoLiveSkeleton />
 }

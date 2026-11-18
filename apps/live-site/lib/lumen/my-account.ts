@@ -4,7 +4,7 @@ export type VipLevel = 'Bronze' | 'Silver' | 'Gold' | 'Platinum' | 'Diamond'
 
 export const MY_ACCOUNT_DEMO = {
   displayName: 'Nicolás',
-  accountId: 'B5873033',
+  accountId: 'B954663',
   availableBalance: 100_000,
   freeBet: 500,
   vipLevel: 'Gold' as VipLevel,

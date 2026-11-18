@@ -1,9 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { CasinoLobbyBannerRow } from '@/components/lumen/casino-lobby-banners'
+import { PromoDetailModal } from '@/components/lumen/promo-detail-modal'
+import type { PromoCmsAction } from '@/lib/lumen/promotions-cms'
+import { useShell } from '@/components/site/shell-context'
 import { Typography } from '@/components/ui/typography'
 import {
   PROMO_FILTERS,
@@ -101,9 +104,10 @@ function PromoFilterTrack({
                   onClick={() => onChange(item.id)}
                   className={cn(
                     'shell-chrome-btn relative z-10 h-11 shrink-0 rounded-full bg-transparent px-4 text-sm leading-5',
+                    'transition-[transform,background-color,color] duration-150 active:scale-[0.97]',
                     covered
                       ? 'font-medium text-primary-foreground'
-                      : 'font-normal text-muted-foreground hover:bg-[var(--surface-muted-3)] hover:text-foreground dark:hover:bg-accent',
+                      : 'font-normal text-muted-foreground hover:bg-[var(--surface-muted-3)] hover:text-foreground active:bg-[var(--surface-muted-3)] active:text-foreground dark:hover:bg-accent dark:active:bg-accent',
                   )}
                 >
                   {item.label}
@@ -117,17 +121,29 @@ function PromoFilterTrack({
   )
 }
 
-function PromoCard({
+/** Promotions lobby grid card — image + title + body, spring hover. */
+export function PromoCard({
   title,
   body,
   imageSrc,
+  onOpen,
 }: {
   title: string
   body: string
   imageSrc: string
+  onOpen?: () => void
 }) {
   return (
     <motion.article
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      aria-label={onOpen ? `${title} — more info` : undefined}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (!onOpen || (e.key !== 'Enter' && e.key !== ' ')) return
+        e.preventDefault()
+        onOpen()
+      }}
       whileHover={{ scale: 1.02, y: -4, zIndex: 10 }}
       whileTap={{ scale: 1.01, y: -1 }}
       transition={TILE_SPRING}
@@ -162,8 +178,54 @@ function PromoCard({
 /** Promo26_Revamp 8:16195 — banner carousel + All Promotions grid. */
 export function PromotionsLobbyPage({ className }: { className?: string }) {
   const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
   const urlFilter = filterFromSearch(searchParams.get('filter'))
   const [filter, setFilter] = useState<PromoFilterId>(urlFilter)
+  const { setVipHubOpen, setCashierOpen, openVipStatusMatch, startNavigating } = useShell()
+
+  /* ?promo=<id> — shareable deep link straight into a promo's detail page. */
+  const openPromoId = searchParams.get('promo')
+  const openPromoCard = PROMOTIONS_LOBBY_CARDS.find((c) => c.id === openPromoId)
+
+  const setPromoParam = useCallback(
+    (id: string | null) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (id) params.set('promo', id)
+      else params.delete('promo')
+      const qs = params.toString()
+      /* Shallow — router.replace re-runs the shell's route loader. */
+      window.history.replaceState(null, '', qs ? `${pathname}?${qs}` : pathname)
+    },
+    [pathname, searchParams],
+  )
+
+  const closePromo = useCallback(() => setPromoParam(null), [setPromoParam])
+
+  const runPromoAction = useCallback(
+    (action: PromoCmsAction) => {
+      setPromoParam(null)
+      switch (action.type) {
+        case 'cashier':
+          setCashierOpen(true)
+          return
+        case 'vip-hub':
+          setVipHubOpen(true, action.tab)
+          return
+        case 'vip-match':
+          openVipStatusMatch()
+          return
+        case 'route':
+          startNavigating(action.href)
+          router.push(action.href)
+          return
+        case 'link':
+          window.open(action.href, '_blank', 'noopener,noreferrer')
+          return
+      }
+    },
+    [openVipStatusMatch, router, setCashierOpen, setPromoParam, setVipHubOpen, startNavigating],
+  )
 
   /* Poker (and other) deep links → ?filter=poker keeps the pill highlighted. */
   useEffect(() => {
@@ -175,10 +237,33 @@ export function PromotionsLobbyPage({ className }: { className?: string }) {
     return PROMOTIONS_LOBBY_CARDS.filter((card) => card.category === filter)
   }, [filter])
 
+  const lobbyBanners = useMemo(
+    () =>
+      PROMOTIONS_LOBBY_BANNERS.map((promo) => {
+        if (promo.id === 'vip-match') {
+          return { ...promo, onAction: () => openVipStatusMatch() }
+        }
+        if (promo.id === '100-free-spins') {
+          return { ...promo, onAction: () => setCashierOpen(true) }
+        }
+        if (promo.id === 'casino-rakeback') {
+          return { ...promo, onAction: () => setVipHubOpen(true) }
+        }
+        if (promo.id === '25k-daily-race') {
+          return { ...promo, onAction: () => setVipHubOpen(true, '$25k Daily Race') }
+        }
+        if (promo.id === 'cash-boosts') {
+          return { ...promo, onAction: () => setVipHubOpen(true) }
+        }
+        return promo
+      }),
+    [openVipStatusMatch, setCashierOpen, setVipHubOpen],
+  )
+
   return (
     <div data-name="promotions_lobby" className={cn('w-full bg-background pt-6', className)}>
       {/* Figma banner strip — VIP Progress + Daily Races + promo cards. */}
-      <CasinoLobbyBannerRow promos={PROMOTIONS_LOBBY_BANNERS} />
+      <CasinoLobbyBannerRow promos={lobbyBanners} />
 
       <section className="px-6 pb-14 pt-8">
         <Typography as="h1" shape="h2" weight="semibold" className="mb-4">
@@ -188,7 +273,13 @@ export function PromotionsLobbyPage({ className }: { className?: string }) {
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {cards.map((card) => (
-            <PromoCard key={card.id} title={card.title} body={card.body} imageSrc={card.imageSrc} />
+            <PromoCard
+              key={card.id}
+              title={card.title}
+              body={card.body}
+              imageSrc={card.imageSrc}
+              onOpen={() => setPromoParam(card.id)}
+            />
           ))}
         </div>
         {cards.length === 0 ? (
@@ -197,6 +288,13 @@ export function PromotionsLobbyPage({ className }: { className?: string }) {
           </p>
         ) : null}
       </section>
+
+      <PromoDetailModal
+        promoId={openPromoCard ? openPromoCard.id : null}
+        fallbackTitle={openPromoCard?.title}
+        onClose={closePromo}
+        onAction={runPromoAction}
+      />
     </div>
   )
 }

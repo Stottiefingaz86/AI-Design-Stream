@@ -1,4 +1,9 @@
-/** Soft-nav only — no lobby skeleton on Table Games. */
+import { CasinoShelvesLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
+
 export default function Loading() {
-  return null
+  return (
+    <CasinoShelvesLobbySkeleton
+      titles={['Roulette', 'Other Table Games', 'Baccarat', 'Casino Poker']}
+    />
+  )
 }

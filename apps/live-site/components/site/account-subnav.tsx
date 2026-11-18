@@ -43,6 +43,16 @@ export function AccountSubNav({ motion = true }: { motion?: boolean }) {
   }, [pathname])
 
   useEffect(() => {
+    ACCOUNT_SECTIONS.forEach((item) => {
+      try {
+        router.prefetch(item.href)
+      } catch {
+        /* ignore */
+      }
+    })
+  }, [router])
+
+  useEffect(() => {
     if (firstCover.current) {
       firstCover.current = false
       setCovered(active)

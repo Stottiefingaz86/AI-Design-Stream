@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { pickRandomLobbyGame } from '@/lib/lumen/casino-lobby-catalog'
-import { gameForNavAction } from './shell-nav-launch'
 import { useShell } from './shell-context'
 import { ShellIcon, type ShellIconName } from './shell-icons'
 import { useHideOnScroll } from './shell-scroll'
@@ -15,13 +14,13 @@ type DockItem = {
   href: string
   icon: ShellIconName
   label: string
-  action?: 'search' | 'random' | 'last-game'
+  action?: 'search' | 'random' | 'last-game' | 'betslip'
 }
 
 /** Figma 4308:278685 — home `nav-menu-icon-solid` (Casino + Sports). */
 const HOME_DOCK: DockItem[] = [
   { href: '/casino', icon: 'dice', label: 'Casino' },
-  { href: '/sports', icon: 'football', label: 'Sports' },
+  { href: '/sports/soccer', icon: 'football', label: 'Sports' },
 ]
 
 /** Figma 4308:278672 — casino dock (Search · Random · Favorite · Last Game). */
@@ -32,19 +31,20 @@ const CASINO_DOCK: DockItem[] = [
   { href: '/casino', icon: 'lastGame', label: 'Last Game', action: 'last-game' },
 ]
 
-/** Figma 4308:278679 — sports dock (Search · My Bets · Betslip). Keep ticket icon for My Bets. */
+/** Figma 4308:278679 — sports dock (Search · My Bets · Betslip · Casino). Keep ticket icon for My Bets. */
 const SPORTS_DOCK: DockItem[] = [
   { href: '/sports', icon: 'search', label: 'Search' },
-  { href: '/sports', icon: 'ticket', label: 'My Bets' },
-  { href: '/sports', icon: 'betslip', label: 'Betslip' },
+  { href: '/sports/my-bets', icon: 'ticket', label: 'My Bets' },
+  { href: '/sports', icon: 'betslip', label: 'Betslip', action: 'betslip' },
+  { href: '/casino', icon: 'dice', label: 'Casino' },
 ]
 
 /** Figma 4308:278665 — promotions `nav-menu-icon-solid` dock (300×58, items 64×46). */
 const PROMOTIONS_DOCK: DockItem[] = [
   { href: '/promotions', icon: 'promos', label: 'Promos' },
   { href: '/promotions/my-bonus', icon: 'bonus', label: 'My Bonus' },
-  { href: '/promotions', icon: 'refer', label: 'Refer' },
   { href: '/promotions/contest', icon: 'contests', label: 'Contest' },
+  { href: '/promotions/refer-a-friend', icon: 'refer', label: 'Refer' },
 ]
 
 function dockForPath(pathname: string, product: ShellProduct): DockItem[] {
@@ -60,12 +60,26 @@ function dockForPath(pathname: string, product: ShellProduct): DockItem[] {
 /** Figma `nav-menu-icon-solid` — floating dock. Labels sit under the icons. */
 export function ShellMobileNav() {
   const pathname = usePathname()
-  const { product, setCasinoSearchOpen, launchGame, startNavigating } = useShell()
+  const {
+    product,
+    setCasinoSearchOpen,
+    launchGame,
+    startNavigating,
+    sportsBetCount,
+    openSportsBetslip,
+    sportsBetslipOpen,
+    intercomOpen,
+    loggedIn,
+    lastPlayedGame,
+    openAuth,
+  } = useShell()
   const hidden = useHideOnScroll('down')
   const items = dockForPath(pathname, product)
   const [selected, setSelected] = useState<string | null>(null)
 
   if (items.length === 0) return null
+  /* Betslip / Intercom owns the bottom — hide dock so panels sit flush. */
+  if (sportsBetslipOpen || intercomOpen) return null
 
   return (
     <nav
@@ -85,14 +99,21 @@ export function ShellMobileNav() {
               ((item.label === 'Promos' &&
                 (pathname === '/promotions' || pathname === '/promotions/')) ||
                 (item.label === 'My Bonus' && pathname.startsWith('/promotions/my-bonus')) ||
+                (item.label === 'Refer' && pathname.startsWith('/promotions/refer-a-friend')) ||
                 (item.label === 'Contest' && pathname.startsWith('/promotions/contest')))) ||
             (item.label === 'Favorite' && pathname.startsWith('/casino/category/favourites'))
-          const active = selected === item.label || (selected === null && routeActive)
+          const showBetBadge = item.action === 'betslip' && sportsBetCount > 0
+          /** Betslip with picks counts as active — white/foreground icon. */
+          const active =
+            selected === item.label ||
+            (selected === null && routeActive) ||
+            showBetBadge
           return (
             <Link
               key={item.label}
               href={item.href}
               data-name="nav-item"
+              data-shell-betslip={item.action === 'betslip' ? '' : undefined}
               data-state={active ? 'active' : 'default'}
               aria-current={active ? 'page' : undefined}
               onClick={(e) => {
@@ -109,7 +130,17 @@ export function ShellMobileNav() {
                 }
                 if (item.action === 'last-game') {
                   e.preventDefault()
-                  launchGame(gameForNavAction('launch-last-game'))
+                  if (!loggedIn) {
+                    openAuth('login')
+                    return
+                  }
+                  if (!lastPlayedGame) return
+                  launchGame(lastPlayedGame)
+                  return
+                }
+                if (item.action === 'betslip') {
+                  e.preventDefault()
+                  openSportsBetslip()
                   return
                 }
                 startNavigating(item.href)
@@ -123,16 +154,37 @@ export function ShellMobileNav() {
                 'active:scale-95 active:bg-[color-mix(in_oklch,var(--accent),var(--foreground)_8%)] active:text-foreground',
               )}
             >
-              <span className="flex size-[30px] shrink-0 items-center justify-center opacity-90">
+              <span className="relative flex size-[30px] shrink-0 items-center justify-center opacity-90">
                 <ShellIcon
                   name={item.icon}
                   tone="token"
                   active={active}
                   className={cn(
                     'size-5',
-                    active ? 'bg-foreground' : 'bg-muted-foreground',
+                    active || showBetBadge ? 'bg-white' : 'bg-muted-foreground',
                   )}
                 />
+                {item.action === 'betslip' ? (
+                  <span
+                    data-betslip-fly-target="dock"
+                    aria-label={
+                      showBetBadge ? `${sportsBetCount} in betslip` : undefined
+                    }
+                    aria-hidden={!showBetBadge}
+                    className={cn(
+                      'absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none',
+                      showBetBadge
+                        ? 'bg-primary text-primary-foreground'
+                        : 'pointer-events-none bg-transparent text-transparent',
+                    )}
+                  >
+                    {showBetBadge
+                      ? sportsBetCount > 99
+                        ? '99+'
+                        : sportsBetCount
+                      : ''}
+                  </span>
+                ) : null}
               </span>
               <span className="whitespace-nowrap">{item.label}</span>
             </Link>

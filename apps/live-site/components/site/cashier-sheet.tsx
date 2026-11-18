@@ -1,12 +1,45 @@
 'use client'
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+} from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
+import {
+  IconArrowLeft,
+  IconCheck,
+  IconCurrencyDollar,
+  IconLoader2,
+  IconX,
+} from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { formatClaimAmount, WELCOME_FREE_SPINS } from '@/lib/lumen/vip-hub'
 import { ShellIcon } from './shell-icons'
 import { CashierSheetSkeleton } from './cashier-sheet-skeleton'
+import { KycAddressAutocomplete } from './kyc-address-autocomplete'
 import { useDragToClose } from './use-drag-to-close'
+import { useBackdropClose } from './use-tap-action'
+import {
+  hasCompleteBillingKyc,
+  useShell,
+  type BillingKyc,
+} from './shell-context'
 import { cn } from '@/lib/utils'
+
+/** Lumen cashier field — same recipe as BTC converter. */
+const kycFieldClass = cn(
+  'h-10 w-full rounded-lg border border-input bg-popover px-3 text-sm text-foreground',
+  'placeholder:text-muted-foreground',
+  'focus:border-white focus:outline-none focus:ring-1 focus:ring-white focus:ring-offset-0',
+  'focus-visible:border-white focus-visible:outline-none focus-visible:!ring-1 focus-visible:!ring-white focus-visible:!ring-offset-0',
+)
 
 export type CashierTab = 'deposit' | 'withdraw'
 export type CashierMethod = 'crypto' | 'card' | 'others'
@@ -103,20 +136,24 @@ function DesktopCashier({
   initialTab: CashierTab
   loading: boolean
 }) {
+  const closeBackdrop = useBackdropClose(open, onClose)
   return (
     <div
       data-cashier-root="desktop"
+      data-open={open ? 'true' : 'false'}
       className={cn(
         'pointer-events-none fixed bottom-0 left-0 right-0 top-[68px] z-40 hidden lg:block',
-        open && 'pointer-events-auto'
+        open && 'pointer-events-auto',
       )}
+      aria-hidden={!open}
+      {...(!open ? ({ inert: '' } as import('react').HTMLAttributes<HTMLDivElement>) : {})}
     >
       <button
         type="button"
         aria-label="Close cashier"
         data-cashier-backdrop=""
         data-state={open ? 'open' : 'closed'}
-        onClick={onClose}
+        onClick={closeBackdrop}
         className="absolute inset-0 border-0 bg-black/60"
       />
       <aside
@@ -151,22 +188,26 @@ function MobileCashier({
   loading: boolean
 }) {
   const { sheetRef, offset, dragging, bind } = useDragToClose(open, onClose)
+  const closeBackdrop = useBackdropClose(open, onClose)
   const backdrop = open ? Math.max(0, 1 - offset / 320) : 0
 
   return (
     <div
       data-cashier-root="mobile"
+      data-open={open ? 'true' : 'false'}
       className={cn(
         'pointer-events-none fixed inset-0 z-[200] lg:hidden',
-        open && 'pointer-events-auto'
+        open && 'pointer-events-auto',
       )}
+      aria-hidden={!open}
+      {...(!open ? ({ inert: '' } as import('react').HTMLAttributes<HTMLDivElement>) : {})}
     >
       <button
         type="button"
         aria-label="Close cashier"
         data-cashier-backdrop=""
         data-state={open ? 'open' : 'closed'}
-        onClick={onClose}
+        onClick={closeBackdrop}
         className="absolute inset-0 border-0 bg-black/60"
         style={dragging ? { opacity: backdrop, transition: 'none' } : undefined}
       />
@@ -213,15 +254,33 @@ export function CashierPanel({
   loading?: boolean
   className?: string
 }) {
+  const { welcomeOfferOpen, dismissWelcomeOffer, depositTracker, profile, canUseCardCashier } =
+    useShell()
   const [tab, setTab] = useState<CashierTab>('deposit')
   const [method, setMethod] = useState<CashierMethod>('crypto')
   const [coinId, setCoinId] = useState<string | null>(null)
   const [redirectOpen, setRedirectOpen] = useState(initialTab === 'withdraw' && showClose)
   const coin = COINS.find((item) => item.id === coinId) ?? null
+  const tracking = depositTracker != null
+  const cardKycReady = hasCompleteBillingKyc(profile.billing)
+  const showCardKyc = method === 'card' && !cardKycReady && canUseCardCashier
 
   useEffect(() => {
     if (initialTab === 'withdraw' && showClose) setRedirectOpen(true)
   }, [initialTab, showClose])
+
+  /* Jump into the channel that owns the live poll. */
+  useEffect(() => {
+    if (!tracking || !depositTracker) return
+    setTab('deposit')
+    if (depositTracker.channel === 'card') {
+      setMethod('card')
+      setCoinId(null)
+      return
+    }
+    setMethod('crypto')
+    setCoinId('btc')
+  }, [tracking, depositTracker])
 
   if (loading) {
     return <CashierSheetSkeleton className="min-h-0 flex-1" />
@@ -230,10 +289,10 @@ export function CashierPanel({
   return (
     <div
       data-name="Cashier_content"
-      className={cn('flex min-h-0 w-full flex-1 flex-col text-foreground', className)}
+      className={cn('relative flex min-h-0 w-full flex-1 flex-col text-foreground', className)}
     >
       {/* Sticky glass chrome — deposit card frosts underneath as it scrolls. */}
-      <div className="shell-scroll min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain">
+      <div className="shell-scroll min-h-0 flex-1 overflow-x-clip overflow-y-auto overscroll-contain pb-24">
         <div
           data-name="Cashier top"
           className={cn(
@@ -243,18 +302,18 @@ export function CashierPanel({
             showClose ? 'pt-3' : 'pt-1',
           )}
         >
-          {showClose ? (
+        {showClose ? (
             <div className="flex shrink-0 items-center gap-1.5 pr-2">
-              <button
-                type="button"
-                onClick={onClose}
+          <button
+            type="button"
+            onClick={onClose}
                 aria-label="Close wallet"
-                className="shell-chrome-btn inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors duration-200 ease-in-out hover:bg-muted"
-              >
+                className="shell-chrome-btn inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors duration-200 ease-in-out hover:bg-accent"
+          >
                 <ShellIcon name="drawer" tone="token" className="size-4 text-foreground" />
-              </button>
+          </button>
               <h2 className="min-w-0 flex-1 text-sm font-medium leading-5 text-foreground">Wallet</h2>
-            </div>
+      </div>
           ) : null}
 
           <div
@@ -279,7 +338,7 @@ export function CashierPanel({
               )}
             >
               <DepositIcon active={tab === 'deposit'} />
-              Deposit
+            Deposit
             </button>
             <button
               type="button"
@@ -294,34 +353,45 @@ export function CashierPanel({
               )}
             >
               <WithdrawIcon />
-              Withdraw
+            Withdraw
             </button>
-          </div>
-        </div>
+            </div>
+            </div>
 
         <div
           data-name="Drawer / Deposit"
           className="mx-3 mb-3 flex min-h-[60%] flex-col gap-6 rounded-[10px] border border-border bg-card px-4 pb-4 pt-5 shadow-[0_0_16px_rgba(0,0,0,0.06)]"
         >
-          <div className="flex shrink-0 justify-center">
-            <DepositMethodTrack
-              active={method}
-              onChange={(next) => {
-                setMethod(next)
+          {showCardKyc ? (
+            <CardBillingKycForm
+              onBack={() => {
+                setMethod('crypto')
                 setCoinId(null)
               }}
             />
-          </div>
-          <div className="shrink-0">
-            {method === 'crypto' && coin ? (
-              <CryptoCoinView coin={coin} onOpenPicker={() => setCoinId(null)} />
-            ) : null}
-            {method === 'crypto' && !coin ? <CryptoHome onSelect={setCoinId} /> : null}
-            {method === 'card' ? <CreditCardHome /> : null}
-            {method === 'others' ? <OthersHome /> : null}
+          ) : (
+            <>
+              <div className="flex shrink-0 justify-center">
+                <DepositMethodTrack
+                  active={method}
+                  onChange={(next) => {
+                    setMethod(next)
+                    setCoinId(null)
+                  }}
+                />
+            </div>
+              <div className="shrink-0">
+                {method === 'crypto' && coin ? (
+                  <CryptoCoinView coin={coin} onOpenPicker={() => setCoinId(null)} />
+                ) : null}
+                {method === 'crypto' && !coin ? <CryptoHome onSelect={setCoinId} /> : null}
+                {method === 'card' ? <CreditCardHome /> : null}
+                {method === 'others' ? <OthersHome /> : null}
+              </div>
+            </>
+          )}
           </div>
         </div>
-      </div>
 
       {redirectOpen ? (
         <WithdrawRedirectDialog
@@ -330,6 +400,39 @@ export function CashierPanel({
             setTab('deposit')
           }}
         />
+      ) : null}
+
+      {welcomeOfferOpen && !tracking ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 px-3 pb-3">
+          <div
+            data-wallet-welcome-offer=""
+            className="pointer-events-auto relative overflow-hidden rounded-[10px] border border-border bg-background p-3.5 pr-10 shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+          >
+            <button
+              type="button"
+              onClick={dismissWelcomeOffer}
+              aria-label="Dismiss welcome offer"
+              className="absolute right-2 top-2 inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <IconX className="size-4" />
+        </button>
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                <ShellIcon name="gift" tone="surface" className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-medium text-muted-foreground">Welcome offer</p>
+                <p className="mt-1 text-[13px] font-semibold leading-snug text-foreground">
+                  $250 in Free Sports Bets{' '}
+                  <span className="font-normal text-muted-foreground">+</span> 100 Free Spins
+                </p>
+                <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
+                  On your first deposit.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   )
@@ -349,6 +452,7 @@ function DepositMethodTrack({
   active: CashierMethod
   onChange: (id: CashierMethod) => void
 }) {
+  const { canUseCardCashier, openProfileGate, joinJourney } = useShell()
   const trackRef = useRef<HTMLDivElement>(null)
   const [thumb, setThumb] = useState({ x: 0, w: 0, ready: false })
 
@@ -372,6 +476,7 @@ function DepositMethodTrack({
     <div
       ref={trackRef}
       data-name="tab-menu-solid"
+      data-tour="deposit-methods"
       className="relative flex h-12 items-center gap-1 rounded-full bg-[var(--surface-muted-5)] p-0.5"
       role="tablist"
       aria-label="Deposit method"
@@ -386,27 +491,38 @@ function DepositMethodTrack({
       />
       {DEPOSIT_METHODS.map((item) => {
         const on = item.id === active
-        return (
-          <button
+        const locked =
+          joinJourney === 3 && !canUseCardCashier && (item.id === 'card' || item.id === 'others')
+          return (
+            <button
             key={item.id}
-            type="button"
+              type="button"
             role="tab"
             aria-selected={on}
             data-method-pill=""
+            data-tour={`deposit-method-${item.id}`}
             data-active={on ? 'true' : 'false'}
-            onClick={() => onChange(item.id)}
-            className={cn(
+            onClick={() => {
+              if (locked) {
+                openProfileGate('card-cashier')
+                return
+              }
+              onChange(item.id)
+            }}
+              className={cn(
               'relative z-10 h-11 shrink-0 rounded-full px-3 text-sm leading-5 transition-colors duration-200',
               on
                 ? 'text-primary-foreground'
                 : 'text-foreground hover:bg-[var(--surface-muted-4)]',
+              locked && !on && 'opacity-55',
             )}
           >
             {item.label}
-          </button>
-        )
-      })}
-    </div>
+            {locked ? ' · L3' : ''}
+            </button>
+          )
+        })}
+      </div>
   )
 }
 
@@ -419,6 +535,7 @@ function CryptoHome({ onSelect }: { onSelect: (id: string) => void }) {
             <button
               key={coin.id}
               type="button"
+              data-tour={`deposit-coin-${coin.id}`}
               onClick={() => onSelect(coin.id)}
               className="flex h-[100px] flex-col items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary p-2 text-center transition-[border-color,background-color] duration-200 hover:border-foreground/20 hover:bg-[var(--surface-muted-4)]"
             >
@@ -478,6 +595,7 @@ async function writeClipboard(text: string) {
 
 /** Figma 7162:121387 — BTC selected: QR, address + copy tooltip, note, converter. */
 function CryptoCoinView({ coin, onOpenPicker }: { coin: CashierCoin; onOpenPicker: () => void }) {
+  const { startDepositTracking, depositTracker, clearDepositTracker } = useShell()
   const [copied, setCopied] = useState(false)
   const [usd, setUsd] = useState('')
   const address = DEPOSIT_ADDRESS[coin.id] ?? DEPOSIT_ADDRESS.btc
@@ -488,10 +606,23 @@ function CryptoCoinView({ coin, onOpenPicker }: { coin: CashierCoin; onOpenPicke
     try {
       await writeClipboard(address)
       setCopied(true)
+      startDepositTracking(coin.label)
       window.setTimeout(() => setCopied(false), 3000)
     } catch {
       setCopied(false)
     }
+  }
+
+  if (depositTracker && depositTracker.channel !== 'card') {
+    return (
+      <CryptoDepositTracker
+        coin={coin}
+        onBack={() => {
+          if (depositTracker.stage === 'confirmed') clearDepositTracker()
+          else onOpenPicker()
+        }}
+      />
+    )
   }
 
   return (
@@ -502,7 +633,7 @@ function CryptoCoinView({ coin, onOpenPicker }: { coin: CashierCoin; onOpenPicke
           <button
             type="button"
             onClick={onOpenPicker}
-            className="flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-left transition-colors hover:bg-[var(--surface-muted-4)]"
+            className="flex h-11 items-center gap-2 rounded-lg border border-input bg-popover px-3 text-left transition-colors hover:bg-[var(--surface-muted-4)]"
           >
             <CoinMark coin={coin} size={20} />
             <span className="min-w-0 flex-1 truncate text-sm text-foreground">
@@ -515,16 +646,17 @@ function CryptoCoinView({ coin, onOpenPicker }: { coin: CashierCoin; onOpenPicke
         {/* Figma 7162:121387 — inset uses secondary (soft wash), not muted. */}
         <div className="flex w-full flex-col gap-4 rounded-lg border border-border bg-secondary p-4">
           <div className="flex w-full flex-col items-center">
-            <div className="relative flex size-[150px] items-center justify-center overflow-hidden rounded-lg border border-border bg-card p-3">
+            {/* White plate — QR SVG modules are black; dark card made them invisible. */}
+            <div className="relative flex size-[150px] items-center justify-center overflow-hidden rounded-lg border border-border bg-white p-3">
               {qrSrc ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={qrSrc} alt="" width={126} height={126} className="size-[126px] max-w-none" />
               ) : (
-                <span className="relative size-[126px]">
+                <span className="relative size-[126px] text-black">
                   <QrMark />
                 </span>
               )}
-              <span className="absolute left-1/2 top-1/2 flex size-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-card">
+              <span className="absolute left-1/2 top-1/2 flex size-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white shadow-sm">
                 <CoinMark coin={coin} size={28} />
               </span>
             </div>
@@ -584,7 +716,8 @@ function CryptoCoinView({ coin, onOpenPicker }: { coin: CashierCoin; onOpenPicke
           <div className="h-px w-full bg-border" />
 
           <div className="flex w-full items-center justify-center gap-2">
-            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3">
+            {/* popover = solid elevated fill; card/secondary are the same wash in dark */}
+            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-popover px-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`${ASSET}/cashier-dollar.svg`}
@@ -603,13 +736,13 @@ function CryptoCoinView({ coin, onOpenPicker }: { coin: CashierCoin; onOpenPicke
               />
             </label>
             <span className="shrink-0 text-sm text-muted-foreground">=</span>
-            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-card px-3">
+            <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-input bg-popover px-3">
               <CoinMark coin={coin} size={16} />
               <input
                 readOnly
                 value={usdToCoin(usd)}
                 aria-label={`${coin.label} amount`}
-                className="w-full bg-transparent text-sm text-muted-foreground outline-none"
+                className="w-full bg-transparent text-sm text-foreground outline-none"
               />
             </label>
           </div>
@@ -627,6 +760,204 @@ function CryptoCoinView({ coin, onOpenPicker }: { coin: CashierCoin; onOpenPicke
           New to {coin.label} {coin.ticker}? <span className="text-info">Get Started Here</span>
         </span>
       </a>
+    </div>
+  )
+}
+
+/**
+ * Activate CTAs after deposit confirms.
+ * Use Free Spins → open Chicken. Discover → casino lobby.
+ */
+function DepositConfirmedActions({ onDismiss: _dismiss }: { onDismiss: () => void }) {
+  void _dismiss
+  const router = useRouter()
+  const {
+    claimVipReward,
+    clearDepositTracker,
+    launchGame,
+    setCashierOpen,
+    startNavigating,
+    vipRewards,
+  } = useShell()
+  const freeSpinsReady = vipRewards.some(
+    (r) => r.id === WELCOME_FREE_SPINS.id && r.state === 'enable',
+  )
+
+  const useFreeSpins = () => {
+    clearDepositTracker()
+    setCashierOpen(false)
+    if (freeSpinsReady) {
+      claimVipReward(WELCOME_FREE_SPINS.id)
+      return
+    }
+    /* Deposit just credited — always open the free-spins game. */
+    launchGame(
+      {
+        id: WELCOME_FREE_SPINS.gameId,
+        title: WELCOME_FREE_SPINS.gameTitle,
+        imageSrc: WELCOME_FREE_SPINS.gameImageSrc,
+        vendor: 'Originals',
+        vendorLogo: '/vendot_logos/orginals.svg',
+        tag: 'Original',
+      },
+      null,
+      { freeSpins: true },
+    )
+  }
+
+  const discoverCasino = () => {
+    clearDepositTracker()
+    setCashierOpen(false)
+    startNavigating('/casino')
+    router.push('/casino')
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2.5">
+      <Button
+        type="button"
+        className={cn(
+          'inline-flex h-10 w-auto items-center justify-center gap-2 rounded-lg px-5',
+          'bg-primary text-primary-foreground',
+          'transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_88%,black)]',
+        )}
+        onClick={useFreeSpins}
+      >
+        Use Free Spins
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        className={cn(
+          'h-10 rounded-lg border border-border bg-transparent px-5 text-foreground',
+          'hover:bg-accent hover:text-foreground',
+        )}
+        onClick={discoverCasino}
+      >
+        Discover
+      </Button>
+    </div>
+  )
+}
+
+/** Blockchain poll after copy — 2 of 2 confirmations, then success. */
+function CryptoDepositTracker({
+  coin,
+  onBack,
+}: {
+  coin: CashierCoin
+  onBack: () => void
+}) {
+  const { depositTracker } = useShell()
+  if (!depositTracker) return null
+
+  const { stage, confirmations, required, amountUsd } = depositTracker
+  const done = stage === 'confirmed'
+  const title =
+    stage === 'waiting'
+      ? 'Waiting for your transaction'
+      : stage === 'detected'
+        ? 'Transaction detected'
+        : stage === 'confirming'
+          ? 'Confirming on the blockchain'
+          : 'Deposit confirmed'
+  const subtitle =
+    stage === 'waiting'
+      ? `Scanning the ${coin.label} network for a transfer to your deposit address…`
+      : stage === 'detected'
+        ? 'We found your transfer. Waiting for the network to confirm it.'
+        : stage === 'confirming'
+          ? `${confirmations} of ${required} confirmations — usually a few minutes.`
+          : `${formatClaimAmount(amountUsd)} has been added to your balance.`
+
+  return (
+    <div data-crypto-tracker="" className="flex w-full flex-col gap-5">
+      <div className="flex flex-col items-center pt-2 text-center">
+        <div className="relative flex size-20 items-center justify-center">
+          {!done ? (
+            <>
+              <span className="absolute inset-0 animate-ping rounded-full bg-primary/20 [animation-duration:1.8s]" />
+              <span className="absolute inset-1.5 animate-pulse rounded-full bg-primary/15" />
+            </>
+          ) : (
+            <span className="absolute inset-0 rounded-full bg-success/20 blur-md" />
+          )}
+          <span
+            className={cn(
+              'relative flex size-14 items-center justify-center overflow-hidden rounded-full ring-2',
+              done ? 'bg-success ring-success/60' : 'bg-secondary ring-border',
+            )}
+          >
+            {done ? (
+              <IconCheck className="size-7 text-success-foreground" stroke={3} />
+            ) : (
+              <CoinMark coin={coin} size={40} />
+            )}
+          </span>
+        </div>
+        <p className="mt-4 text-lg font-bold text-foreground">{title}</p>
+        <p className="mx-auto mt-1 max-w-[280px] text-xs leading-relaxed text-muted-foreground">
+          {subtitle}
+        </p>
+      </div>
+
+      <div className="rounded-[10px] border border-border bg-secondary p-3.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Confirmations
+          </span>
+          <span className="text-xs font-semibold tabular-nums text-foreground">
+            {confirmations}/{required}
+          </span>
+        </div>
+        <div className="mt-2.5 flex gap-1.5">
+          {Array.from({ length: required }).map((_, i) => {
+            const filled = i < confirmations
+            const active = !done && i === confirmations
+            return (
+              <span key={i} className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-border">
+                <span
+                  className={cn(
+                    'absolute inset-y-0 left-0 rounded-full transition-[width] duration-500',
+                    done ? 'bg-success' : 'bg-primary',
+                    filled ? 'w-full' : active ? 'w-[70%] animate-pulse' : 'w-0',
+                  )}
+                />
+              </span>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="divide-y divide-border rounded-[10px] border border-border bg-secondary text-sm">
+        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+          <span className="text-muted-foreground">Amount</span>
+          {stage === 'waiting' ? (
+            <span className="inline-block h-3.5 w-20 animate-pulse rounded bg-border" />
+          ) : (
+            <span className="tabular-nums text-foreground">{formatClaimAmount(amountUsd)}</span>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+          <span className="text-muted-foreground">Network</span>
+          <span className="text-foreground">{coin.label}</span>
+        </div>
+        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+          <span className="text-muted-foreground">Status</span>
+          <span className="inline-flex items-center gap-1.5 text-foreground">
+            {!done ? <IconLoader2 className="size-3.5 animate-spin text-muted-foreground" /> : null}
+            {done ? 'Complete' : 'Confirming on network'}
+          </span>
+        </div>
+      </div>
+
+      {done ? (
+        <DepositConfirmedActions onDismiss={onBack} />
+      ) : (
+        <p className="text-center text-xs text-muted-foreground">
+          Keep this open, or close the wallet — we&apos;ll update you next to your balance.
+        </p>
+      )}
     </div>
   )
 }
@@ -743,27 +1074,583 @@ function parseDepositAmount(raw: string) {
   return { text: next, value }
 }
 
+function KycField({
+  label,
+  required,
+  children,
+}: {
+  label: string
+  required?: boolean
+  children: ReactNode
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[12px] font-medium text-muted-foreground">
+        {label}
+        {required ? (
+          <span className="text-primary" aria-hidden>
+            {' '}
+            *
+          </span>
+        ) : null}
+      </span>
+      {children}
+    </label>
+  )
+}
+
+/**
+ * First credit-card deposit — bank/issuer KYC before the card amount screen.
+ * Back → wallet deposit home (Crypto). Update Info → Credit Card deposit.
+ */
+function CardBillingKycForm({ onBack }: { onBack: () => void }) {
+  const { profile, saveBillingKyc } = useShell()
+  const seed = profile.billing
+  const nameParts = profile.fullName.trim().split(/\s+/)
+  const [form, setForm] = useState<BillingKyc>({
+    firstName: seed?.firstName || nameParts[0] || '',
+    lastName: seed?.lastName || nameParts.slice(1).join(' ') || '',
+    addressLine1: seed?.addressLine1 || '',
+    city: seed?.city || '',
+    state: seed?.state || '',
+    postalCode: seed?.postalCode || '',
+    mobile: seed?.mobile || '',
+  })
+  const valid = hasCompleteBillingKyc(form)
+
+  const set =
+    (key: keyof BillingKyc) =>
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value
+      setForm((prev) => ({ ...prev, [key]: value }))
+    }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Back to wallet home"
+          className="shell-chrome-btn inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-accent"
+        >
+          <IconArrowLeft className="size-4" strokeWidth={2.25} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold leading-5 text-foreground">
+            Billing information
+          </h3>
+          <p className="text-[12px] leading-4 text-muted-foreground">
+            Required for credit card deposits.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <KycField label="First name" required>
+            <Input
+              value={form.firstName}
+              onChange={set('firstName')}
+              autoComplete="given-name"
+              className={kycFieldClass}
+              aria-label="First name"
+            />
+          </KycField>
+          <KycField label="Last name" required>
+            <Input
+              value={form.lastName}
+              onChange={set('lastName')}
+              autoComplete="family-name"
+              className={kycFieldClass}
+              aria-label="Last name"
+            />
+          </KycField>
+        </div>
+        <KycField label="Address" required>
+          <KycAddressAutocomplete
+            value={form.addressLine1}
+            onChange={(addressLine1) => setForm((prev) => ({ ...prev, addressLine1 }))}
+            onSelect={(suggestion) => {
+              setForm((prev) => ({
+                ...prev,
+                addressLine1: suggestion.addressLine1 || suggestion.label,
+                city: suggestion.city || prev.city,
+                state: suggestion.state || prev.state,
+                postalCode: suggestion.postalCode || prev.postalCode,
+              }))
+            }}
+            className={kycFieldClass}
+            placeholder="Start typing an address"
+            aria-label="Address"
+          />
+        </KycField>
+        <KycField label="City" required>
+          <Input
+            value={form.city}
+            onChange={set('city')}
+            autoComplete="address-level2"
+            className={kycFieldClass}
+            aria-label="City"
+          />
+        </KycField>
+        <div className="grid grid-cols-2 gap-3">
+          <KycField label="State" required>
+            <Input
+              value={form.state}
+              onChange={set('state')}
+              autoComplete="address-level1"
+              placeholder="State / province"
+              className={kycFieldClass}
+              aria-label="State"
+            />
+          </KycField>
+          <KycField label="Zip / postal code" required>
+            <Input
+              value={form.postalCode}
+              onChange={set('postalCode')}
+              autoComplete="postal-code"
+              className={kycFieldClass}
+              aria-label="Zip or postal code"
+            />
+          </KycField>
+        </div>
+        <KycField label="Mobile number" required>
+          <Input
+            type="tel"
+            value={form.mobile}
+            onChange={set('mobile')}
+            autoComplete="tel"
+            inputMode="tel"
+            placeholder="+1 555 000 0000"
+            className={kycFieldClass}
+            aria-label="Mobile number"
+          />
+        </KycField>
+      </div>
+
+      <Button
+        type="button"
+        size="lg"
+        className="h-10 w-full rounded-lg text-sm font-medium"
+        disabled={!valid}
+        onClick={() => {
+          if (!valid) return
+          saveBillingKyc(form)
+          /* Profile update unlocks CreditCardHome in the parent. */
+        }}
+      >
+        Update Info
+      </Button>
+    </div>
+  )
+}
+
+type CardBrand = 'mastercard' | 'visa'
+
+type SavedCard = {
+  id: string
+  brand: CardBrand
+  last4: string
+  nameOnCard: string
+}
+
+const SEED_CARDS: SavedCard[] = [
+  { id: 'mc-0740', brand: 'mastercard', last4: '0740', nameOnCard: 'Cardholder' },
+]
+
+function cardLabel(card: SavedCard) {
+  return `${card.brand === 'visa' ? 'Visa' : 'Mastercard'} **** ${card.last4}`
+}
+
+function detectCardBrand(digits: string): CardBrand {
+  if (digits.startsWith('4')) return 'visa'
+  return 'mastercard'
+}
+
+function formatCardNumber(raw: string) {
+  const digits = raw.replace(/\D/g, '').slice(0, 16)
+  return digits.replace(/(\d{4})(?=\d)/g, '$1 ').trim()
+}
+
+function formatExpiry(raw: string) {
+  const digits = raw.replace(/\D/g, '').slice(0, 4)
+  if (digits.length <= 2) return digits
+  return `${digits.slice(0, 2)}/${digits.slice(2)}`
+}
+
+function CardBrandMark({ brand }: { brand: CardBrand }) {
+  if (brand === 'visa') {
+    return (
+      <span className="flex h-[22px] w-[29px] items-center justify-center rounded-[4px] border border-border bg-[#1a1f71] text-[8px] font-bold tracking-wide text-white">
+        VISA
+      </span>
+    )
+  }
+  return (
+    <span className="flex h-[22px] w-[29px] items-center justify-center rounded-[4px] border border-border bg-white">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`${ASSET}/mastercard.svg`} alt="" width={16} height={12} className="max-w-none" />
+    </span>
+  )
+}
+
+/** Bank poll after Deposit — plain customer copy, single progress (no step counts). */
+function CardDepositTracker({
+  onBack,
+}: {
+  onBack: () => void
+}) {
+  const { depositTracker } = useShell()
+  if (!depositTracker || depositTracker.channel !== 'card') return null
+
+  const { stage, confirmations, required, amountUsd, coinLabel } = depositTracker
+  const done = stage === 'confirmed'
+  const title =
+    stage === 'waiting'
+      ? 'Authorizing with your bank'
+      : stage === 'detected'
+        ? 'Bank received your payment'
+        : stage === 'confirming'
+          ? 'Communicating with bank'
+          : 'Deposit confirmed'
+  const subtitle =
+    stage === 'waiting'
+      ? `Sending $${amountUsd.toFixed(2)} on ${coinLabel} for approval…`
+      : stage === 'detected'
+        ? 'Your issuer accepted the charge. Finishing up.'
+        : stage === 'confirming'
+          ? 'Usually under a minute.'
+          : `${formatClaimAmount(amountUsd)} has been added to your balance.`
+
+  const progressPct = done
+    ? 100
+    : stage === 'waiting'
+      ? 22
+      : stage === 'detected'
+        ? 48
+        : Math.min(
+            96,
+            48 + Math.round((Math.max(confirmations, 0) / Math.max(required, 1)) * 48),
+          )
+
+  return (
+    <div data-card-tracker="" className="flex w-full flex-col gap-5">
+      <div className="flex flex-col items-center pt-2 text-center">
+        <div className="relative flex size-20 items-center justify-center">
+          {!done ? (
+            <span className="absolute inset-0 animate-ping rounded-full bg-primary/20 [animation-duration:1.8s]" />
+          ) : null}
+          {/* Join-style confirm disc — $ mark only, not the nested green circle asset. */}
+          <span className="relative flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_0_0_6px_color-mix(in_srgb,var(--primary)_18%,transparent)]">
+            {done ? (
+              <IconCheck className="size-7" stroke={3} />
+            ) : (
+              <IconCurrencyDollar className="size-7" stroke={2.25} />
+            )}
+          </span>
+        </div>
+        <p className="mt-4 text-lg font-bold text-foreground">{title}</p>
+        <p className="mx-auto mt-1 max-w-[280px] text-xs leading-relaxed text-muted-foreground">
+          {subtitle}
+        </p>
+      </div>
+
+      <div className="rounded-[10px] border border-border bg-secondary p-3.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            {done ? 'Complete' : 'Verifying'}
+          </span>
+          <span className="text-xs font-semibold tabular-nums text-foreground">
+            {done ? 'Done' : 'In progress'}
+          </span>
+        </div>
+        <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-border">
+          <span
+            className={cn(
+              'block h-full rounded-full transition-[width] duration-500 ease-out',
+              done ? 'bg-success' : 'bg-primary',
+              !done && 'animate-pulse',
+            )}
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="divide-y divide-border rounded-[10px] border border-border bg-secondary text-sm">
+        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+          <span className="text-muted-foreground">Amount</span>
+          {stage === 'waiting' ? (
+            <span className="inline-block h-3.5 w-20 animate-pulse rounded bg-border" />
+          ) : (
+            <span className="tabular-nums text-foreground">{formatClaimAmount(amountUsd)}</span>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+          <span className="text-muted-foreground">Card</span>
+          <span className="truncate text-foreground">{coinLabel}</span>
+        </div>
+        <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+          <span className="text-muted-foreground">Status</span>
+          <span className="inline-flex items-center gap-1.5 text-foreground">
+            {!done ? <IconLoader2 className="size-3.5 animate-spin text-muted-foreground" /> : null}
+            {done ? 'Complete' : 'Communicating with bank'}
+          </span>
+        </div>
+      </div>
+
+      {done ? (
+        <DepositConfirmedActions onDismiss={onBack} />
+      ) : (
+        <p className="text-center text-xs text-muted-foreground">
+          Keep this open, or close the wallet — we&apos;ll update you next to your balance.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** Revolut / Wise-simple add card — number, expiry, CVC, name. */
+function AddCardForm({
+  onCancel,
+  onSave,
+}: {
+  onCancel: () => void
+  onSave: (card: SavedCard) => void
+}) {
+  const { profile } = useShell()
+  const [number, setNumber] = useState('')
+  const [expiry, setExpiry] = useState('')
+  const [cvc, setCvc] = useState('')
+  const [nameOnCard, setNameOnCard] = useState(profile.fullName || '')
+
+  const digits = number.replace(/\D/g, '')
+  const brand = detectCardBrand(digits)
+  const valid =
+    digits.length >= 15 &&
+    expiry.replace(/\D/g, '').length === 4 &&
+    cvc.replace(/\D/g, '').length >= 3 &&
+    nameOnCard.trim().length > 1
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          aria-label="Back to cards"
+          className="shell-chrome-btn inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-accent"
+        >
+          <IconArrowLeft className="size-4" strokeWidth={2.25} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold leading-5 text-foreground">Add card</h3>
+          <p className="text-[12px] leading-4 text-muted-foreground">Card details only — no extra steps.</p>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <KycField label="Card number" required>
+          <div className="relative">
+            <Input
+              value={number}
+              onChange={(e) => setNumber(formatCardNumber(e.target.value))}
+              inputMode="numeric"
+              autoComplete="cc-number"
+              placeholder="ACCT-000003"
+              className={cn(kycFieldClass, 'pr-12')}
+              aria-label="Card number"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+              <CardBrandMark brand={brand} />
+            </span>
+          </div>
+        </KycField>
+        <div className="grid grid-cols-2 gap-3">
+          <KycField label="Expiry" required>
+            <Input
+              value={expiry}
+              onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+              inputMode="numeric"
+              autoComplete="cc-exp"
+              placeholder="MM/YY"
+              className={kycFieldClass}
+              aria-label="Expiry"
+            />
+          </KycField>
+          <KycField label="CVC" required>
+            <Input
+              value={cvc}
+              onChange={(e) => setCvc(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              inputMode="numeric"
+              autoComplete="cc-csc"
+              placeholder="123"
+              className={kycFieldClass}
+              aria-label="CVC"
+            />
+          </KycField>
+        </div>
+        <KycField label="Name on card" required>
+          <Input
+            value={nameOnCard}
+            onChange={(e) => setNameOnCard(e.target.value)}
+            autoComplete="cc-name"
+            placeholder="Name as on card"
+            className={kycFieldClass}
+            aria-label="Name on card"
+          />
+        </KycField>
+      </div>
+
+      <Button
+        type="button"
+        size="lg"
+        className="h-10 w-full rounded-lg text-sm font-medium"
+        disabled={!valid}
+        onClick={() => {
+          if (!valid) return
+          onSave({
+            id: `card-${Date.now()}`,
+            brand,
+            last4: digits.slice(-4),
+            nameOnCard: nameOnCard.trim(),
+          })
+        }}
+      >
+        Save card
+      </Button>
+    </div>
+  )
+}
+
 function CreditCardHome() {
-  const [amountText, setAmountText] = useState('')
+  const { startDepositTracking, depositTracker, clearDepositTracker } = useShell()
+  const amountRef = useRef<HTMLInputElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
+  const [cards, setCards] = useState<SavedCard[]>(SEED_CARDS)
+  const [selectedId, setSelectedId] = useState(SEED_CARDS[0]!.id)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [amountText, setAmountText] = useState('0.00')
   const [focused, setFocused] = useState(false)
   const amount = amountText ? Number(amountText) || 0 : 0
   const total = amount * (1 + CC_FEE)
-  const display = focused ? amountText : amount ? amount.toFixed(2) : ''
+  const display = focused ? amountText : amountText || '0.00'
+  const selected = cards.find((c) => c.id === selectedId) ?? cards[0] ?? null
+
+  useEffect(() => {
+    const input = amountRef.current
+    if (!input || adding || depositTracker?.channel === 'card') return
+    input.focus()
+    input.setSelectionRange(0, 0)
+    setFocused(true)
+  }, [adding, depositTracker?.channel])
+
+  useEffect(() => {
+    if (!pickerOpen) return
+    const onPointer = (event: MouseEvent) => {
+      const target = event.target
+      if (!(target instanceof Node)) return
+      if (pickerRef.current?.contains(target)) return
+      setPickerOpen(false)
+    }
+    document.addEventListener('mousedown', onPointer)
+    return () => document.removeEventListener('mousedown', onPointer)
+  }, [pickerOpen])
+
+  if (depositTracker?.channel === 'card') {
+    return (
+      <CardDepositTracker
+        onBack={() => {
+          if (depositTracker.stage === 'confirmed') clearDepositTracker()
+        }}
+      />
+    )
+  }
+
+  if (adding) {
+    return (
+      <AddCardForm
+        onCancel={() => setAdding(false)}
+        onSave={(card) => {
+          setCards((prev) => [...prev, card])
+          setSelectedId(card.id)
+          setAdding(false)
+          setPickerOpen(false)
+        }}
+      />
+    )
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="relative flex flex-col gap-5">
-        <label className="flex flex-col gap-1.5">
+        <div ref={pickerRef} className="relative flex flex-col gap-1.5">
           <span className="text-sm font-medium leading-5 text-foreground">Select Credit Card</span>
-          <span className="relative flex h-11 items-center gap-2 rounded-lg border border-input pl-6 pr-3">
-            <span className="absolute left-3 top-1/2 flex h-[22px] w-[29px] -translate-y-1/2 items-center justify-center rounded-[4px] border border-border bg-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={`${ASSET}/mastercard.svg`} alt="" width={16} height={12} className="max-w-none" />
+          <button
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={pickerOpen}
+            onClick={() => setPickerOpen((o) => !o)}
+            className="relative flex h-11 w-full items-center gap-2 rounded-lg border border-input bg-popover pl-6 pr-3 text-left transition-colors hover:bg-[var(--surface-muted-4)]"
+          >
+            <span className="absolute left-3 top-1/2 -translate-y-1/2">
+              {selected ? <CardBrandMark brand={selected.brand} /> : null}
             </span>
-            <span className="flex-1 truncate pl-6 text-sm text-foreground">Mastercard **** 0740</span>
-            <ShellIcon name="caretDown" tone="surface" className="size-4 opacity-70" />
-          </span>
-        </label>
+            <span className="flex-1 truncate pl-6 text-sm text-foreground">
+              {selected ? cardLabel(selected) : 'Choose a card'}
+            </span>
+            <ShellIcon
+              name="caretDown"
+              tone="surface"
+              className={cn('size-4 opacity-70 transition-transform', pickerOpen && 'rotate-180')}
+            />
+          </button>
+
+          {pickerOpen ? (
+            <ul
+              role="listbox"
+              className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 overflow-hidden rounded-lg border border-input bg-popover py-1 shadow-[0_0_16px_rgba(0,0,0,0.12)]"
+            >
+              {cards.map((card) => (
+                <li key={card.id} role="option" aria-selected={card.id === selectedId}>
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm transition-colors',
+                      card.id === selectedId ? 'bg-accent text-foreground' : 'hover:bg-accent',
+                    )}
+                    onClick={() => {
+                      setSelectedId(card.id)
+                      setPickerOpen(false)
+                    }}
+                  >
+                    <CardBrandMark brand={card.brand} />
+                    <span className="min-w-0 flex-1 truncate">{cardLabel(card)}</span>
+                    {card.id === selectedId ? (
+                      <IconCheck className="size-4 shrink-0 text-foreground" stroke={2.5} />
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+              <li>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2.5 border-t border-border px-3 py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                  onClick={() => {
+                    setPickerOpen(false)
+                    setAdding(true)
+                  }}
+                >
+                  <span className="flex size-[22px] items-center justify-center rounded-[4px] border border-dashed border-border text-base leading-none text-muted-foreground">
+                    +
+                  </span>
+                  Add new card
+                </button>
+              </li>
+            </ul>
+          ) : null}
+        </div>
 
         <div className="flex flex-col items-center">
           <div className="flex h-10 w-full gap-3">
@@ -792,25 +1679,38 @@ function CreditCardHome() {
             >
               <span aria-hidden>$</span>
               <input
+                ref={amountRef}
                 inputMode="decimal"
                 enterKeyHint="done"
                 value={display}
-                placeholder="0.00"
                 aria-label="Deposit amount"
-                onFocus={() => setFocused(true)}
+                onFocus={(event) => {
+                  setFocused(true)
+                  const el = event.currentTarget
+                  requestAnimationFrame(() => el.setSelectionRange(0, 0))
+                }}
                 onBlur={() => {
                   setFocused(false)
                   if (amountText) {
                     const n = Number(amountText)
                     if (!Number.isNaN(n) && n > 0) setAmountText(n.toFixed(2))
+                    else setAmountText('0.00')
+                  } else {
+                    setAmountText('0.00')
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (amountText === '0.00' && /^[0-9]$/.test(event.key)) {
+                    event.preventDefault()
+                    setAmountText(event.key)
                   }
                 }}
                 onChange={(event) => {
                   const parsed = parseDepositAmount(event.target.value)
-                  setAmountText(parsed.text)
+                  setAmountText(parsed.text || '0.00')
                 }}
-                style={{ width: `${Math.max((display || '0.00').length, 4)}ch` }}
-                className="bg-transparent text-center outline-none placeholder:text-muted-foreground"
+                style={{ width: `${Math.max(display.length, 4)}ch` }}
+                className="bg-transparent text-center outline-none"
               />
             </label>
             <p className="mt-1.5 text-center text-xs leading-4 text-muted-foreground opacity-80">
@@ -834,7 +1734,20 @@ function CreditCardHome() {
           </div>
         </div>
       </div>
-      <Button type="button" size="lg" disabled={amount < 25 || amount > 500} className="h-10 w-full rounded-lg text-sm font-medium">
+      <Button
+        type="button"
+        size="lg"
+        disabled={!selected || amount < 25 || amount > 500}
+        className="h-10 w-full rounded-lg text-sm font-medium"
+        onClick={() => {
+          if (!selected || amount < 25 || amount > 500) return
+          startDepositTracking({
+            channel: 'card',
+            label: cardLabel(selected),
+            amountUsd: amount,
+          })
+        }}
+      >
         Deposit
       </Button>
     </div>

@@ -2,11 +2,20 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { IconChevronLeft } from '@tabler/icons-react'
+import { IconChevronLeft, IconHeartOff } from '@tabler/icons-react'
 import { CasinoGameTile } from '@/components/lumen/casino-game-tile'
 import { CasinoTop10 } from '@/components/lumen/casino-lobby-page'
 import { WallpaperSortMenu } from '@/components/lumen/wallpaper-sort-menu'
 import { useShell } from '@/components/site/shell-context'
+import { Button } from '@/components/ui/button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 import { Typography } from '@/components/ui/typography'
 import {
   sortWallpaperGames,
@@ -41,7 +50,7 @@ function WallpaperBackButton({ fallbackHref = '/casino' }: { fallbackHref?: stri
 
 /**
  * Shared wallpaper grid — Figma All Slots style.
- * Optional Top 10 (Staff Picks). Back returns to the previous page.
+ * Favourites: empty + auth CTAs when logged out / no hearts.
  */
 export function CasinoWallpaperPage({
   config,
@@ -50,10 +59,13 @@ export function CasinoWallpaperPage({
   config: WallpaperConfig
   fallbackHref?: string
 }) {
-  const { launchGame } = useShell()
+  const { launchGame, loggedIn, openAuth, favoriteGames } = useShell()
   const [sort, setSort] = useState<WallpaperSortId>('newest')
-  const games = useMemo(() => sortWallpaperGames(config.games, sort), [config.games, sort])
+  const isFavourites = config.slug === 'favourites'
+  const sourceGames = isFavourites ? favoriteGames : config.games
+  const games = useMemo(() => sortWallpaperGames(sourceGames, sort), [sourceGames, sort])
   const showTop10 = Boolean(config.top10Games?.length)
+  const showEmpty = isFavourites && games.length === 0
 
   return (
     <div data-name="wallpaper_content" className="w-full bg-background pb-12 pt-4">
@@ -79,32 +91,63 @@ export function CasinoWallpaperPage({
               {config.title}
             </Typography>
           </div>
-          <WallpaperSortMenu value={sort} onChange={setSort} />
+          {!showEmpty ? <WallpaperSortMenu value={sort} onChange={setSort} /> : null}
         </div>
 
-        {/* Keep ~152px tile floor so 8-up never crushes art / type. */}
-        <div
-          className={cn(
-            'grid px-6 md:px-8',
-            'gap-4 md:gap-5',
-            'grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8',
-          )}
-        >
-          {games.map((game, index) => (
-            <div
-              key={game.id}
-              className="lm-tile-enter aspect-[152/207] w-full min-w-0"
-              style={{ ['--lm-tile-i' as `--lm-tile-i`]: index }}
-            >
-              <CasinoGameTile
-                game={game}
-                onLaunch={launchGame}
-                hideTitle
-                className="!h-full !w-full"
-              />
-            </div>
-          ))}
-        </div>
+        {showEmpty ? (
+          <Empty className="mx-6 border border-dashed border-border bg-card md:mx-8">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <IconHeartOff className="size-6 text-muted-foreground" aria-hidden />
+              </EmptyMedia>
+              <EmptyTitle>No favourites yet</EmptyTitle>
+              <EmptyDescription>
+                {loggedIn
+                  ? 'Heart a game to save it here.'
+                  : 'Login or Join to save games.'}
+              </EmptyDescription>
+            </EmptyHeader>
+            {!loggedIn ? (
+              <EmptyContent>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button type="button" onClick={() => openAuth('login')}>
+                    Login
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => openAuth('join')}
+                  >
+                    Join
+                  </Button>
+                </div>
+              </EmptyContent>
+            ) : null}
+          </Empty>
+        ) : (
+          <div
+            className={cn(
+              'grid px-6 md:px-8',
+              'gap-4 md:gap-5',
+              'grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8',
+            )}
+          >
+            {games.map((game, index) => (
+              <div
+                key={game.id}
+                className="lm-tile-enter aspect-[152/207] w-full min-w-0"
+                style={{ ['--lm-tile-i' as `--lm-tile-i`]: index }}
+              >
+                <CasinoGameTile
+                  game={game}
+                  onLaunch={launchGame}
+                  hideTitle
+                  className="!h-full !w-full"
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )

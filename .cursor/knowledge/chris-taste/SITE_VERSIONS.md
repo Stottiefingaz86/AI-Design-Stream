@@ -1,0 +1,10 @@
+# Site versions — settled preference
+
+**Source:** Chris, Nov 2026.
+
+- V1 = current site (short-term goals) and the default. Later versions (V2, …) add features or rearrange things.
+- Switching lives in the **Intercom Home tab** ("Site version" section) — the player opens it manually.
+- **No auto-open.** Do not pop Intercom on landing for the version (tried every-landing pop with sound — it felt spammy). Not in the UBC either (logged-in only, skips onboarding).
+- Rows: label pill + name + description; current one tinted with a check. Tap another → save + full reload in that version. With one version: `More versions are on the way.`
+- **V2 (Nov 2026):** Promotions side menu adds **Challenges → Raffles → Races** after My Bonus (`navForProduct(product, version)`). Races = h1 + Daily/Weekly tabs, then the banner with stats footer, then leaderboard. Tickets are perforated stubs. Every V2 promo page opens with `PromoPageHero`: solid red banner like the homepage "Built for winners." hero (Figtree 900 white title, white CTA, black/20 countdown cells). **Never red accent words in headings.** First visit to `/promotions` on V2 auto-starts the Challenges → Raffles → Races product tour once per browser (`lumen-tour-seen-v2-promotions`). **No image banners with gradient/glass overlays** — Chris hates them. Challenges use horizontal cards with a Play Game button (Rainbet ref). Pages: `/promotions/challenges` (Winna-style grid: Active/Finished, "first to hit Nx with min $ bet", reward; tile launches game), `/promotions/raffles` (Rainbet-style: $20K Weekly Raffle hero + Claim free ticket, 3 how-it-works cards, Your Tickets + progress to next ticket, Results by draw), `/promotions/races` V2 (Daily $25k / Weekly $100k hero tabs + countdown, top-3 podium, leaderboard + pinned You row). V1 keeps the old menu; middleware still 404s `/promotions/races` locally on V1.
+- Add a version = add a row to `SITE_VERSIONS` in `lib/lumen/site-versions.ts`; branch UI with `useSiteVersion()`. `?v=2` links open that version.

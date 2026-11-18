@@ -3,8 +3,10 @@ name: lumen-betonline-build
 description: >-
   REQUIRED on every request in this repo. Build and refine BetOnline live-site
   UI with the Lumen design system and Chris's product taste (shell, sub-navs,
-  cards, hovers, toasts, claims, tables, Figma→code). Always read this skill
-  first for any live-site, shell, Promo26, Casino, VIP, RAF, or refinement work.
+  cards, hovers, toasts, claims, tables, Figma→code). Use Mobbin + competitor
+  research for peer flows (Rainbet/Winna join, rewards, lobby). Always read
+  this skill first for any live-site, shell, Promo26, Casino, VIP, RAF, or
+  refinement work.
 ---
 
 # Lumen BetOnline Build
@@ -17,16 +19,37 @@ You are extending **`apps/live-site`** — a Next.js shell that already owns chr
 
 1. Read existing neighbors first: `components/site/shell-*.tsx`, `components/lumen/*-page.tsx`, `lib/lumen/*`, `app/lumen.css`.
 2. If Figma is linked: load **figma-design-to-code**, `create_session`, then `get_design_context` + screenshot. Download assets locally — never leave MCP temp URLs in code.
-3. Map UI to **tokens** (`bg-card`, `bg-popover`, `border-input`, `text-muted-foreground`, `primary`, `success`, `warning`) — not hard-coded greys.
-4. Wire demos into **shared shell state** (`useShell`) when the same fact exists elsewhere (claims, balance, login, launch).
+3. **Competitor UX (Mobbin + research)** — when inventing or refining a flow Chris has compared to peers (join / verify, rewards chrome, live wins, cashier, lobby discovery), pull patterns **before** coding. See **Competitor patterns via Mobbin** below and `.cursor/knowledge/product-strategy/COMPETITOR_RESEARCH.md`.
+4. Map UI to **tokens** (`bg-card`, `bg-popover`, `border-input`, `text-muted-foreground`, `primary`, `success`, `warning`) — not hard-coded greys.
+5. Wire demos into **shared shell state** (`useShell`) when the same fact exists elsewhere (claims, balance, login, launch).
 
 Detail catalog: [patterns.md](patterns.md).
+
+### Competitor patterns via Mobbin
+
+**Why:** Chris often references peers (e.g. **Rainbet** join, Live Wins, rewards-in-chrome; **Winna** Bonus Center). Guessing peer UX from memory is worse than looking. Mobbin = production screens; local research = Chris-liked notes + screenshots.
+
+**When to open Mobbin (MCP `plugin-mobbin-mobbin`):**
+- New or reworked **flows** — join/login/verify, deposit/cashier, claim/rewards popovers, lobby shelves, onboarding, empty states.
+- Chris names a peer site or “like Rainbet / Winna / Stake…” — search that pattern (and related screens) before proposing UI.
+- Activation / friction debates — pair Mobbin with journey audits + `COMPETITOR_RESEARCH.md`.
+
+**How:**
+1. Use Mobbin `search_screens` / `search_flows` (prefer **web** for casino peers; ios when mobile chrome matters). Query like a screen: `"crypto casino signup"`, `"gambling app rewards claim dropdown"`, `"casino live wins activity carousel"` — name the peer when known (`"Rainbet signup"`).
+2. Read the returned screen images (not metadata alone). Cite Mobbin links when discussing options with Chris.
+3. Cross-check **Chris-liked** notes in `COMPETITOR_RESEARCH.md` + files under `competitors/` — those are settled taste, not every Mobbin hit.
+4. **Translate into Lumen + BetOnline shell** — tokens, AuthModal, VIP/claims, cashier. Inspiration only; **never clone** peer brand, gems, purple chrome, or copy.
+
+**If Mobbin MCP fails** (auth / paid plan / empty): say so once, then use `COMPETITOR_RESEARCH.md` + `competitors/` screenshots + journey audits. Do not invent fake peer UI.
+
+**Example (join):** Rainbet-style short join was a peer signal → BOL AuthModal Email → Password → Verify (OTP / optional SMS) in Lumen frost — not a Rainbet skin. Next time, Mobbin signup/verify screens first, then ship in shell.
 
 ## Hard rules (Chris's refinements)
 
 ### Shell & navigation
 - All product pages sit in **`ShellFrame`**. Scroll lives in **`#shell-scroll`** — not `window`.
 - **One sticky chrome block** (chips + header + glass sub-nav). Use `--shell-sticky-top: -chipH` so the page scrolls until main nav hits the top; scroll-up sets it to `0` to slide the same block down until quick-nav is fully revealed. Never override with `top: 0 !important`. Do not strip casino sub-nav `glass`.
+- **Ultra-wide header:** brand bar inner row is `max-w-[1440px] mx-auto` (same as content / sub-nav) so balance / VIP / UB align to the content right edge — see `SHELL_HEADER_WIDE.md`.
 - Soft-nav: call **`startNavigating(href)`** before `router.push`. Show **`TileSpinner`** on the clicked tile **before** navigation unmounts the page.
 - Full-page loader: boot + deep links only — dark `#1a1a1a`, fixed stacking under shell, not above the menu. Soft top-nav should not flash the boot loader.
 - Destination **route skeletons** (title real or shimmer matching the page) — no blank leave-page flash.
@@ -65,10 +88,11 @@ Detail catalog: [patterns.md](patterns.md).
 - Game shelves: intentional tile enter / spinner; don't over-animate.
 
 ### Auth / join
-- Join + login live in **`AuthModal`** (Lumen tokens; welcome art from BOL shad under `public/shell/auth/`). Fields: email, password, username, 18+ T&C. CTA **Join & Play**. White focus rings — never blue. No DOB at join.
-- After auth: **Join** → `completeJoin` + cashier Activate; **Login** → `completeLogin` + Daily Spin. Do **not** show “You’re in / Your account is ready”.
+- Join + login live in **`AuthModal`** (Lumen tokens; welcome art from BOL shad under `public/shell/auth/`). Join: **Email → Password** (+ referral / T&C), then **Verify** (Nickname + OTP, optional SMS), then welcome. CTA **Next** then **Complete**. Nickname only on Verify — live no spaces / no special chars. Login identifier: **Email or Customer ID**. White focus rings — never blue. No DOB at join.
+- **Local-only join lab** (`localhost` / `127.0.0.1` only): under Join → **Referral Code** — one code input; type `1`–`5` there (no dropdown / extra lab fields). Journey 1 = Email/Password → Verify → welcome; 2 = sports name gate; 3 = account levels; 4 = Username; 5 = same verify flow as 1. Hosted Vercel always journey 1 — see `AUTH_JOIN.md`.
+- After auth: **Join** → welcome modal (“You’re in”) → Let’s Go → `completeJoin` + cashier Activate; **Login** → `completeLogin` + Daily Spin (never the join welcome).
 - **Login = returning player:** Daily Spin only — **no** Laura Intercom first-deposit pitch, no welcome offer, no auto cashier. Login social (“sign in with”) uses `completeLogin`, never `completeJoin`.
-- **Join = new player:** Join & Play **and** “sign up with” social → `completeJoin` → **cashier Activate**, **no** Daily Spin. Intercom welcome only after empty wallet close. Birthday DOB in VIP Hub as **MM / DD / YY**.
+- **Join = new player:** Join & Play **and** “sign up with” social → welcome modal → `completeJoin` → **cashier Activate**, **no** Daily Spin. Intercom welcome only after empty wallet close. Birthday DOB in VIP Hub as **MM / DD / YY**.
 - **Daily Spin:** login-only post-auth popup (`.cursor/knowledge/chris-taste/DAILY_SPIN.md`). Auth-sized — left “Your daily spin is ready” art, right wheel. `variant="daily-spin"` (no wipe) + sounds; outcomes = **cash / free spins / nothing** only.
 
 ### Claims, toasts, balance
@@ -87,7 +111,13 @@ Detail catalog: [patterns.md](patterns.md).
 - No **See More** on Continue Playing. Cap demo at ~**5 games + Play Random**. No duplicate titles/art.
 - Casino lobby Continue Playing follows the same rules.
 
-### Process
+### Feedback learning
+
+- Skill: `chris-feedback-learn` + log: `.cursor/knowledge/chris-taste/FEEDBACK_LOG.md`
+- On praise/rejection: append Do/Don't **same turn**, then patch the relevant chris-taste note
+- Before inventing join/OTP/phone/SMS: read FEEDBACK_LOG for that surface
+
+## Process
 - **Do not commit** unless asked. **Deploy** (`apps/live-site` → `vercel --prod`) when asked — prod alias `design-request-app-one.vercel.app`.
 - Match Figma node intent, then adapt to shell tokens/components. Screenshot is the visual target; code from MCP is a reference, not paste-final.
 - When unsure between "more content" and "restraint", choose **restraint** (Chris routinely trims over-filled carousels and decorative chrome).
@@ -97,6 +127,7 @@ Detail catalog: [patterns.md](patterns.md).
 ```
 - [ ] ShellFrame + product nav href + active state + loading skeleton
 - [ ] Tokens only; card recipe above; inputs = popover field class if on dark cards
+- [ ] Competitor flow checked (Mobbin and/or COMPETITOR_RESEARCH) when inventing UX — translated to Lumen, not cloned
 - [ ] Figma icons downloaded under public/shell/figma/...
 - [ ] Shared claims/launch/nav via useShell where applicable
 - [ ] Sticky sidebars on the flex item; offset under 68px header (~76px)

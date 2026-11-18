@@ -11,6 +11,8 @@ import {
   seedRouletteResults,
 } from '@/components/lumen/live-casino-history'
 import { ShellIcon } from '@/components/site/shell-icons'
+import { useShellOptional } from '@/components/site/shell-context'
+import { usePressHandlers } from '@/components/site/use-tap-action'
 import { cn } from '@/lib/utils'
 import {
   pickRandomLobbyGame,
@@ -24,20 +26,36 @@ const TAG_CLASS: Record<CasinoTileTag, string> = {
   Tournament: 'border-[#edc555] bg-[#6d4e03] text-white',
 }
 
-/** Soft spring — long settle, no snappy overshoot. */
+/** Soft spring — long settle, no snappy overshoot (desktop hover lift). */
 const TILE_SPRING = { type: 'spring' as const, stiffness: 260, damping: 28, mass: 0.85 }
+/** Snappier press for touch — no hover lift on mobile. */
+const TILE_PRESS_SPRING = { type: 'spring' as const, stiffness: 420, damping: 32, mass: 0.7 }
 
 /** Standard lobby poster — every shelf uses this except Top 10. */
 export const CASINO_TILE_W = 152
 export const CASINO_TILE_H = 207
 
-/** Casino Master `Tiles (Covers)` — hover play → click loading. */
+/** Casino Master `Tiles (Covers)` — desktop hover play → click loading. */
 const PLAY_MS = 2200
-/** Preloader in the play button, then open the game launcher. */
+/** Preloader in the play button (desktop) / tile (mobile), then open launcher. */
 const LAUNCH_PRELOAD_MS = 1000
 
+const FINE_POINTER_MQ = '(hover: hover) and (pointer: fine)'
+
+function useFinePointer() {
+  const [fine, setFine] = useState(false)
+  useEffect(() => {
+    const mq = window.matchMedia(FINE_POINTER_MQ)
+    const sync = () => setFine(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+  return fine
+}
+
 /** Centered arc spinner — Figma notch SVG’s mass isn’t on-center, so CSS spin wobbles. */
-function TileSpinner({ className }: { className?: string }) {
+export function TileSpinner({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 50 50"
@@ -82,11 +100,15 @@ export function CasinoGameTile({
   dense?: boolean
   /** Cover baked-in title band on originals / slots wallpaper art. */
   hideTitle?: boolean
-  /** Opens the game launcher after the tile loading beat. */
-  onLaunch?: (game: CasinoLobbyGame) => void
+  /** Opens the game launcher after the tile loading beat. Pass tile el for rakeback origin. */
+  onLaunch?: (game: CasinoLobbyGame, originEl?: HTMLElement | null) => void
 }) {
   const [loading, setLoading] = useState(false)
   const loadTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tileRef = useRef<HTMLElement | null>(null)
+  const finePointer = useFinePointer()
+  const shell = useShellOptional()
+  const loggedIn = shell?.loggedIn ?? true
 
   useEffect(() => {
     return () => {
@@ -97,31 +119,57 @@ export function CasinoGameTile({
   const startPlay = (event?: MouseEvent | KeyboardEvent) => {
     event?.stopPropagation()
     if (loading) return
-    setLoading(true)
     if (loadTimer.current) clearTimeout(loadTimer.current)
-    /* Spinner in play button for 1s, then open launcher for a clean transition */
+    const originEl =
+      (event?.currentTarget as HTMLElement | null) ?? tileRef.current
     if (onLaunch) {
+      /* Logged out → open auth immediately (no 1s spinner wait Embla can cancel). */
+      if (!loggedIn) {
+        onLaunch(game, originEl)
+        return
+      }
+      setLoading(true)
       loadTimer.current = setTimeout(() => {
-        onLaunch(game)
+        onLaunch(game, originEl)
         setLoading(false)
       }, LAUNCH_PRELOAD_MS)
       return
     }
+    setLoading(true)
     loadTimer.current = setTimeout(() => setLoading(false), PLAY_MS)
   }
 
+  /* Embla shelves eat native click on short finger jitter — fire on pointerup. */
+  const press = usePressHandlers(() => startPlay(), { disabled: loading })
+
   return (
     <motion.article
+      ref={tileRef}
       data-name="game-tile"
+      data-casino-game-id={game.id}
       data-state={loading ? 'loading' : undefined}
+      data-tile-tag={game.tag}
       role="button"
       tabIndex={0}
       aria-label={`Play ${game.title}`}
       aria-busy={loading}
-      whileHover={loading ? undefined : { scale: 1.04, y: -6, zIndex: 10 }}
-      whileTap={loading ? undefined : { scale: 1.015, y: -2 }}
-      transition={TILE_SPRING}
-      onClick={(e) => startPlay(e)}
+      /* Desktop: Casino Master hover lift + play. Mobile: press shrink only — no sticky hover play. */
+      whileHover={
+        finePointer && !loading ? { scale: 1.04, y: -6, zIndex: 10 } : undefined
+      }
+      whileTap={
+        loading
+          ? undefined
+          : finePointer
+            ? { scale: 1.015, y: -2 }
+            : { scale: 0.94 }
+      }
+      animate={loading && !finePointer ? { scale: 0.94 } : { scale: 1 }}
+      transition={finePointer ? TILE_SPRING : TILE_PRESS_SPRING}
+      onPointerDown={press.onPointerDown}
+      onPointerUp={press.onPointerUp}
+      onPointerCancel={press.onPointerCancel}
+      onClick={press.onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -129,32 +177,37 @@ export function CasinoGameTile({
         }
       }}
       className={cn(
-        'group relative z-0 h-[207px] w-[152px] shrink-0 cursor-pointer overflow-hidden rounded-[10px] bg-card',
-        'shadow-[0_0_16px_rgba(0,0,0,0.06)]',
+        /* overflow-visible so favorite glass / hover chrome isn’t clipped at the edge */
+        'group relative z-0 h-[207px] w-[152px] shrink-0 cursor-pointer overflow-visible rounded-[10px] bg-card',
+        'shadow-[0_0_16px_rgba(0,0,0,0.06)] touch-manipulation',
         'motion-reduce:!transform-none',
         className,
       )}
     >
-      <img src={game.imageSrc} alt="" className="absolute inset-0 size-full object-cover" />
+      <img
+        src={game.imageSrc}
+        alt=""
+        className="absolute inset-0 size-full rounded-[10px] object-cover"
+      />
       {/* Originals / hideTitle art already includes title + brand — no bottom fade. */}
       {game.tag !== 'Original' && !hideTitle ? (
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 from-0% to-transparent to-[46%]" />
+        <div className="pointer-events-none absolute inset-0 rounded-[10px] bg-gradient-to-t from-black/90 from-0% to-transparent to-[46%]" />
       ) : null}
 
-      {/* Dim overlay */}
+      {/* Dim — desktop hover / focus only; always on while loading. */}
       <div
         className={cn(
-          'absolute inset-0 z-20 bg-black/55 transition-opacity duration-200 ease-out',
+          'absolute inset-0 z-20 rounded-[10px] bg-black/55 transition-opacity duration-200 ease-out',
           loading
             ? 'opacity-100'
-            : 'pointer-events-none opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
+            : 'pointer-events-none opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 group-focus-visible:opacity-100',
         )}
         aria-hidden
       />
 
       {/*
         Fixed 50×50 slot at true center — play and spinner swap in-place (no shift).
-        Play pops in on hover; spinner takes the same box on click.
+        Play pops in on desktop hover only; spinner takes the same box on click (all devices).
       */}
       <div
         className="pointer-events-none absolute left-1/2 top-1/2 z-20 size-[50px] -translate-x-1/2 -translate-y-1/2"
@@ -169,7 +222,7 @@ export function CasinoGameTile({
             'absolute inset-0 size-[50px] origin-center transition-[transform,opacity] duration-200 ease-out',
             loading
               ? 'pointer-events-none scale-100 opacity-0'
-              : 'scale-50 opacity-0 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100 motion-reduce:scale-100 motion-reduce:transition-none',
+              : 'scale-50 opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:scale-100 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100 motion-reduce:scale-100 motion-reduce:transition-none',
           )}
         />
         <div
@@ -182,7 +235,6 @@ export function CasinoGameTile({
         </div>
       </div>
 
-      {/* Tags + favorite stay on hover / play (Casino Master hover keeps chrome). */}
       <div
         className={cn(
           'absolute inset-x-0 top-0 z-30 flex items-start justify-between gap-1 py-1',
@@ -217,6 +269,8 @@ export function CasinoGameTile({
           title={game.title}
           favoriteLabel={`Add ${game.title} to favorites`}
           unfavoriteLabel={`Remove ${game.title} from favorites`}
+          isFavorited={shell?.isFavorite(game.id) ?? false}
+          onFavoriteChange={() => shell?.toggleFavorite(game)}
           className={cn(
             '!relative right-0 top-0 hidden opacity-100 md:inline-flex',
             dense ? 'size-6' : 'size-7',
@@ -252,17 +306,21 @@ export function PlayRandomTile({
   className?: string
   onLaunch?: (game: CasinoLobbyGame) => void
 }) {
+  const finePointer = useFinePointer()
   return (
     <motion.button
       type="button"
       data-name="play-random"
-      whileHover={{ scale: 1.04, y: -6, zIndex: 10 }}
-      whileTap={{ scale: 1.015, y: -2 }}
-      transition={TILE_SPRING}
+      whileHover={
+        finePointer ? { scale: 1.04, y: -6, zIndex: 10 } : undefined
+      }
+      whileTap={finePointer ? { scale: 1.015, y: -2 } : { scale: 0.94 }}
+      transition={finePointer ? TILE_SPRING : TILE_PRESS_SPRING}
       onClick={() => onLaunch?.(pickRandomLobbyGame())}
       className={cn(
         'relative z-0 flex h-[207px] w-[152px] shrink-0 flex-col items-center justify-center gap-4 rounded-[10px] border border-border bg-card',
         'shadow-[0_0_16px_rgba(0,0,0,0.06)]',
+        'transition-colors active:bg-accent',
         'motion-reduce:!transform-none',
         className,
       )}

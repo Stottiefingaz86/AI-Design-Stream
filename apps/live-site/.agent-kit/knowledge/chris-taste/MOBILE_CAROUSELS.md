@@ -1,6 +1,6 @@
 # Mobile carousels — settled preference
 
-**Source:** Chris, PropShopX soccer odds (repeated). Quote: “remove arrows on mobile… store in the knowledge.”
+**Source:** Chris, Sports prototype soccer odds (repeated). Quote: “remove arrows on mobile… store in the knowledge.”
 
 ## Rule
 

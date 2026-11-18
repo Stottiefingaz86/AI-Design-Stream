@@ -1,4 +1,7 @@
-import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
+'use client'
+
+import { usePathname } from 'next/navigation'
+import { casinoSkeletonForPath } from '@/components/lumen/casino-lobby-skeleton'
 import { PokerLandingSkeleton } from '@/components/lumen/poker-landing-skeleton'
 import { PromotionsLobbySkeleton } from '@/components/lumen/promotions-lobby-skeleton'
 import type { ShellProduct } from './shell-nav'
@@ -10,6 +13,7 @@ export function ProductRouteLoading({
 }: {
   product?: Extract<ShellProduct, 'casino' | 'poker' | 'promotions'>
 }) {
+  const pathname = usePathname()
   return (
     <ShellFrame skeleton>
       {product === 'poker' ? (
@@ -17,7 +21,7 @@ export function ProductRouteLoading({
       ) : product === 'promotions' ? (
         <PromotionsLobbySkeleton />
       ) : (
-        <CasinoLobbySkeleton />
+        casinoSkeletonForPath(pathname)
       )}
     </ShellFrame>
   )

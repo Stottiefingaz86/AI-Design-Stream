@@ -35,7 +35,7 @@ Companion to [SKILL.md](SKILL.md). Open when implementing a specific surface.
 - **Mobile + touch:** `overflow-x-auto` + `scrollbar-hide` only. **No** absolute edge arrow buttons. Ever.
 - **Never `touch-pan-x`** on those rails — it blocks vertical page scroll when the finger starts on the carousel. Use `overscroll-x-contain` if you need to contain horizontal bounce.
 - **Desktop (mouse):** optional casino-style glass chevrons, gated by `(hover: hover) and (pointer: fine)`.
-- PropShopX soccer: `MobileOddsCarousel` = swipe strip; `EventOddsRail` arrows only when fine pointer.
+- Sports prototype soccer: `MobileOddsCarousel` = swipe strip; `EventOddsRail` arrows only when fine pointer.
 
 ### Live Wins carousel (casino lobby)
 - Full taste note: `.cursor/knowledge/chris-taste/LIVE_WINS_CAROUSEL.md`.
@@ -98,6 +98,7 @@ Dark token reality:
 
 ## Live activity feed
 
+- **Table only** — title + live bet table. No All Bets / Jackpot Winners / 25k Daily Races sub-nav.
 - Visible rows ~6–8; tick ~900ms when `playing && !hovered`.
 - Hover table → pause; leave → resume if still playing.
 - Toggle icon shows **status**: Play when live, Pause when paused.
@@ -118,13 +119,17 @@ Keep claim amount equal to `VIP_REWARDS_SEED` for that id (RAF page and hub stay
 
 Legacy `body > div` rules force `position: relative` and kill stacking. **Every** `createPortal(…, document.body)` overlay must:
 
-1. Set a root attribute, e.g. `data-daily-spin-root`, `data-auth-modal-root`, `data-churn-rescue-root`.
+1. Set a root attribute, e.g. `data-daily-spin-root`, `data-auth-modal-root`, `data-churn-rescue-root`, `data-profile-gate-root`.
 2. Be listed in the `:not([data-…])` carve-out selectors in `app/globals.css`.
-3. Have a dedicated fixed block: `position: fixed !important; inset: 0; z-index: ≥250` (VIP Hub is **200** — modals that open from the hub must be higher).
+3. Have a dedicated fixed block: `position: fixed !important; inset: 0; z-index: ≥250` (VIP Hub is **200** — modals that open from the hub / betslip must be higher).
 
-Tailwind `z-[240]` alone is **not enough** — without the carve-out the portal paints under VIP Hub / cashier / drawer. Chris has hit this repeatedly; do not relearn it.
+Tailwind `z-[240]` alone is **not enough** — without the carve-out the portal paints under VIP Hub / cashier / drawer / soccer betslip. Chris has hit this repeatedly (profile gate Oct 2026); do not relearn it.
 
 **Daily Spin** = ship the BOL `JackpotWheelBonus` component (`components/lumen/jackpot/jackpot-wheel-bonus.tsx`) + sounds (`lib/sounds.ts`, `/public/sound/`) + wordmarks (`/WHEEL_LOGO/`). Do not redraw the wheel. See `.cursor/knowledge/chris-taste/DAILY_SPIN.md` + `COPY.md`.
+
+## Sports side-nav section collapse
+
+Quiet section labels (Top Leagues / Top Sports / A–Z). Chevron **always visible** with hover wash on the hit target — not a FAQ-style accordion bar, not hide-until-hover. Smooth open/close via `grid-rows-[0fr]/[1fr]`.
 
 ## Sticky sidebar
 
@@ -161,3 +166,17 @@ Tailwind `z-[240]` alone is **not enough** — without the carve-out the portal 
 - **Correct token > approximate grey** — especially dark inputs and accents.
 - **Figma mark when it exists** — don't substitute a generic icon for a branded token.
 - **Mobile = swipe, never overlay arrows** on carousels / odds — settled preference; store and obey.
+
+## Competitor UX (Mobbin)
+
+Companion to SKILL **Competitor patterns via Mobbin**.
+
+| Need | Do |
+|------|----|
+| Peer join / verify / OTP | Mobbin web: signup / phone verify; then AuthModal + `AUTH_JOIN.md` |
+| Rewards in chrome | Mobbin + Rainbet gift / Winna Bonus Center notes in `COMPETITOR_RESEARCH.md` |
+| Live social proof | Mobbin + Rainbet Live Wins → `LIVE_WINS_CAROUSEL.md` |
+| Mobbin unavailable | Local `competitors/` + research MD only; tell Chris MCP is blocked |
+
+Always: **inspire → Lumen/shell**. Never paste peer visuals.
+

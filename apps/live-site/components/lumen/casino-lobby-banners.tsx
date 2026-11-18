@@ -14,6 +14,15 @@ import { useShell } from '@/components/site/shell-context';
 import { Card } from '@/components/ui/card';
 import { Typography } from '@/components/ui/typography';
 import { useGrowProgress } from '@/lib/lumen/use-grow-progress';
+import { useVipLevelUpCeremony } from '@/lib/lumen/use-vip-level-up-ceremony';
+import {
+  VipProgressBarFill,
+  VipProgressCrown,
+} from '@/components/lumen/vip-progress-crown';
+import {
+  DAILY_RACE_STATUS,
+  formatRaceCountdown,
+} from '@/lib/lumen/daily-races';
 import { cn } from '@/lib/utils';
 
 const BANNER_LAUNCH_MS = 2200;
@@ -56,16 +65,28 @@ export type VipProgressBannerProps = {
 };
 
 export function VipProgressBanner({
-  levelLabel = 'Bronze to Silver',
-  progressPercent = 25,
-  updatedAt = 'Updated 24/25/2024, 8:00 PM ET',
+  levelLabel: levelLabelProp,
+  progressPercent,
+  updatedAt,
   hubLabel = 'Open VIP Hub',
   onOpenHub,
   className,
 }: VipProgressBannerProps) {
   const { setVipHubOpen } = useShell();
-  const pct = Math.min(100, Math.max(0, progressPercent));
+  const {
+    displayPercent,
+    levelLabel: ceremonyLabel,
+    barTone,
+    crownTone,
+    updatedLabel,
+  } = useVipLevelUpCeremony();
+  const pct = Math.min(
+    100,
+    Math.max(0, progressPercent ?? displayPercent),
+  );
   const grown = useGrowProgress(pct);
+  const stamp = updatedAt ?? updatedLabel;
+  const levelLabel = levelLabelProp ?? ceremonyLabel;
   const openHub = () => {
     if (onOpenHub) onOpenHub();
     else setVipHubOpen(true);
@@ -99,9 +120,12 @@ export function VipProgressBanner({
         </span>
       </div>
       <div>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{levelLabel}</span>
-          <span className="tabular-nums">{Math.round(grown)}%</span>
+        <div className="flex items-center gap-2">
+          <VipProgressCrown tone={crownTone} size={28} className="size-7" />
+          <div className="flex min-w-0 flex-1 items-center justify-between text-xs text-muted-foreground">
+            <span className="truncate text-foreground">{levelLabel}</span>
+            <span className="tabular-nums">{Math.round(grown)}%</span>
+          </div>
         </div>
         <div
           className="mt-2 h-2 overflow-hidden rounded-full bg-surface-muted-2"
@@ -111,13 +135,10 @@ export function VipProgressBanner({
           aria-valuemax={100}
           aria-label="VIP tier progress"
         >
-          <div
-            className="h-full rounded-full bg-[var(--vip-rewards-bronze-400,#e39e3d)]"
-            style={{ width: `${grown}%` }}
-          />
+          <VipProgressBarFill percent={grown} tone={barTone} />
         </div>
         <Typography as="p" shape="xxs" variant="muted" className="mt-2">
-          {updatedAt}
+          {stamp}
         </Typography>
       </div>
     </Card>
@@ -133,25 +154,35 @@ export type DailyRacesBannerProps = {
 };
 
 export function DailyRacesBanner({
-  countdown = '06 : 54 : 31',
-  position = '3rd',
-  wagered = '$80.000',
-  prize = '$160.000',
+  countdown,
+  position = DAILY_RACE_STATUS.position,
+  wagered = DAILY_RACE_STATUS.wagered,
+  prize = DAILY_RACE_STATUS.prize,
   className,
 }: DailyRacesBannerProps) {
   const { setVipHubOpen } = useShell();
+  const [remaining, setRemaining] = useState(DAILY_RACE_STATUS.endsInSeconds);
   const cells: [string, string][] = [
     [position, 'Position'],
     [wagered, 'Wagered'],
     [prize, 'Current Prize'],
   ];
-  const { loading, launch } = useLaunchAction(() => setVipHubOpen(true, 'Daily Races'));
+  const { loading, launch } = useLaunchAction(() => setVipHubOpen(true, '$25k Daily Race'));
+  const clock = countdown ?? formatRaceCountdown(remaining);
+
+  useEffect(() => {
+    if (countdown != null) return;
+    const id = window.setInterval(() => {
+      setRemaining((s) => (s <= 0 ? DAILY_RACE_STATUS.endsInSeconds : s - 1));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [countdown]);
 
   return (
     <Card
       role="button"
       tabIndex={0}
-      aria-label="Open Daily Races in VIP Hub"
+      aria-label="Open $25k Daily Race in VIP Hub"
       aria-busy={loading}
       onClick={launch}
       onKeyDown={(e) => {
@@ -173,10 +204,10 @@ export function DailyRacesBanner({
       ) : null}
       <div className="flex items-start justify-between gap-2">
         <Typography as="h3" shape="small" weight="semibold">
-          Daily Races
+          $25k Daily Race
         </Typography>
         <Typography as="p" shape="small" className="font-mono tabular-nums">
-          {countdown}
+          {clock}
         </Typography>
       </div>
       <div className="grid grid-cols-3 gap-2">
@@ -207,6 +238,12 @@ export type PromoLobbyBannerProps = {
   imageAlt?: string;
   /** `bleed` = full-card background (left clear for copy). `panel` = Figma right 160px art slot. */
   imageMode?: 'panel' | 'bleed';
+  /** Bleed art only — `dark` = black pill. Default = white pill (matches Halloween / lobby). */
+  tagTone?: 'light' | 'dark';
+  /** Extra classes on bleed art (e.g. push subject further right so copy stays clear). */
+  imageClassName?: string;
+  /** Left scrim strength over bleed art. `strong` when subject sits under the copy column. */
+  bleedScrim?: 'default' | 'strong';
   onAction?: () => void;
   className?: string;
 };
@@ -219,11 +256,15 @@ export function PromoLobbyBanner({
   imageSrc,
   imageAlt = '',
   imageMode = 'panel',
+  tagTone = 'light',
+  imageClassName,
+  bleedScrim = 'default',
   onAction,
   className,
 }: PromoLobbyBannerProps) {
   const { loading, launch } = useLaunchAction(onAction);
   const bleed = imageMode === 'bleed';
+  const darkTag = bleed && tagTone === 'dark';
 
   /* Figma Banner 340×164 — Play Now hugs content (h-8). */
   return (
@@ -250,9 +291,19 @@ export function PromoLobbyBanner({
           <img
             src={imageSrc}
             alt=""
-            className="pointer-events-none absolute inset-0 size-full object-cover object-right"
+            className={cn(
+              'pointer-events-none absolute inset-0 size-full object-cover object-right',
+              imageClassName,
+            )}
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-transparent" />
+          <div
+            className={cn(
+              'pointer-events-none absolute inset-0 bg-gradient-to-r to-transparent',
+              bleedScrim === 'strong' && 'from-black from-35% via-black/80 via-55% to-transparent',
+              bleedScrim === 'default' && darkTag && 'from-black/55 via-black/25',
+              bleedScrim === 'default' && !darkTag && 'from-black/75 via-black/45',
+            )}
+          />
         </>
       ) : null}
 
@@ -272,7 +323,9 @@ export function PromoLobbyBanner({
           <span
             className={cn(
               'inline-flex w-fit rounded-full px-1.5 py-0.5 text-[10px] font-medium leading-[14px]',
-              bleed ? 'bg-white text-black' : 'bg-foreground text-background',
+              !bleed && 'bg-foreground text-background',
+              bleed && !darkTag && 'bg-white text-black',
+              darkTag && 'rounded-md bg-black text-white uppercase tracking-wide',
             )}
           >
             {tag}
@@ -287,8 +340,8 @@ export function PromoLobbyBanner({
           </h3>
           <p
             className={cn(
-              /* Tight leading — 10px type with 12px line box (was too airy at 14px) */
-              'line-clamp-2 text-[10px] font-normal leading-3',
+              /* 3 lines so welcome free-spins copy can finish with “at BetOnline!” */
+              'line-clamp-3 text-[10px] font-normal leading-3',
               bleed ? 'text-white/75' : 'text-muted-foreground',
             )}
           >
@@ -336,6 +389,11 @@ export type CasinoLobbyBannerRowProps = {
   dailyRaces?: DailyRacesBannerProps | false;
   promos?: PromoLobbyBannerItem[];
   className?: string;
+  /**
+   * Flush-left variant for padded containers (e.g. account desk) — removes the
+   * `first:pl-6` lobby gutter so the first banner aligns with neighboring cards.
+   */
+  flush?: boolean;
 };
 
 /** Figma 69-47911 — VIP + Daily Races + promo cards. Inside arrows sit on the track. */
@@ -349,10 +407,14 @@ export function CasinoLobbyBannerRow({
   dailyRaces = {},
   promos = DEFAULT_PROMOS,
   className,
+  flush = false,
 }: CasinoLobbyBannerRowProps) {
-  const showVip = vip !== false;
-  const showRaces = dailyRaces !== false;
+  const { loggedIn } = useShell();
+  /* VIP Progress + Daily Race are player widgets — never on logged-out lobby. */
+  const showVip = loggedIn && vip !== false;
+  const showRaces = loggedIn && dailyRaces !== false;
   const items = promos ?? [];
+  const firstGutter = flush ? 'first:pl-0' : 'first:pl-6';
   const [api, setApi] = useState<CarouselApi>();
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
@@ -381,17 +443,17 @@ export function CasinoLobbyBannerRow({
     >
       <CarouselContent className="ml-0 gap-3">
         {showVip ? (
-          <CarouselItem className="basis-auto pl-0 first:pl-6">
+          <CarouselItem className={cn('basis-auto pl-0', firstGutter)}>
             <VipProgressBanner {...vip} />
           </CarouselItem>
         ) : null}
         {showRaces ? (
-          <CarouselItem className="basis-auto pl-0 first:pl-6">
-            <DailyRacesBanner {...dailyRaces} />
+          <CarouselItem className={cn('basis-auto pl-0', firstGutter)}>
+            <DailyRacesBanner {...(dailyRaces === false ? {} : dailyRaces)} />
           </CarouselItem>
         ) : null}
         {items.map((item, i) => (
-          <CarouselItem key={item.id ?? `promo-${i}`} className="basis-auto pl-0 first:pl-6">
+          <CarouselItem key={item.id ?? `promo-${i}`} className={cn('basis-auto pl-0', firstGutter)}>
             <PromoLobbyBanner {...item} />
           </CarouselItem>
         ))}

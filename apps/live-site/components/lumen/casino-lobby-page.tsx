@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import NumberFlow from '@number-flow/react'
@@ -16,21 +16,18 @@ import {
 } from '@/components/ui/carousel'
 import { Typography } from '@/components/ui/typography'
 import { CasinoLobbyBannerRow } from '@/components/lumen/casino-lobby-banners'
+import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
 import {
   CASINO_TILE_H,
   CASINO_TILE_W,
   CasinoGameTile,
   PlayRandomTile,
 } from '@/components/lumen/casino-game-tile'
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card'
 import { useShell } from '@/components/site/shell-context'
 import { CASINO_LOBBY_PROMO_BANNERS } from '@/lib/lumen/casino-lobby-promos'
 import {
   ACTIVITY_ROWS,
+  activityGameFromTitle,
   CHRISTMAS_PROMO,
   CONTINUE_PLAYING,
   EXCLUSIVE_GAMES,
@@ -38,6 +35,7 @@ import {
   HALLOWEEN_PROMO,
   JACKPOT_GAMES,
   JACKPOT_TIERS,
+  LAST_GAME_PLAYED,
   LIVE_GAMES,
   NEW_GAMES,
   ORIGINALS_GAMES,
@@ -59,7 +57,7 @@ function ShelfHeader({
   onLight,
   hideArrows,
   hideSeeMore,
-  seeMoreHref = '/casino',
+  seeMoreHref,
 }: {
   title?: string
   /** Muted parenthetical — e.g. Figma “VIP Jackpots (Block)”. */
@@ -68,8 +66,9 @@ function ShelfHeader({
   /** Bright banner art — solid white controls so they don't wash out. */
   onLight?: boolean
   hideArrows?: boolean
-  /** Top 10 / providers — arrows only, no See More. */
+  /** Top 10 / providers / Continue Playing — arrows only, no See More. */
   hideSeeMore?: boolean
+  /** Omit to hide See More (e.g. Continue Playing). */
   seeMoreHref?: string
 }) {
   const { startNavigating } = useShell()
@@ -107,7 +106,7 @@ function ShelfHeader({
       )}
       {/* Theme banners (no title): hide floating chrome on mobile — swipe only. */}
       <div className={cn('flex shrink-0 items-center gap-4', !title && 'max-md:hidden')}>
-        {hideSeeMore ? null : (
+        {hideSeeMore || !seeMoreHref ? null : (
           <Link
             href={seeMoreHref}
             className={seeMoreClass}
@@ -394,6 +393,28 @@ export function CasinoGameShelf({
   )
 }
 
+/** Continue Playing — logged-in only; demo last-10 rail (hidden when logged out). */
+export function ContinuePlayingShelf({ className }: { className?: string }) {
+  const { loggedIn, lastPlayedGame, launchGame } = useShell()
+  if (!loggedIn) return null
+  const games = useMemo(() => {
+    if (!lastPlayedGame) return CONTINUE_PLAYING
+    const rest = CONTINUE_PLAYING.filter(
+      (g) => g.id !== lastPlayedGame.id && g.title !== lastPlayedGame.title,
+    )
+    return [lastPlayedGame, ...rest].slice(0, 10)
+  }, [lastPlayedGame])
+  return (
+    <CasinoGameShelf
+      title="Continue Playing"
+      games={games}
+      showPlayRandom
+      className={className}
+      onLaunch={launchGame}
+    />
+  )
+}
+
 /**
  * Top 10 posters are the same size as every other shelf tile.
  * Rank peeks left; ~45% tucks under the poster (Netflix).
@@ -406,13 +427,14 @@ const TOP10_TEN_SLOT_W = TOP10_TEN_TILE_LEFT + CASINO_TILE_W
 /**
  * Netflix rank — glyph height = tile height, no clip.
  * Stroke fades left → right via `--top10-stroke-*` (dark→light in light, light→dark in dark).
+ * Wide slot for two-digit ranks (10+).
  */
-function Top10Rank({ rank }: { rank: number }) {
+export function CasinoTop10Rank({ rank }: { rank: number }) {
   const uid = useId().replace(/:/g, '')
   const strokeId = `top10-stroke-${uid}`
-  const isTen = rank === 10
-  const numW = isTen ? TOP10_TEN_SLOT_W : TOP10_SLOT_W
-  const peek = isTen ? TOP10_TEN_TILE_LEFT : TOP10_TILE_LEFT
+  const isWide = rank >= 10
+  const numW = isWide ? TOP10_TEN_SLOT_W : TOP10_SLOT_W
+  const peek = isWide ? TOP10_TEN_TILE_LEFT : TOP10_TILE_LEFT
   const fadeStart = `${((peek * 0.5) / numW) * 100}%`
   const fadeEnd = `${(peek / numW) * 100}%`
   return (
@@ -449,13 +471,18 @@ function Top10Rank({ rank }: { rank: number }) {
         fontFamily='Impact, Haettenschweiler, "Arial Black", sans-serif'
         fontSize={CASINO_TILE_H}
         fontWeight={900}
-        letterSpacing={isTen ? -12 : 0}
+        letterSpacing={isWide ? -12 : 0}
       >
         {rank}
       </text>
     </svg>
   )
 }
+
+export const CASINO_TOP10_TILE_LEFT = TOP10_TILE_LEFT
+export const CASINO_TOP10_TEN_TILE_LEFT = TOP10_TEN_TILE_LEFT
+export const CASINO_TOP10_SLOT_W = TOP10_SLOT_W
+export const CASINO_TOP10_TEN_SLOT_W = TOP10_TEN_SLOT_W
 
 export function CasinoTop10({
   games,
@@ -478,7 +505,7 @@ export function CasinoTop10({
         <CarouselContent className="!ml-0 gap-4 py-5">
           {games.slice(0, 10).map((game, i) => {
             const rank = i + 1
-            const isTen = rank === 10
+            const isWide = rank >= 10
             return (
               <CarouselItem key={game.id} className="basis-auto pl-0 first:pl-6 last:pr-6">
                 <div
@@ -486,10 +513,10 @@ export function CasinoTop10({
                   className="relative shrink-0 overflow-visible"
                   style={{
                     height: CASINO_TILE_H,
-                    width: isTen ? TOP10_TEN_SLOT_W : TOP10_SLOT_W,
+                    width: isWide ? TOP10_TEN_SLOT_W : TOP10_SLOT_W,
                   }}
                 >
-                  <Top10Rank rank={rank} />
+                  <CasinoTop10Rank rank={rank} />
                   <CasinoGameTile
                     game={game}
                     dense
@@ -497,7 +524,7 @@ export function CasinoTop10({
                     onLaunch={onLaunch}
                     className={cn(
                       'absolute top-0 z-10 shadow-[0_4px_16px_rgba(0,0,0,0.35)]',
-                      isTen ? 'left-[132px]' : 'left-[72px]',
+                      isWide ? 'left-[132px]' : 'left-[72px]',
                     )}
                   />
                 </div>
@@ -774,79 +801,10 @@ function Crown({ tone }: { tone: 'gold' | 'purple' | 'silver' | 'none' }) {
   )
 }
 
-const ACTIVITY_FILTERS = [
-  { id: 'all', label: 'All Bets' },
-  { id: 'jackpot', label: 'Jackpot Winners' },
-  { id: 'races', label: '25k Daily Races' },
-] as const
-
-/** Same sliding pill track as casino `sub-menu` (nav-menu-solid). */
-function ActivityFilterTrack({
-  active,
-  onChange,
-}: {
-  active: (typeof ACTIVITY_FILTERS)[number]['id']
-  onChange: (id: (typeof ACTIVITY_FILTERS)[number]['id']) => void
-}) {
-  const trackRef = useRef<HTMLDivElement>(null)
-  const [thumb, setThumb] = useState({ x: 0, w: 0, ready: false })
-
-  const measureThumb = useCallback(() => {
-    const track = trackRef.current
-    const btn = track?.querySelector<HTMLElement>('[data-sub-menu-pill][data-active="true"]')
-    if (!track || !btn) return
-    setThumb({ x: btn.offsetLeft, w: btn.offsetWidth, ready: true })
-  }, [])
-
-  useLayoutEffect(() => {
-    measureThumb()
-    const track = trackRef.current
-    if (!track) return
-    const ro = new ResizeObserver(measureThumb)
-    ro.observe(track)
-    return () => ro.disconnect()
-  }, [active, measureThumb])
-
-  return (
-    <div data-name="sub-menu-table-activity" className="mb-3">
-      <div
-        ref={trackRef}
-        data-name="sub-menu-pill-track"
-        className="scrollbar-hide relative flex h-12 w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full p-0.5 md:w-fit md:max-w-full"
-        role="tablist"
-        aria-label="Activity filters"
-      >
-        <span
-          aria-hidden
-          data-sub-menu-thumb=""
-          className="pointer-events-none absolute top-0.5 h-11 rounded-full bg-primary transition-[left,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          style={{ left: thumb.x, width: thumb.w, opacity: thumb.ready ? 1 : 0 }}
-        />
-        {ACTIVITY_FILTERS.map((item) => {
-          const on = item.id === active
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              data-sub-menu-pill=""
-              data-active={on ? 'true' : 'false'}
-              onClick={() => onChange(item.id)}
-              className="relative z-10 h-11 shrink-0 rounded-full bg-transparent px-4 text-sm font-normal leading-5 transition-colors duration-300"
-            >
-              {item.label}
-            </button>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 type ActivityFeedRow = (typeof ACTIVITY_ROWS)[number] & { id: string }
 
-const ACTIVITY_VISIBLE = 6
+const ACTIVITY_VISIBLE = 8
+const ACTIVITY_TICK_MS = 900
 const ACTIVITY_ROW_H = '3.5rem'
 const ACTIVITY_EASE = [0.22, 1, 0.36, 1] as const
 
@@ -858,50 +816,53 @@ function seedActivityRows(): ActivityFeedRow[] {
 }
 
 function ActivityPlayToggle({
-  playing,
+  live,
   onToggle,
 }: {
-  playing: boolean
+  live: boolean
   onToggle: () => void
 }) {
   return (
     <button
       type="button"
       data-name="Toggle"
-      aria-label={playing ? 'Pause live feed' : 'Resume live feed'}
-      aria-pressed={playing}
+      aria-label={live ? 'Pause live feed' : 'Resume live feed'}
+      aria-pressed={live}
       onClick={onToggle}
       className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-secondary text-foreground transition-colors hover:bg-muted"
     >
-      {playing ? (
-        <IconPlayerPause className="size-3.5" stroke={2} />
-      ) : (
+      {live ? (
         <IconPlayerPlay className="size-3.5" stroke={2} />
+      ) : (
+        <IconPlayerPause className="size-3.5" stroke={2} />
       )}
     </button>
   )
 }
 
-/** Match bol-seven: Framer layout + popLayout — new row slides in, others push down. */
+/** Match bol-seven: Framer layout + popLayout — new row slides in, others push down. Table only — no Jackpot / Daily Race sub-nav. */
 export function CasinoActivity() {
-  const [filter, setFilter] = useState<(typeof ACTIVITY_FILTERS)[number]['id']>('all')
+  const { launchGame: openLauncher } = useShell()
   const [playing, setPlaying] = useState(true)
+  const [hovered, setHovered] = useState(false)
   const [rows, setRows] = useState<ActivityFeedRow[]>(seedActivityRows)
   const [launchingId, setLaunchingId] = useState<string | null>(null)
   const seqRef = useRef(0)
   const launchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const live = playing && !hovered
 
   useEffect(() => {
-    if (!playing || filter !== 'all') return
-    const tick = window.setInterval(() => {
+    if (!live) return
+    const push = () => {
       seqRef.current += 1
       const template = ACTIVITY_ROWS[seqRef.current % ACTIVITY_ROWS.length]!
       setRows((prev) =>
         [{ ...template, id: `live-${seqRef.current}-${Date.now()}` }, ...prev].slice(0, ACTIVITY_VISIBLE),
       )
-    }, 2500)
+    }
+    const tick = window.setInterval(push, ACTIVITY_TICK_MS)
     return () => window.clearInterval(tick)
-  }, [playing, filter])
+  }, [live])
 
   useEffect(() => {
     return () => {
@@ -912,8 +873,9 @@ export function CasinoActivity() {
   const launchGame = (row: ActivityFeedRow) => {
     if (launchingId) return
     setLaunchingId(row.id)
+    openLauncher(activityGameFromTitle(row.game))
     if (launchTimer.current) clearTimeout(launchTimer.current)
-    launchTimer.current = setTimeout(() => setLaunchingId(null), 2200)
+    launchTimer.current = setTimeout(() => setLaunchingId(null), 900)
   }
 
   return (
@@ -921,185 +883,128 @@ export function CasinoActivity() {
       <Typography as="h3" shape="h4" weight="semibold" className="mb-2.5">
         Activity
       </Typography>
-      <div data-name="sub-menu">
-        <ActivityFilterTrack active={filter} onChange={setFilter} />
-      </div>
-      {filter === 'all' ? (
-        <div
-          data-name="Casino activity"
-          className="overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_16px_rgba(0,0,0,0.06)]"
-        >
-          {/* Desktop header */}
-          <div className="hidden h-[42px] items-center border-b border-border bg-surface-muted-1 text-sm font-medium text-muted-foreground md:flex">
-            {['User', 'Game', 'Bet Amount', 'Multiplier'].map((head) => (
-              <div key={head} className="min-w-0 flex-1 px-3">
-                {head}
-              </div>
-            ))}
-            <div className="flex min-w-0 flex-1 items-center">
-              <span className="min-w-0 flex-1 px-3">Payout</span>
-              <div className="px-3">
-                <ActivityPlayToggle playing={playing} onToggle={() => setPlaying((v) => !v)} />
-              </div>
+      <div
+        data-name="Casino activity"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        className="overflow-hidden rounded-[10px] border border-border bg-card shadow-[0_0_16px_rgba(0,0,0,0.06)]"
+      >
+        {/* Desktop header */}
+        <div className="hidden h-[42px] items-center border-b border-border bg-surface-muted-1 text-sm font-medium text-muted-foreground md:flex">
+          {['User', 'Game', 'Bet Amount', 'Multiplier'].map((head) => (
+            <div key={head} className="min-w-0 flex-1 px-3">
+              {head}
+            </div>
+          ))}
+          <div className="flex min-w-0 flex-1 items-center">
+            <span className="min-w-0 flex-1 px-3">Payout</span>
+            <div className="px-3">
+              <ActivityPlayToggle live={live} onToggle={() => setPlaying((v) => !v)} />
             </div>
           </div>
-          {/* Mobile header — Figma compact: Game + amount */}
-          <div className="flex h-[42px] items-center border-b border-border bg-surface-muted-1 text-sm font-medium text-muted-foreground md:hidden">
-            <span className="min-w-0 flex-1 px-3">Game</span>
-            <div className="flex items-center gap-2 px-3">
-              <span>Payout</span>
-              <ActivityPlayToggle playing={playing} onToggle={() => setPlaying((v) => !v)} />
-            </div>
+        </div>
+        {/* Mobile header — Figma compact: Game + amount */}
+        <div className="flex h-[42px] items-center border-b border-border bg-surface-muted-1 text-sm font-medium text-muted-foreground md:hidden">
+          <span className="min-w-0 flex-1 px-3">Game</span>
+          <div className="flex items-center gap-2 px-3">
+            <span>Payout</span>
+            <ActivityPlayToggle live={live} onToggle={() => setPlaying((v) => !v)} />
           </div>
-          <div className="relative overflow-hidden" style={{ height: `calc(${ACTIVITY_VISIBLE} * ${ACTIVITY_ROW_H})` }}>
-            <AnimatePresence initial={false} mode="popLayout">
-              {rows.map((row) => {
-                const launching = launchingId === row.id
-                return (
-                  <motion.div
-                    key={row.id}
-                    layout
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 12, transition: { duration: 0.18 } }}
-                    transition={{
-                      duration: 0.25,
-                      ease: ACTIVITY_EASE,
-                      layout: { duration: 0.25, ease: ACTIVITY_EASE },
-                    }}
-                    className="flex h-14 items-center border-b border-border text-sm transition-colors last:border-b-0 hover:bg-surface-muted-1"
-                  >
-                    <div className="hidden min-w-0 flex-1 px-3 md:block">
-                      <span className="inline-flex items-center gap-1">
-                        <Crown tone={row.crown} />
-                        {row.user}
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1 px-3">
-                      <HoverCard>
-                        <HoverCardTrigger asChild>
-                          <button
-                            type="button"
-                            onClick={() => launchGame(row)}
-                            disabled={!!launchingId && !launching}
-                            aria-busy={launching}
-                            aria-label={`Play ${row.game}`}
-                            className={cn(
-                              'inline-flex max-w-full items-center gap-2 rounded-lg border border-transparent bg-transparent px-1.5 py-1 text-left transition-colors',
-                              'hover:border-border hover:bg-card hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]',
-                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                              launching && 'border-border bg-card',
-                            )}
-                          >
-                            <span className="relative size-[22px] shrink-0 overflow-hidden rounded-[3px]">
-                              <img
-                                src="/games/originals/plinko.png"
-                                alt=""
-                                className={cn(
-                                  'size-[22px] object-cover transition-opacity',
-                                  launching && 'opacity-40',
-                                )}
-                              />
-                              {launching ? (
-                                <span className="absolute inset-0 flex items-center justify-center bg-black/35">
-                                  <span className="size-3 animate-spin rounded-full border-[1.5px] border-white/30 border-t-white" />
-                                </span>
-                              ) : null}
-                            </span>
-                            <span className="min-w-0 truncate font-medium">{row.game}</span>
-                          </button>
-                        </HoverCardTrigger>
-                        <HoverCardContent side="top" className="w-[260px] p-0">
-                          <div className="overflow-hidden rounded-[10px]">
-                            <div className="relative h-[120px] bg-surface-muted-2">
-                              <img
-                                src="/games/originals/plinko.png"
-                                alt=""
-                                className="size-full object-cover"
-                              />
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
-                              <p className="absolute inset-x-3 bottom-2 truncate text-sm font-semibold text-white">
-                                {row.game}
-                              </p>
-                            </div>
-                            <div className="flex flex-col gap-3 p-3">
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div className="rounded-md bg-surface-muted-1 px-2 py-1.5">
-                                  <p className="text-muted-foreground">Bet</p>
-                                  <p className="font-medium text-foreground">{row.bet}</p>
-                                </div>
-                                <div className="rounded-md bg-surface-muted-1 px-2 py-1.5">
-                                  <p className="text-muted-foreground">Payout</p>
-                                  <p className={cn('font-medium', row.win ? 'text-success' : 'text-foreground')}>
-                                    {row.payout}
-                                  </p>
-                                </div>
-                              </div>
-                              <Button
-                                size="sm"
-                                className="relative w-full justify-center"
-                                disabled={!!launchingId && !launching}
-                                aria-busy={launching}
-                                onClick={() => launchGame(row)}
-                              >
-                                <span className={cn(launching && 'invisible')}>Play {row.game}</span>
-                                {launching ? (
-                                  <span className="absolute inset-0 flex items-center justify-center">
-                                    <span className="size-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-                                  </span>
-                                ) : null}
-                              </Button>
-                            </div>
-                          </div>
-                        </HoverCardContent>
-                      </HoverCard>
-                    </div>
-                    <div className="hidden min-w-0 flex-1 px-3 md:block">{row.bet}</div>
-                    <div className="hidden min-w-0 flex-1 px-3 md:block">{row.multi}</div>
-                    <div
+        </div>
+        <div className="relative overflow-hidden" style={{ height: `calc(${ACTIVITY_VISIBLE} * ${ACTIVITY_ROW_H})` }}>
+          <AnimatePresence initial={false} mode="popLayout">
+            {rows.map((row) => {
+              const launching = launchingId === row.id
+              const lobbyGame = activityGameFromTitle(row.game)
+              return (
+                <motion.div
+                  key={row.id}
+                  layout
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 12, transition: { duration: 0.18 } }}
+                  transition={{
+                    duration: 0.25,
+                    ease: ACTIVITY_EASE,
+                    layout: { duration: 0.25, ease: ACTIVITY_EASE },
+                  }}
+                  className="flex h-14 items-center border-b border-border text-sm transition-colors last:border-b-0 hover:bg-surface-muted-1"
+                >
+                  <div className="hidden min-w-0 flex-1 px-3 md:block">
+                    <span className="inline-flex items-center gap-1">
+                      <Crown tone={row.crown} />
+                      {row.user}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1 px-3">
+                    <button
+                      type="button"
+                      onClick={() => launchGame(row)}
+                      disabled={!!launchingId && !launching}
+                      aria-busy={launching}
+                      aria-label={`Play ${row.game}`}
                       className={cn(
-                        'min-w-0 shrink-0 px-3 text-right tabular-nums md:flex-1 md:text-left',
-                        row.win ? 'text-success' : 'text-foreground',
+                        'inline-flex max-w-full items-center gap-2 rounded-lg border border-transparent bg-transparent px-1.5 py-1 text-left transition-colors',
+                        'hover:border-border hover:bg-card hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        launching && 'border-border bg-card',
                       )}
                     >
-                      {row.payout}
-                    </div>
-                  </motion.div>
-                )
-              })}
-            </AnimatePresence>
-          </div>
+                      <span className="relative size-[22px] shrink-0 overflow-hidden rounded-[3px]">
+                        <img
+                          src={lobbyGame.imageSrc}
+                          alt=""
+                          className={cn(
+                            'size-[22px] object-cover transition-opacity',
+                            launching && 'opacity-40',
+                          )}
+                        />
+                        {launching ? (
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+                            <span className="size-3 animate-spin rounded-full border-[1.5px] border-white/30 border-t-white" />
+                          </span>
+                        ) : null}
+                      </span>
+                      <span className="min-w-0 truncate font-medium">{row.game}</span>
+                    </button>
+                  </div>
+                  <div className="hidden min-w-0 flex-1 px-3 md:block">{row.bet}</div>
+                  <div className="hidden min-w-0 flex-1 px-3 md:block">{row.multi}</div>
+                  <div
+                    className={cn(
+                      'min-w-0 shrink-0 px-3 text-right tabular-nums md:flex-1 md:text-left',
+                      row.win ? 'text-success' : 'text-foreground',
+                    )}
+                  >
+                    {row.payout}
+                  </div>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
         </div>
-      ) : (
-        <div className="rounded-[10px] border border-border bg-card px-4 py-8 text-sm text-muted-foreground shadow-[0_0_16px_rgba(0,0,0,0.06)]">
-          {filter === 'jackpot'
-            ? 'Jackpot winners appear here as they land.'
-            : 'Daily race standings update as wagers settle.'}
-        </div>
-      )}
+      </div>
     </section>
   )
-}
-
-const JOHNNY_CASH_GAME: CasinoLobbyGame = {
-  id: 'train-heist-johnny-cash',
-  title: 'Train Heist Johnny Cash',
-  imageSrc: '/banners/train-heist-johnny-cash.jpg',
-  vendor: 'BGaming',
-  vendorLogo: '/vendot_logos/betsoft.svg',
-  tag: 'Original',
 }
 
 /** Casino-Lumen 69:47911 lobby — banners through activity. Shell owns sub-nav + SEO. */
 export function CasinoLobby() {
   const router = useRouter()
-  const { launchGame, startNavigating } = useShell()
+  const { launchGame, startNavigating, setCashierOpen } = useShell()
 
   const lobbyPromos = useMemo(
     () =>
       CASINO_LOBBY_PROMO_BANNERS.map((promo) => {
-        if (promo.id === 'train-heist') {
-          return { ...promo, onAction: () => launchGame(JOHNNY_CASH_GAME) }
+        if (promo.id === 'chicken-fire') {
+          return {
+            ...promo,
+            onAction: () =>
+              launchGame({
+                ...LAST_GAME_PLAYED,
+                title: 'Chicken Fire',
+              }),
+          }
         }
         if (promo.id === 'halloween') {
           return {
@@ -1110,9 +1015,12 @@ export function CasinoLobby() {
             },
           }
         }
+        if (promo.id === '100-free-spins') {
+          return { ...promo, onAction: () => setCashierOpen(true) }
+        }
         return promo
       }),
-    [launchGame, router, startNavigating],
+    [launchGame, router, setCashierOpen, startNavigating],
   )
 
   return (
@@ -1120,13 +1028,9 @@ export function CasinoLobby() {
       <div className="py-4">
         <CasinoLobbyBannerRow promos={lobbyPromos} />
       </div>
-      <CasinoGameShelf
-        title="Continue Playing"
-        games={CONTINUE_PLAYING}
-        showPlayRandom
-        seeMoreHref="/casino/category/continue-playing"
-        onLaunch={launchGame}
-      />
+      <ContinuePlayingShelf />
+      {/* Future feature — above Originals for early social proof / Discover. */}
+      <CasinoLiveWinsCarousel />
       <CasinoGameShelf
         title="Originals"
         games={ORIGINALS_GAMES}

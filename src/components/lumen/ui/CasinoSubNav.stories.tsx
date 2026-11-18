@@ -5,9 +5,12 @@ import { ShellProvider, useShell } from '../../../../apps/live-site/components/s
 import { ShellHeader } from '../../../../apps/live-site/components/site/shell-header';
 import { ShellSidebar } from '../../../../apps/live-site/components/site/shell-sidebar';
 import { cn } from '@/lib/utils';
-import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton';
+import { CasinoLobbySkeleton } from '../../../../apps/live-site/components/lumen/casino-lobby-skeleton';
 import { CasinoSearchOverlay } from '../../../../apps/live-site/components/lumen/casino-search-overlay';
-import { CasinoSubNav, type CasinoSubNavOptions } from '@/components/lumen/casino-sub-nav';
+import {
+  CasinoSubNav,
+  type CasinoSubNavOptions,
+} from '../../../../apps/live-site/components/site/casino-subnav';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { StoryNote } from '../story-kit';
 

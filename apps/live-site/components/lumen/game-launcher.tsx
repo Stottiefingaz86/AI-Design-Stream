@@ -155,6 +155,8 @@ function LauncherAmount({ value, className }: { value: number; className?: strin
   )
 }
 
+const OTHER_JACKPOT_TIERS = JACKPOT_TIERS.filter((tier) => tier.tone !== 'must')
+
 function JackpotTierContent({
   item,
   amount,
@@ -171,23 +173,27 @@ function JackpotTierContent({
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/casino/jackpot-fire.svg" alt="" width={16} height={16} className="size-4 shrink-0" />
-          <span className={TICKER_TIER_CLASS.must}>{item.label.toUpperCase()}</span>
-          <LauncherAmount value={amount} className="text-white" />
-          <span className="text-[10px] font-semibold leading-none text-[#edc555] tabular-nums">
+          <span className={cn(TICKER_TIER_CLASS.must, 'shrink-0 whitespace-nowrap')}>
+            {item.label.toUpperCase()}
+          </span>
+          <LauncherAmount value={amount} className="shrink-0 text-white" />
+          <span className="shrink-0 text-[10px] font-semibold leading-none text-[#edc555] tabular-nums">
             in {countdown}
           </span>
         </>
       ) : (
         <>
-          <span className={TICKER_TIER_CLASS[item.tone]}>{item.label.toUpperCase()}</span>
-          <LauncherAmount value={amount} className="text-[rgba(255,255,255,0.87)]" />
+          <span className={cn(TICKER_TIER_CLASS[item.tone], 'shrink-0 whitespace-nowrap')}>
+            {item.label.toUpperCase()}
+          </span>
+          <LauncherAmount value={amount} className="shrink-0 text-[rgba(255,255,255,0.87)]" />
         </>
       )}
     </>
   )
 }
 
-/** Mobile — one tier at a time, reel-spin through Must Drop → Mini → Minor → Major → Mega. */
+/** Mobile — unchanged: one tier at a time, reel-spin Must Drop → Mini → Minor → Major → Mega. */
 function JackpotRowMobile({
   countdown,
   amounts,
@@ -215,7 +221,6 @@ function JackpotRowMobile({
       aria-label={`${item.label} $${amounts[item.id].toFixed(2)}`}
       onClick={advance}
       className={cn(
-        /* Square strip — parent header overflow:hidden clips to 14px radius (no bottom gap). */
         'flex h-8 w-full shrink-0 items-center justify-center overflow-hidden',
         isMust ? MUST_DROP_BG : 'bg-[#212121]',
       )}
@@ -241,7 +246,100 @@ function JackpotRowMobile({
   )
 }
 
-/** Desktop — full segmented ticker; square edges clipped by header radius. */
+function MustDropCell({
+  amount,
+  countdown,
+}: {
+  amount: number
+  countdown: string
+}) {
+  const must = JACKPOT_TIERS.find((tier) => tier.tone === 'must')!
+  return (
+    <div
+      data-name="jackpot-label"
+      role="listitem"
+      className={cn(
+        'flex h-full shrink-0 items-center justify-center gap-1 px-2.5 text-sm font-bold leading-none',
+        MUST_DROP_BG,
+      )}
+    >
+      <span className="jackpot-must-drop-shake jackpot-must-drop-shake--free inline-flex items-center justify-center gap-1 whitespace-nowrap">
+        <JackpotTierContent item={must} amount={amount} countdown={countdown} />
+      </span>
+    </div>
+  )
+}
+
+function OtherTierStatic({
+  amounts,
+  countdown,
+  rowRef,
+}: {
+  amounts: Record<JackpotTierId, number>
+  countdown: string
+  rowRef: React.RefObject<HTMLDivElement | null>
+}) {
+  return (
+    <div ref={rowRef} className="flex h-full min-w-0 flex-1 items-stretch overflow-hidden">
+      {OTHER_JACKPOT_TIERS.map((item) => (
+        <div key={item.id} className="flex h-full min-w-0 flex-1 items-stretch">
+          <span className="w-px shrink-0 self-stretch bg-white/[0.08]" aria-hidden />
+          <div
+            data-name="jackpot-label"
+            role="listitem"
+            className="flex h-full w-full items-center justify-center gap-1 overflow-hidden px-1.5 text-xs font-bold leading-none sm:px-2 sm:text-sm"
+          >
+            <span className="inline-flex shrink-0 items-center justify-center gap-1 whitespace-nowrap">
+              <JackpotTierContent item={item} amount={amounts[item.id]} countdown={countdown} />
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Desktop only — Mini→Mega marquee in leftover; Must Drop stays pinned. */
+function OtherTierMarquee({
+  amounts,
+  countdown,
+}: {
+  amounts: Record<JackpotTierId, number>
+  countdown: string
+}) {
+  const track = (
+    <>
+      {OTHER_JACKPOT_TIERS.map((item) => (
+        <span
+          key={item.id}
+          className="inline-flex h-8 shrink-0 items-center gap-1 px-3 text-sm font-bold leading-none whitespace-nowrap"
+        >
+          <JackpotTierContent item={item} amount={amounts[item.id]} countdown={countdown} />
+          <span className="ml-2 h-4 w-px shrink-0 bg-white/[0.08]" aria-hidden />
+        </span>
+      ))}
+    </>
+  )
+
+  return (
+    <div className="relative flex h-full min-w-0 flex-1 items-center overflow-hidden bg-[#212121]">
+      <span className="w-px shrink-0 self-stretch bg-white/[0.08]" aria-hidden />
+      <div className="min-w-0 flex-1 overflow-hidden">
+        <div className="jackpot-tier-marquee">
+          <span className="inline-flex items-center">{track}</span>
+          <span className="inline-flex items-center" aria-hidden>
+            {track}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Desktop only — Must Drop pinned; Mini→Mega static when they fit, else marquee.
+ * Never crush amounts into overlapping digits.
+ */
 function JackpotRowDesktop({
   className,
   countdown,
@@ -251,33 +349,79 @@ function JackpotRowDesktop({
   countdown: string
   amounts: Record<JackpotTierId, number>
 }) {
+  const hostRef = useRef<HTMLDivElement>(null)
+  const mustRef = useRef<HTMLDivElement>(null)
+  const othersRef = useRef<HTMLDivElement>(null)
+  // Start marquee until measure proves static fits — avoids clipped flash.
+  const [marquee, setMarquee] = useState(true)
+
+  useEffect(() => {
+    const host = hostRef.current
+    if (!host) return
+
+    const measure = () => {
+      const hostW = host.clientWidth
+      const mustW = mustRef.current?.offsetWidth ?? 0
+      if (hostW <= 0 || mustW <= 0) return
+      const leftover = hostW - mustW
+
+      // Desktop floor — below this, Mini→Mega can't share equal cells without clip.
+      if (leftover < 640) {
+        setMarquee(true)
+        return
+      }
+
+      const others = othersRef.current
+      if (!others) {
+        // Leftover is wide enough — try static; overflow check runs after mount.
+        setMarquee(false)
+        return
+      }
+
+      const overflowing = Array.from(others.querySelectorAll('[data-name="jackpot-label"]')).some(
+        (el) => el instanceof HTMLElement && el.scrollWidth > el.clientWidth + 1,
+      )
+      setMarquee(overflowing)
+    }
+
+    measure()
+    const ro = new ResizeObserver(() => requestAnimationFrame(measure))
+    ro.observe(host)
+    return () => ro.disconnect()
+  }, [amounts])
+
+  // After switching to static, re-check cell overflow once painted.
+  useEffect(() => {
+    if (marquee) return
+    const id = requestAnimationFrame(() => {
+      const others = othersRef.current
+      if (!others) return
+      const overflowing = Array.from(others.querySelectorAll('[data-name="jackpot-label"]')).some(
+        (el) => el instanceof HTMLElement && el.scrollWidth > el.clientWidth + 1,
+      )
+      if (overflowing) setMarquee(true)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [marquee, amounts])
+
+  const must = JACKPOT_TIERS.find((tier) => tier.tone === 'must')!
+
   return (
     <div
+      ref={hostRef}
       data-name="jackpot-row"
       className={cn('flex h-8 w-full shrink-0 items-center overflow-hidden', className)}
       role="list"
       aria-label="Jackpot tiers"
     >
-      {JACKPOT_TIERS.map((item, index) => {
-        const isMust = item.tone === 'must'
-        return (
-          <div key={item.id} className="flex h-full min-w-0 flex-1 items-stretch">
-            {index > 0 ? <span className="w-px shrink-0 self-stretch bg-white/[0.08]" aria-hidden /> : null}
-            <div
-              data-name="jackpot-label"
-              role="listitem"
-              className={cn(
-                'flex h-full min-w-0 flex-1 items-center justify-center gap-1 px-2 text-sm font-bold leading-none',
-                isMust && MUST_DROP_BG,
-              )}
-            >
-              <span className={cn('inline-flex items-center justify-center gap-1', isMust && 'jackpot-must-drop-shake')}>
-                <JackpotTierContent item={item} amount={amounts[item.id]} countdown={countdown} />
-              </span>
-            </div>
-          </div>
-        )
-      })}
+      <div ref={mustRef} className="flex h-full shrink-0 items-stretch">
+        <MustDropCell amount={amounts[must.id]} countdown={countdown} />
+      </div>
+      {marquee ? (
+        <OtherTierMarquee amounts={amounts} countdown={countdown} />
+      ) : (
+        <OtherTierStatic amounts={amounts} countdown={countdown} rowRef={othersRef} />
+      )}
     </div>
   )
 }
@@ -495,6 +639,23 @@ function OptInPill({
   )
 }
 
+type FullscreenCapableElement = HTMLElement & { webkitRequestFullscreen?: () => void }
+type FullscreenCapableDocument = Document & {
+  webkitFullscreenElement?: Element | null
+  webkitExitFullscreen?: () => void
+}
+
+function getFullscreenElement() {
+  const doc = document as FullscreenCapableDocument
+  return doc.fullscreenElement ?? doc.webkitFullscreenElement ?? null
+}
+
+function exitFullscreen() {
+  const doc = document as FullscreenCapableDocument
+  if (doc.exitFullscreen) void doc.exitFullscreen().catch(() => {})
+  else doc.webkitExitFullscreen?.()
+}
+
 /**
  * Full-viewport game launcher — portaled to `document.body` with `data-casino-game-root`.
  * Always dark. Header: centered title, opt-in + Jackpot Info, fullscreen, favourite, close.
@@ -515,6 +676,7 @@ export function GameLauncher({
   const rootRef = useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
+  const [immersive, setImmersive] = useState(false)
   const [optIn, setOptIn] = useState(false)
   const [ticker, setTicker] = useState(true)
   const [infoOpen, setInfoOpen] = useState(false)
@@ -526,19 +688,42 @@ export function GameLauncher({
   }, [])
 
   useEffect(() => {
-    const sync = () => setFullscreen(document.fullscreenElement === rootRef.current)
+    const sync = () => setFullscreen(getFullscreenElement() === rootRef.current)
     document.addEventListener('fullscreenchange', sync)
-    return () => document.removeEventListener('fullscreenchange', sync)
+    document.addEventListener('webkitfullscreenchange', sync)
+    return () => {
+      document.removeEventListener('fullscreenchange', sync)
+      document.removeEventListener('webkitfullscreenchange', sync)
+    }
   }, [])
 
+  useEffect(() => {
+    if (!open) setImmersive(false)
+  }, [open])
+
+  /* iPhone Safari has no element fullscreen — fall back to hiding launcher chrome. */
   const toggleFullscreen = () => {
-    const el = rootRef.current
+    const el = rootRef.current as FullscreenCapableElement | null
     if (!el) return
-    if (document.fullscreenElement) {
-      void document.exitFullscreen()
+    if (immersive) {
+      setImmersive(false)
       return
     }
-    void el.requestFullscreen()
+    if (getFullscreenElement()) {
+      exitFullscreen()
+      return
+    }
+    const request = el.requestFullscreen ?? el.webkitRequestFullscreen
+    if (!request) {
+      setImmersive(true)
+      return
+    }
+    try {
+      const result = request.call(el)
+      if (result instanceof Promise) result.catch(() => setImmersive(true))
+    } catch {
+      setImmersive(true)
+    }
   }
 
   useEffect(() => {
@@ -553,8 +738,9 @@ export function GameLauncher({
     if (scroll instanceof HTMLElement) scroll.style.overflow = 'hidden'
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      if (document.fullscreenElement) return
-      if (infoOpen) setInfoOpen(false)
+      if (getFullscreenElement()) return
+      if (immersive) setImmersive(false)
+      else if (infoOpen) setInfoOpen(false)
       else onClose()
     }
     window.addEventListener('keydown', onKey)
@@ -563,7 +749,7 @@ export function GameLauncher({
       if (scroll instanceof HTMLElement) scroll.style.overflow = prevScroll
       window.removeEventListener('keydown', onKey)
     }
-  }, [open, onClose, infoOpen])
+  }, [open, onClose, infoOpen, immersive])
 
   if (!mounted) return null
 
@@ -581,11 +767,25 @@ export function GameLauncher({
       role="dialog"
       aria-modal="true"
       aria-label={game.title}
-      className="dark fixed inset-0 z-[320] flex flex-col bg-[#0a0a0a] p-3 text-[rgba(255,255,255,0.87)] sm:p-4"
+      data-immersive={immersive ? 'true' : undefined}
+      className={cn(
+        'dark fixed inset-0 z-[320] flex flex-col bg-[#0a0a0a] text-[rgba(255,255,255,0.87)]',
+        immersive ? 'p-0' : 'p-3 sm:p-4',
+      )}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.22, ease: LAUNCHER_EASE }}
     >
+      {immersive ? (
+        <button
+          type="button"
+          aria-label="Exit fullscreen"
+          onClick={toggleFullscreen}
+          className="absolute right-[max(0.75rem,env(safe-area-inset-right,0px))] top-[max(0.75rem,env(safe-area-inset-top,0px))] z-20 inline-flex size-9 items-center justify-center rounded-full border border-white/[0.12] bg-black/60 text-[rgba(255,255,255,0.87)] backdrop-blur-sm"
+        >
+          <IconMinimize className="size-4" />
+        </button>
+      ) : (
       <motion.div
         data-name="jackpot-header"
         className="relative z-10 flex w-full shrink-0 flex-col overflow-hidden rounded-[14px] border border-white/[0.08] bg-[#212121]"
@@ -662,11 +862,15 @@ export function GameLauncher({
               </>
             ) : null}
           </motion.div>
+      )}
 
       {/* Game stage — single pop; no layered overlay fade (that read as a wipe). */}
       <motion.div
         data-name="game-viewport"
-        className="relative mt-3 min-h-0 flex-1 origin-center overflow-hidden rounded-[14px] bg-black sm:mt-4"
+        className={cn(
+          'relative min-h-0 flex-1 origin-center overflow-hidden bg-black',
+          immersive ? 'rounded-none' : 'mt-3 rounded-[14px] sm:mt-4',
+        )}
         initial={{ opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ ...GAME_POP, delay: 0.1 }}

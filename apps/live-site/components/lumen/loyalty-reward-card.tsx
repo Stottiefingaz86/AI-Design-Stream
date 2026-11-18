@@ -23,8 +23,12 @@ export type LoyaltyClaimState =
 
 export type LoyaltyRewardInfo = {
   icon?: ReactNode
+  /** Override icon well size — free-spins uses small portrait (`h-11 w-8`). */
+  iconClassName?: string
   title: string
   subtitle?: string
+  /** Optional rich subtitle (e.g. bold spin count). Falls back to `subtitle`. */
+  subtitleNode?: ReactNode
   infoText?: string
   infoLabel?: string
   termsLabel?: string
@@ -76,8 +80,15 @@ export function LoyaltyRewardCard({
         <SpotlightOverlay mixPercent={22} />
       </div>
 
-      <div className="relative z-10 flex min-w-0 flex-1 items-center gap-2">
-        <span className="grid size-6 shrink-0 place-items-center text-foreground">{rewardInfo.icon}</span>
+      <div className="relative z-10 flex min-w-0 flex-1 items-center gap-2.5">
+        <span
+          className={cn(
+            'grid shrink-0 place-items-center text-foreground',
+            rewardInfo.iconClassName ?? 'size-6',
+          )}
+        >
+          {rewardInfo.icon}
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
             <p className="truncate text-sm font-semibold leading-5 text-foreground">{rewardInfo.title}</p>
@@ -92,7 +103,11 @@ export function LoyaltyRewardCard({
               />
             ) : null}
           </div>
-          {rewardInfo.subtitle ? (
+          {rewardInfo.subtitleNode ? (
+            <div className="truncate text-sm leading-5 text-muted-foreground">
+              {rewardInfo.subtitleNode}
+            </div>
+          ) : rewardInfo.subtitle ? (
             <p className="truncate text-sm leading-5 text-muted-foreground">{rewardInfo.subtitle}</p>
           ) : null}
         </div>

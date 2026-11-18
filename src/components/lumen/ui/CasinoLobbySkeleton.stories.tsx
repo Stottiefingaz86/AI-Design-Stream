@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { CasinoLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton';
+import { CasinoLobbySkeleton } from '../../../../apps/live-site/components/lumen/casino-lobby-skeleton';
 import { StoryNote } from '../story-kit';
 
 const meta = {

@@ -10,7 +10,15 @@ function OpenNav({ children }: { children: ReactNode }) {
   return children;
 }
 
-/** Wraps live-site chrome so Storybook can set the product path and open the drawer. */
+function ExpandSidebar({ children }: { children: ReactNode }) {
+  const { expanded, toggle } = useShell();
+  useEffect(() => {
+    if (!expanded) toggle();
+  }, [expanded, toggle]);
+  return children;
+}
+
+/** Mobile frame — dock / sheets / drawer (375×667). */
 export function ShellStory({
   pathname = '/casino',
   openNav = false,
@@ -25,6 +33,30 @@ export function ShellStory({
       <ShellProvider>
         <div data-shell-story="" className="relative h-[667px] w-[375px] overflow-hidden bg-background">
           {openNav ? <OpenNav>{children}</OpenNav> : children}
+        </div>
+      </ShellProvider>
+    </PathnameProvider>
+  );
+}
+
+/** Desktop frame — product sidebar + header (matches :3000 lg+). */
+export function DesktopShellStory({
+  pathname = '/casino',
+  expanded = true,
+  children,
+}: {
+  pathname?: string;
+  expanded?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <PathnameProvider pathname={pathname}>
+      <ShellProvider>
+        <div
+          data-shell-story-desktop=""
+          className="relative h-[720px] w-full max-w-[1200px] overflow-hidden rounded-lg border border-border bg-background"
+        >
+          {expanded ? <ExpandSidebar>{children}</ExpandSidebar> : children}
         </div>
       </ShellProvider>
     </PathnameProvider>

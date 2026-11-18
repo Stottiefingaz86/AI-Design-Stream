@@ -48,6 +48,7 @@ export type ShellIconName =
   | 'moon'
   | 'play'
   | 'popular'
+  | 'popularSports'
   | 'promos'
   | 'puzzle'
   | 'random'
@@ -55,25 +56,42 @@ export type ShellIconName =
   | 'refer'
   | 'rocket'
   | 'search'
+  | 'sgp'
   | 'shield'
   | 'shuffle'
   | 'signOut'
   | 'slots'
   | 'soccer'
+  | 'baseball'
+  | 'basketball'
+  | 'boxing'
+  | 'golf'
+  | 'hockey'
+  | 'horseRacing'
+  | 'lacrosse'
+  | 'mma'
+  | 'pool'
+  | 'rugby'
+  | 'tableTennis'
+  | 'tennis'
+  | 'volleyball'
   | 'spade'
   | 'specialty'
   | 'star'
   | 'start'
   | 'sun'
   | 'table'
+  | 'target'
   | 'telegram'
   | 'ticket'
   | 'tournaments'
   | 'transactions'
+  | 'trends'
   | 'trophy'
   | 'user'
   | 'userPlus'
   | 'users'
+  | 'megaParlay'
   | 'videoPoker'
   | 'vip'
   | 'virtuals'
@@ -101,7 +119,7 @@ const ICONS: Record<ShellIconName, string> = {
   clock: '/shell/figma/ubc/betslip.svg',
   contests: '/shell/figma/promo/contests.svg',
   crown: '/shell/figma/ubc/crown.svg',
-  /** Shell header logged-out VIP — white @ 60% (preserve; do not chrome-invert). */
+  /** Shell header logged-out VIP — black asset; chrome invert → white. */
   crownMuted: '/shell/figma/header/crown.svg',
   crownGold: '/shell/figma/header/crown-gold.svg',
   desktop: '/shell/figma/casino/video-poker.svg',
@@ -114,7 +132,7 @@ const ICONS: Record<ShellIconName, string> = {
   /** Casino dock — Shell 4308:278672 */
   favorite: '/shell/figma/dock/favorite.svg',
   fire: '/shell/figma/casino/popular.svg',
-  football: '/shell/figma/dock/sports-football.svg',
+  football: '/shell/figma/sports/lumen/football.svg',
   gear: '/shell/figma/sports/gear.svg',
   gift: '/shell/figma/poker/gift.svg',
   globe: '/shell/rocket.svg',
@@ -130,32 +148,52 @@ const ICONS: Record<ShellIconName, string> = {
   moon: '/shell/figma/ubc/moon.svg',
   play: '/shell/figma/poker/play.svg',
   popular: '/shell/figma/casino/popular.svg',
+  /** PropShopX sportsbook home `Popular` shooting star (321:153695). */
+  popularSports: '/shell/figma/sports/popular.svg',
   promos: '/shell/figma/promo/promos.svg',
   puzzle: '/shell/figma/casino/specialty.svg',
   random: '/shell/figma/dock/random.svg',
   receipt: '/shell/figma/ubc/transactions.svg',
   refer: '/shell/figma/promo/refer.svg',
-  rocket: '/shell/figma/poker/rocket.svg',
+  rocket: '/shell/figma/sports/rocket.svg',
   search: '/shell/figma/dock/search.svg',
+  sgp: '/shell/figma/sports/sgp.svg',
   shield: '/shell/figma/poker/shield.svg',
   shuffle: '/shell/figma/casino/random.svg',
   signOut: '/shell/figma/ubc/logout.svg',
   slots: '/shell/figma/casino/slots.svg',
-  soccer: '/shell/star.svg',
+  soccer: '/shell/figma/sports/lumen/soccer.svg',
+  baseball: '/shell/figma/sports/lumen/baseball.svg',
+  basketball: '/shell/figma/sports/lumen/basketball.svg',
+  boxing: '/shell/figma/sports/lumen/boxing.svg',
+  golf: '/shell/figma/sports/lumen/golf.svg',
+  hockey: '/shell/figma/sports/lumen/hockey.svg',
+  horseRacing: '/shell/figma/sports/lumen/horse-racing.svg',
+  lacrosse: '/shell/figma/sports/lumen/lacrosse.svg',
+  mma: '/shell/figma/sports/lumen/mma.svg',
+  pool: '/shell/figma/sports/lumen/pool.svg',
+  rugby: '/shell/figma/sports/lumen/rugby.svg',
+  tableTennis: '/shell/figma/sports/lumen/table-tennis.svg',
+  tennis: '/shell/figma/sports/lumen/tennis.svg',
+  volleyball: '/shell/figma/sports/lumen/volleyball.svg',
   spade: '/shell/figma/casino/blackjack.svg',
   specialty: '/shell/figma/casino/specialty.svg',
   star: '/shell/star.svg',
   start: '/shell/figma/poker/start.svg',
   sun: '/shell/figma/ubc/sun.svg',
   table: '/shell/figma/casino/table.svg',
+  target: '/shell/figma/promo/challenges.svg',
   telegram: '/shell/figma/promo/telegram-mark.svg',
   ticket: '/shell/figma/ubc/ticket.svg',
   tournaments: '/shell/figma/casino/tournaments.svg',
   transactions: '/shell/figma/ubc/transactions.svg',
+  trends: '/shell/figma/casino/trends.svg',
   trophy: '/shell/figma/casino/tournaments.svg',
   user: '/shell/figma/ubc/user.svg',
   userPlus: '/shell/figma/ubc/user-plus.svg',
   users: '/shell/figma/sports/parlay.svg',
+  /** Lumen DS Mega Parlay (52196:37903). */
+  megaParlay: '/shell/figma/sports/mega-parlay.svg',
   videoPoker: '/shell/figma/casino/video-poker.svg',
   vip: '/shell/figma/promo/vip.svg',
   /* Stopwatch/bolt — solid black so chrome invert stays bright (not Live Casino flame). */
@@ -164,7 +202,7 @@ const ICONS: Record<ShellIconName, string> = {
 }
 
 const PRESERVE_COLOR: Partial<Record<ShellIconName, true>> = {
-  crownMuted: true,
+  /* Gold VIP asset already painted — don't invert. Logged-out crownMute uses chrome invert. */
   crownGold: true,
 }
 

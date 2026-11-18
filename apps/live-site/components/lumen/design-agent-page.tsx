@@ -131,26 +131,21 @@ function isLoopbackHost(host: string): boolean {
 }
 
 /**
- * Storybook — public env when set. Never default to loopback on a hosted build
- * (client checks hostname so Vercel doesn’t link :6006).
+ * Lumen gallery — always the in-app `/lumen` library (not Storybook).
+ * Optional public override must not be loopback on hosted.
  */
-const STORYBOOK_URL_ENV =
-  process.env.NEXT_PUBLIC_STORYBOOK_URL?.trim() ||
-  process.env.PUBLIC_STORYBOOK_URL?.trim() ||
-  ''
+const LUMEN_GALLERY_URL_ENV = process.env.NEXT_PUBLIC_LUMEN_GALLERY_URL?.trim() || ''
 
-/** Resolve Storybook link at call time (client hostname-aware). */
-function storybookUrlForDesk(): string {
-  const env = STORYBOOK_URL_ENV
+/** Resolve Lumen gallery link. Default `/lumen` everywhere. */
+function lumenGalleryUrlForDesk(): string {
+  const env = LUMEN_GALLERY_URL_ENV
+  if (!env) return '/lumen'
   if (typeof window === 'undefined') {
-    return env && !isLoopbackUrl(env) ? env : '/storybook'
+    return isLoopbackUrl(env) ? '/lumen' : env
   }
   const local = isLoopbackHost(window.location.hostname)
-  if (env) {
-    if (isLoopbackUrl(env) && !local) return '/storybook'
-    return env
-  }
-  return local ? 'http://127.0.0.1:6006' : '/storybook'
+  if (isLoopbackUrl(env) && !local) return '/lumen'
+  return env
 }
 
 /** Desk iframe must never point at the user’s machine when hosted. */
@@ -265,19 +260,13 @@ function useDeskLinks() {
     setLocalDesk(isLoopbackHost(window.location.hostname))
   }, [])
 
-  /* Hosted: /storybook gallery. Local: :6006 (or public env). Never loopback on prod. */
-  const storybook = (() => {
-    if (STORYBOOK_URL_ENV && !( !localDesk && isLoopbackUrl(STORYBOOK_URL_ENV))) {
-      return STORYBOOK_URL_ENV
-    }
-    if (localDesk) return STORYBOOK_URL_ENV || 'http://127.0.0.1:6006'
-    return '/storybook'
-  })()
+  /* Always in-app Lumen gallery — never Storybook :6006. */
+  const gallery = lumenGalleryUrlForDesk()
 
   return {
     localDesk,
-    storybookUrl: storybook,
-    storybookHint: storybook && isLoopbackUrl(storybook) ? ':6006' : null,
+    lumenUrl: gallery,
+    lumenHint: null,
     demoPortHint: localDesk ? ':3000' : null,
   }
 }
@@ -516,22 +505,10 @@ function DesignAgentApp() {
               </span>
             ) : null}
           </NavButton>
-          {links.storybookUrl ? (
-            <NavExternal
-              href={links.storybookUrl}
-              title={
-                isLoopbackUrl(links.storybookUrl)
-                  ? 'npm run storybook — 127.0.0.1:6006'
-                  : 'Lumen Storybook'
-              }
-            >
+          {links.lumenUrl ? (
+            <NavExternal href={links.lumenUrl} title="Lumen codebase — /lumen">
               <IconBook2 size={16} stroke={1.5} />
-              Storybook
-              {links.storybookHint ? (
-                <span style={{ marginLeft: 'auto', fontSize: 10, color: C.muted }}>
-                  {links.storybookHint}
-                </span>
-              ) : null}
+              Lumen codebase
             </NavExternal>
           ) : null}
           <NavExternal href={FIGMA_LUMEN_FOLDER} title="Figma Lumen folder">
@@ -2818,9 +2795,9 @@ function HandoffPanel({ job }: { job: AgentJob }) {
           alignItems: 'center',
         }}
       >
-        {storybookUrlForDesk() ? (
+        {lumenGalleryUrlForDesk() ? (
           <a
-            href={storybookUrlForDesk()}
+            href={lumenGalleryUrlForDesk()}
             target="_blank"
             rel="noreferrer"
             style={{
@@ -2832,10 +2809,7 @@ function HandoffPanel({ job }: { job: AgentJob }) {
             }}
           >
             <IconBook2 size={14} stroke={1.5} />
-            Storybook
-            {isLoopbackUrl(storybookUrlForDesk())
-              ? ' · 127.0.0.1:6006'
-              : ` · ${storybookUrlForDesk().replace(/^https?:\/\//, '')}`}
+            Lumen codebase · /lumen
           </a>
         ) : null}
         <a
@@ -3321,25 +3295,19 @@ function ChatDock({
               Refine (skip sign-off)
             </div>
             <div style={{ fontSize: 13, lineHeight: 1.45 }}>
-              Paste/attach a screenshot + what’s wrong. This chat only logs it —
-              Cursor on this repo has to apply the fix (no polling from this desk).
+              Paste/attach a screenshot + what’s wrong. Cloud agent applies when
+              configured; otherwise apply in Cursor on this repo.
             </div>
             <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>
-              Cloud agent applies refine when configured
-              {storybookUrlForDesk() ? (
-                <>
-                  {' '}
-                  · Storybook{' '}
-                  <a
-                    href={storybookUrlForDesk()}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: C.pink }}
-                  >
-                    {storybookUrlForDesk().replace(/^https?:\/\//, '')}
-                  </a>
-                </>
-              ) : null}
+              Lumen gallery{' '}
+              <a
+                href={lumenGalleryUrlForDesk()}
+                target="_blank"
+                rel="noreferrer"
+                style={{ color: C.pink }}
+              >
+                {lumenGalleryUrlForDesk().replace(/^https?:\/\//, '') || '/lumen'}
+              </a>
             </div>
           </div>
         ) : null}

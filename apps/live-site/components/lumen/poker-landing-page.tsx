@@ -139,7 +139,7 @@ function PokerHero() {
             >
               Play online or download the BetOnline poker app today, available on IOS, PC, and Android.
             </Typography>
-            <Button size="lg" className="w-full md:w-fit">
+            <Button size="lg" className="w-full md:w-fit" data-tour="poker-play">
               Play Online
             </Button>
             <div className="h-px w-full bg-border" />
@@ -376,7 +376,7 @@ export function PokerLandingPage({ className }: PokerLandingPageProps) {
   }, [])
 
   return (
-    <div data-name="poker_landing_content" className={cn('w-full bg-background', className)}>
+    <div data-name="poker_landing_content" className={cn('w-full bg-background pb-8', className)}>
       <PokerHero />
       <PokerFeatures />
       <PokerGettingStarted />

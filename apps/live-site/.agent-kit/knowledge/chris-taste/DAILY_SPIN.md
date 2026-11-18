@@ -13,6 +13,7 @@
 
 - **Do not invent a wheel.** Port the BOL shad `JackpotWheelBonus` (`jackpot-wheel-bonus.tsx`) — same SVG, pointer + center hub (`/jackpot/`), neon rim, zoom/spin/land, and **sounds** from `/sound/` via `@/lib/sounds`.
 - Live-site path: `components/lumen/jackpot/jackpot-wheel-bonus.tsx` wrapped by `daily-spin-modal.tsx`.
+- **Audio:** FX only (Spin now, segment ticks, land/win stings). **No** looping bg / wheel-spin bed music on Daily Spin.
 - Daily Spin wedges: **brand red/cream** + **text labels** (`$5` / `Miss` / `10 Free Spins` / `$100`). No multicolored SVG icons on the face — unreadable and off-brand.
 - Hub list glyph: red/cream mini wheel + gold rim (not jackpot neon green/purple/blue).
 - Free Spins reward row sits **above Birthday**, never second under Daily Spin.
@@ -34,9 +35,8 @@
 
 ## Post-login / join (HARD RULE)
 
-- **Never** show the “You’re in / Your account is ready” welcome modal after login or join.
-- **Login** (form or “sign in with” social) → `completeLogin` → **Daily Spin** only.
-- **Join** (Join & Play or “sign up with” social) → `completeJoin` → **cashier Activate** — **no** Daily Spin. Daily Spin is returning-player only.
+- **Login** (form or “sign in with” social) → `completeLogin` → **Daily Spin** only. **Never** the join welcome modal.
+- **Join** (Join & Play or “sign up with” social) → **welcome modal** (“You’re in” / Welcome, {name}! / Let’s Go) → then `completeJoin` → **cashier Activate**. **No** Daily Spin.
 
 
 ## Finish transition
@@ -51,4 +51,4 @@ Only three kinds: **cash**, **free spins**, **nothing** (Miss). Never leave the 
 ## Login vs join
 
 - **Login** (returning) → Daily Spin only. **No** Intercom first-deposit pitch, no welcome offer, no cashier auto-open.
-- **Join** (new) → cashier Activate (no Daily Spin); Intercom welcome only after empty wallet close (first deposit).
+- **Join** (new) → welcome modal → cashier Activate (no Daily Spin); Intercom welcome only after empty wallet close.

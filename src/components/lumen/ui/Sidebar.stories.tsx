@@ -1,60 +1,59 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { HomeIcon, Dice5Icon, TrophyIcon, GiftIcon, UserIcon } from 'lucide-react';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarRail,
-} from '@/components/ui/sidebar';
+import { ShellSidebar } from '../../../../apps/live-site/components/site/shell-sidebar';
+import { ShellDrawer } from '../../../../apps/live-site/components/site/shell-drawer';
+import { DesktopShellStory, ShellStory } from '../../../../.storybook/shell-harness';
+import { StoryNote } from '../story-kit';
 
-const items = [
-  { title: 'Home', icon: HomeIcon },
-  { title: 'Casino', icon: Dice5Icon },
-  { title: 'Sports', icon: TrophyIcon },
-  { title: 'Promos', icon: GiftIcon },
-  { title: 'Account', icon: UserIcon },
-];
-
-const meta = { title: 'Lumen/Navigation/Sidebar', component: Sidebar } satisfies Meta<typeof Sidebar>;
-export default meta;
-
-export const Default: StoryObj = {
+/**
+ * Demo truth = apps/live-site ShellSidebar / ShellDrawer.
+ * The old shadcn “Home / Casino / Sports” rail is gone — that was not BetOnline.
+ */
+const meta = {
+  title: 'Lumen/Shell/Product Sidebar',
+  component: ShellSidebar,
   parameters: { layout: 'fullscreen' },
+} satisfies Meta<typeof ShellSidebar>;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const DesktopCasino: Story = {
   render: () => (
-    <SidebarProvider>
-      <div className="flex min-h-[28rem] w-full">
-        <Sidebar>
-          <SidebarHeader className="px-4 py-3 text-sm font-semibold">Lumen</SidebarHeader>
-          <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel>Play</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </SidebarContent>
-          <SidebarRail />
-        </Sidebar>
-        <main className="flex-1 bg-background p-6 text-sm text-muted-foreground">
-          Hover a nav row. Collapse with the rail.
+    <div className="flex flex-col gap-3 p-4">
+      <StoryNote>
+        Live-site <code>ShellSidebar</code> — same icons/nav as :3000. Collapse/expand via shell
+        state. Not the generic Lumen Navigation/Sidebar primitive.
+      </StoryNote>
+      <DesktopShellStory pathname="/casino">
+        <ShellSidebar />
+        <main className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground lg:pl-24">
+          Casino product sidebar (demo).
         </main>
-      </div>
-    </SidebarProvider>
+      </DesktopShellStory>
+    </div>
+  ),
+};
+
+export const DesktopPromotions: Story = {
+  render: () => (
+    <div className="flex flex-col gap-3 p-4">
+      <StoryNote>Promotions nav from <code>navForProduct</code> — All Promotions, My Bonus, Contests, RAF…</StoryNote>
+      <DesktopShellStory pathname="/promotions">
+        <ShellSidebar />
+        <main className="flex flex-1 items-center justify-center p-6 text-sm text-muted-foreground lg:pl-24">
+          Promotions product sidebar (demo).
+        </main>
+      </DesktopShellStory>
+    </div>
+  ),
+};
+
+export const MobileDrawer: Story = {
+  render: () => (
+    <div className="flex flex-col gap-3 p-4">
+      <StoryNote>Mobile drawer = same nav source as desktop sidebar.</StoryNote>
+      <ShellStory pathname="/casino" openNav>
+        <ShellDrawer />
+      </ShellStory>
+    </div>
   ),
 };

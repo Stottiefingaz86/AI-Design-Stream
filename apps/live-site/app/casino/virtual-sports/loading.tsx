@@ -1,4 +1,5 @@
-/** Soft-nav only — no lobby skeleton on Virtual Sports. */
+import { CasinoShelvesLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
+
 export default function Loading() {
-  return null
+  return <CasinoShelvesLobbySkeleton titles={['Esports', 'Sports']} />
 }

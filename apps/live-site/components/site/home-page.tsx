@@ -77,14 +77,14 @@ const TOP10 = [
 ]
 
 const SPORTS = [
-  { name: 'Football', icon: '/sports_icons/football.svg', image: '/banners/homepage_trending/football.png' },
-  { name: 'Basketball', icon: '/sports_icons/Basketball.svg', image: '/banners/homepage_trending/basketball.png' },
-  { name: 'Baseball', icon: '/sports_icons/baseball.svg', image: '/banners/homepage_trending/baseball.png' },
-  { name: 'Hockey', icon: '/sports_icons/Hockey.svg', image: '/banners/homepage_trending/hocky.png' },
-  { name: 'Soccer', icon: '/sports_icons/soccer.svg', image: '/banners/homepage_trending/soccer.png' },
-  { name: 'Tennis', icon: '/sports_icons/tennis.svg', image: '/banners/homepage_trending/tennis.png' },
-  { name: 'MMA', icon: '/sports_icons/mma.svg', image: '/banners/homepage_trending/mma.png' },
-  { name: 'Golf', icon: '/sports_icons/Golf.svg', image: '/banners/homepage_trending/golf.png' },
+  { name: 'Football', icon: '/sports_icons/football.svg', image: '/banners/homepage_trending/football.jpg' },
+  { name: 'Hockey', icon: '/sports_icons/Hockey.svg', image: '/banners/homepage_trending/hockey.jpg' },
+  { name: 'Basketball', icon: '/sports_icons/Basketball.svg', image: '/banners/homepage_trending/basketball.jpg' },
+  { name: 'Baseball', icon: '/sports_icons/baseball.svg', image: '/banners/homepage_trending/baseball.jpg' },
+  { name: 'Golf', icon: '/sports_icons/Golf.svg', image: '/banners/homepage_trending/golf.jpg' },
+  { name: 'Tennis', icon: '/sports_icons/tennis.svg', image: '/banners/homepage_trending/tennis.jpg' },
+  { name: 'Soccer', icon: '/sports_icons/soccer.svg', image: '/banners/homepage_trending/soccer.jpg' },
+  { name: 'MMA', icon: '/sports_icons/mma.svg', image: '/banners/homepage_trending/mma.jpg' },
   { name: 'Boxing', icon: '/sports_icons/mma.svg' },
   { name: 'Rugby', icon: '/sports_icons/rugby.svg' },
   { name: 'Cricket', icon: '/sports_icons/Cricket.svg' },

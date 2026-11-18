@@ -9,10 +9,10 @@ On **anything** he asks — feature, tweak, page, BRD, critique — load this st
 
 ## The stack (in order)
 
-1. **How he thinks / live-site taste** — `.cursor/skills/lumen-betonline-build/SKILL.md` (+ `patterns.md` for nav, cards, inputs, tables, claims, sticky, shelves, Figma→code). Settled prefs: `.cursor/knowledge/chris-taste/` — **always re-read relevant notes before inventing** (e.g. **mobile carousels = swipe only**; **desktop panel carousels may use glass arrows**; **Live Wins** = `LIVE_WINS_CAROUSEL.md`; **success / confirm screens** = `CONFIRMATION_STATES.md`; **copy** = `COPY.md` — no AI-slop filler; **Daily Spin** = `DAILY_SPIN.md` — BOL jackpot wheel + sounds, never a homemade wheel or purple orb icon). When Chris corrects copy/icon/stacking, **write it into chris-taste** that turn — next agent must learn it.
+1. **How he thinks / live-site taste** — `.cursor/skills/lumen-betonline-build/SKILL.md` (+ `patterns.md` for nav, cards, inputs, tables, claims, sticky, shelves, Figma→code). Settled prefs: `.cursor/knowledge/chris-taste/` — **always re-read relevant notes before inventing** (e.g. **mobile carousels = swipe only**; **desktop panel carousels may use glass arrows**; **Live Wins** = `LIVE_WINS_CAROUSEL.md`; **success / confirm screens** = `CONFIRMATION_STATES.md`; **copy** = `COPY.md` — no AI-slop filler; **Daily Spin** = `DAILY_SPIN.md` — BOL jackpot wheel + sounds, never a homemade wheel or purple orb icon). When Chris corrects copy/icon/stacking, **write it into chris-taste** that turn — next agent must learn it. Also append **likes/dislikes** to `chris-taste/FEEDBACK_LOG.md` via skill `chris-feedback-learn` (positive vs negative Do/Don't).
 2. **Lumen framework** — constitution Principle I (`lumen-design-system.mdc` / `.specify/memory/constitution.md`); tokens + existing lumen/shell components only.
 3. **Product strategy** — `.cursor/knowledge/product-strategy/BRIEF.md` (Activate / Reward / Convert / Discover / Trust; needles).
-4. **Research** — `.cursor/knowledge/product-strategy/COMPETITOR_RESEARCH.md` + journey audits when the work touches activation, rewards-in-chrome, discovery, or trust.
+4. **Research** — `.cursor/knowledge/product-strategy/COMPETITOR_RESEARCH.md` + journey audits when the work touches activation, rewards-in-chrome, discovery, or trust. For peer **flows** (join like Rainbet, rewards chrome, live wins): **Mobbin MCP** first when available — see lumen-betonline-build skill; translate to Lumen, never clone.
 
 ## Operating bar
 

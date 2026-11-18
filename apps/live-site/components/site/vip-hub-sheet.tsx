@@ -1,9 +1,16 @@
 'use client'
 
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { createPortal } from 'react-dom'
 import Image from 'next/image'
-import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+import { IconCake, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+import { Button } from '@/components/ui/button'
 import {
   LoyaltyRewardCard,
   VipFigmaIcon,
@@ -11,14 +18,25 @@ import {
 } from '@/components/lumen/loyalty-reward-card'
 import {
   claimButtonLabel,
+  daysUntilBirthday,
+  SILVER_LEVEL_UP_ID,
   VIP_HUB_TABS,
   type VipHubTab,
   type VipReward,
   type VipRewardKind,
 } from '@/lib/lumen/vip-hub'
 import { useGrowProgress } from '@/lib/lumen/use-grow-progress'
+import { useVipLevelUpCeremony } from '@/lib/lumen/use-vip-level-up-ceremony'
+import {
+  VipProgressBarFill,
+  VipProgressCrown,
+} from '@/components/lumen/vip-progress-crown'
+import { CashDropPanel } from '@/components/lumen/cash-drop-panel'
+import { DailyRacesPanel } from '@/components/lumen/daily-races-panel'
+import { MissionsPanel } from '@/components/lumen/missions-panel'
 import { useShell } from './shell-context'
 import { useDragToClose } from './use-drag-to-close'
+import { useBackdropClose } from './use-tap-action'
 import { ShellIcon } from './shell-icons'
 import { cn } from '@/lib/utils'
 
@@ -81,20 +99,24 @@ export function VipHubSheet({ open, onClose }: { open: boolean; onClose: () => v
 }
 
 function DesktopVipHub({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const closeBackdrop = useBackdropClose(open, onClose)
   return (
     <div
       data-vip-hub-root="desktop"
+      data-open={open ? 'true' : 'false'}
       className={cn(
         'pointer-events-none fixed bottom-0 left-0 right-0 top-[68px] z-40 hidden lg:block',
         open && 'pointer-events-auto',
       )}
+      aria-hidden={!open}
+      {...(!open ? ({ inert: '' } as import('react').HTMLAttributes<HTMLDivElement>) : {})}
     >
       <button
         type="button"
         aria-label="Close VIP Hub"
         data-vip-hub-backdrop=""
         data-state={open ? 'open' : 'closed'}
-        onClick={onClose}
+        onClick={closeBackdrop}
         className="absolute inset-0 border-0 bg-black/60"
       />
       <aside
@@ -114,22 +136,26 @@ function DesktopVipHub({ open, onClose }: { open: boolean; onClose: () => void }
 
 function MobileVipHub({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { sheetRef, offset, dragging, bind } = useDragToClose(open, onClose)
+  const closeBackdrop = useBackdropClose(open, onClose)
   const backdrop = open ? Math.max(0, 1 - offset / 320) : 0
 
   return (
     <div
       data-vip-hub-root="mobile"
+      data-open={open ? 'true' : 'false'}
       className={cn(
         'pointer-events-none fixed inset-0 z-[200] lg:hidden',
         open && 'pointer-events-auto',
       )}
+      aria-hidden={!open}
+      {...(!open ? ({ inert: '' } as import('react').HTMLAttributes<HTMLDivElement>) : {})}
     >
       <button
         type="button"
         aria-label="Close VIP Hub"
         data-vip-hub-backdrop=""
         data-state={open ? 'open' : 'closed'}
-        onClick={onClose}
+        onClick={closeBackdrop}
         className="absolute inset-0 border-0 bg-black/60"
         style={dragging ? { opacity: backdrop, transition: 'none' } : undefined}
       />
@@ -183,7 +209,7 @@ function VipHubChrome({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close VIP Hub"
-            className="shell-chrome-btn inline-flex size-7 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-accent"
+            className="shell-chrome-btn inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-foreground transition-colors duration-200 ease-in-out hover:bg-accent"
           >
             <ShellIcon name="drawer" tone="token" className="size-4 text-foreground" />
           </button>
@@ -202,19 +228,37 @@ function VipHubChrome({ onClose }: { onClose: () => void }) {
       >
         {tab === 'VIP' ? (
           <div className="flex flex-col gap-3">
-            <VipProgressCard />
+            {loggedIn ? <VipProgressCard /> : null}
             <div data-name="Click2Claim" className="flex flex-col gap-3">
-              {vipRewards.map((reward) => (
-                <VipClaimRow
-                  key={reward.id}
-                  reward={reward}
-                  loggedOut={!loggedIn}
-                  onClaim={claimVipReward}
-                />
-              ))}
+              {/* Level-up bonus directly under progress; removed after claim. */}
+              {vipRewards
+                .filter((reward) => reward.id !== 'birthday')
+                .slice()
+                .sort((a, b) => {
+                  if (a.id === SILVER_LEVEL_UP_ID) return -1
+                  if (b.id === SILVER_LEVEL_UP_ID) return 1
+                  return 0
+                })
+                .map((reward) => (
+                  <VipClaimRow
+                    key={reward.id}
+                    reward={reward}
+                    loggedOut={!loggedIn}
+                    onClaim={claimVipReward}
+                  />
+                ))}
+              {/* Birthday sits at the bottom — DOB collected here, not at join. */}
+              <BirthdayRewardRow loggedOut={!loggedIn} />
             </div>
           </div>
+        ) : tab === '$25k Daily Race' ? (
+          <DailyRacesPanel />
+        ) : tab === 'Missions' ? (
+          <MissionsPanel />
+        ) : tab === 'Cash Drop Code' ? (
+          <CashDropPanel />
         ) : (
+          /* Benefits + other unmerged tabs stay empty on demo until Chris says Merge. */
           <EmptyVipTab label={tab} />
         )}
       </div>
@@ -332,6 +376,7 @@ function VipTabMenu({ active, onChange }: { active: VipHubTab; onChange: (tab: V
                 role="tab"
                 aria-selected={selected}
                 data-vip-tab=""
+                data-tour={`vip-tab-${item}`}
                 data-active={selected ? 'true' : 'false'}
                 onClick={() => onChange(item)}
                 className={cn(
@@ -374,10 +419,16 @@ function VipTabMenu({ active, onChange }: { active: VipHubTab; onChange: (tab: V
   )
 }
 
-/** Figma Progress Bar — crown 52 · bronze-400 fill · grows 0→% on mount */
+/** Figma Progress Bar — crown 52 · shared shell % · level-up crown swap */
 function VipProgressCard() {
-  const percent = 25
-  const grown = useGrowProgress(percent)
+  const {
+    displayPercent,
+    levelLabel,
+    crownTone,
+    barTone,
+    updatedLabel,
+  } = useVipLevelUpCeremony()
+  const grown = useGrowProgress(displayPercent)
 
   return (
     <section
@@ -385,18 +436,11 @@ function VipProgressCard() {
       className="cursor-default select-none rounded-[10px] border border-border bg-card p-5 shadow-[0_0_16px_rgba(0,0,0,0.06)]"
     >
       <div className="flex items-start gap-3">
-        <Image
-          src="/shell/figma/vip/crown.svg"
-          alt=""
-          width={52}
-          height={52}
-          className="size-[52px] shrink-0"
-          unoptimized
-        />
+        <VipProgressCrown tone={crownTone} size={52} className="size-[52px]" />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-0.5">
           <div className="flex items-center gap-2">
             <p className="min-w-0 flex-1 text-sm font-semibold leading-5 text-foreground">
-              Bronze to Silver
+              {levelLabel}
             </p>
             <p className="shrink-0 text-sm font-medium leading-5 tabular-nums text-muted-foreground">
               {Math.round(grown)}%
@@ -410,13 +454,10 @@ function VipProgressCard() {
             aria-valuemax={100}
             aria-label="VIP tier progress"
           >
-            <div
-              className="h-full rounded-full bg-[var(--vip-rewards-bronze-400,#e39e3d)]"
-              style={{ width: `${grown}%` }}
-            />
+            <VipProgressBarFill percent={grown} tone={barTone} />
           </div>
           <p className="text-[10px] leading-[14px] text-muted-foreground">
-            Updated 24/25/2024, 8:00 PM ET
+            {updatedLabel}
           </p>
         </div>
       </div>
@@ -443,39 +484,414 @@ function VipClaimRow({
   loggedOut?: boolean
   onClaim: (id: string, button: HTMLButtonElement | null) => void
 }) {
-  const { setLoggedIn } = useShell()
+  const { openAuth } = useShell()
   const btnRef = useRef<HTMLButtonElement>(null)
   const showLogin =
     loggedOut && (reward.state === 'enable' || reward.state === 'disabled' || reward.state === 'logout')
   const displayReward: VipReward = showLogin ? { ...reward, state: 'logout' } : reward
+  const isFreeSpins = reward.kind === 'free-spins'
+  const isLevelUp = reward.id === SILVER_LEVEL_UP_ID
+  const spins = reward.spinsRemaining ?? reward.spinsTotal ?? 0
+  /* Small portrait tile — same ~3:4 as lobby game tiles / DVD case. */
+  const icon =
+    isFreeSpins && reward.gameImageSrc ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={reward.gameImageSrc}
+        alt=""
+        width={32}
+        height={44}
+        className="h-11 w-8 rounded-md object-cover"
+      />
+    ) : isLevelUp ? (
+      <Image
+        src="/shell/figma/vip/crown.svg"
+        alt=""
+        width={24}
+        height={24}
+        className="size-6"
+        unoptimized
+      />
+    ) : (
+      <RewardGlyph kind={reward.kind} />
+    )
+
+  return (
+    <div data-tour={`vip-reward-${reward.id}`}>
+      <LoyaltyRewardCard
+        rewardInfo={{
+          icon,
+          iconClassName: isFreeSpins ? 'h-11 w-8' : undefined,
+          title: reward.title,
+          subtitle: isFreeSpins ? undefined : reward.subtitle,
+          subtitleNode: isFreeSpins ? (
+            <>
+              <span className="font-semibold text-foreground">{spins}</span>
+              {' Free Spins'}
+            </>
+          ) : undefined,
+          infoText: reward.infoText,
+          infoLabel: 'More information',
+          termsLabel: 'Terms and Conditions',
+        }}
+        action={{
+          state: displayReward.state as LoyaltyClaimState,
+          label: claimButtonLabel(displayReward),
+          buttonRef: btnRef,
+          onClick: () => {
+            if (showLogin) {
+              openAuth('login')
+              return
+            }
+            onClaim(reward.id, btnRef.current)
+          },
+        }}
+      />
+    </div>
+  )
+}
+
+function takeDigits(raw: string, max = 2) {
+  return raw.replace(/\D/g, '').slice(0, max)
+}
+
+/** Card-expiry clamp — typing 7 becomes 07; 70 never sticks. */
+function clampMonthDigits(raw: string): string {
+  const d = takeDigits(raw)
+  if (d.length === 0) return ''
+  if (d.length === 1) {
+    if (Number(d) > 1) return `0${d}`
+    return d
+  }
+  const n = Number(d)
+  if (n === 0) return '01'
+  if (n > 12) return '12'
+  return d
+}
+
+function maxDayForMonth(mm: string): number {
+  const month = Number(mm)
+  if (!Number.isFinite(month) || month < 1 || month > 12) return 31
+  /* Non-leap Feb ceiling while typing — full year validates on save. */
+  if (month === 2) return 29
+  return new Date(2024, month, 0).getDate()
+}
+
+function clampDayDigits(raw: string, mm: string): string {
+  const max = maxDayForMonth(mm)
+  const d = takeDigits(raw)
+  if (d.length === 0) return ''
+  if (d.length === 1) {
+    /* 4–9 → 04–09 so “70” can’t happen */
+    if (Number(d) > 3) return `0${d}`
+    return d
+  }
+  const n = Number(d)
+  if (n === 0) return '01'
+  if (n > max) return String(max).padStart(2, '0')
+  return d
+}
+
+/** MM / DD / YY — card-expiry style; 2 digits auto-advances to the next segment. */
+function DobMmDdYy({
+  mm,
+  dd,
+  yy,
+  onMm,
+  onDd,
+  onYy,
+  error,
+}: {
+  mm: string
+  dd: string
+  yy: string
+  onMm: (v: string) => void
+  onDd: (v: string) => void
+  onYy: (v: string) => void
+  error?: string
+}) {
+  const mmRef = useRef<HTMLInputElement>(null)
+  const ddRef = useRef<HTMLInputElement>(null)
+  const yyRef = useRef<HTMLInputElement>(null)
+
+  const segmentClass = cn(
+    'w-9 bg-transparent text-center text-sm tabular-nums text-foreground',
+    'placeholder:text-muted-foreground',
+    'focus:outline-none',
+  )
+
+  return (
+    <div>
+      <label className="mb-2 block text-[13px] font-medium text-foreground" htmlFor="vip-dob-mm">
+        Date of birth
+      </label>
+      <div
+        className={cn(
+          'flex h-11 items-center justify-center gap-1.5 rounded-lg border border-input bg-popover px-3',
+          'focus-within:border-white focus-within:ring-1 focus-within:ring-white',
+        )}
+      >
+        <input
+          ref={mmRef}
+          id="vip-dob-mm"
+          type="text"
+          inputMode="numeric"
+          autoComplete="bday-month"
+          placeholder="MM"
+          maxLength={2}
+          value={mm}
+          aria-label="Month"
+          className={segmentClass}
+          onChange={(e) => {
+            const next = clampMonthDigits(e.target.value)
+            onMm(next)
+            if (next.length === 2) ddRef.current?.focus()
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowRight' && (e.currentTarget.selectionStart ?? 0) >= mm.length) {
+              e.preventDefault()
+              ddRef.current?.focus()
+            }
+          }}
+        />
+        <span className="select-none text-sm text-muted-foreground" aria-hidden>
+          /
+        </span>
+        <input
+          ref={ddRef}
+          type="text"
+          inputMode="numeric"
+          autoComplete="bday-day"
+          placeholder="DD"
+          maxLength={2}
+          value={dd}
+          aria-label="Day"
+          className={segmentClass}
+          onChange={(e) => {
+            const next = clampDayDigits(e.target.value, mm)
+            onDd(next)
+            if (next.length === 2) yyRef.current?.focus()
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Backspace' && dd === '') {
+              e.preventDefault()
+              mmRef.current?.focus()
+            }
+            if (e.key === 'ArrowLeft' && (e.currentTarget.selectionStart ?? 0) === 0) {
+              e.preventDefault()
+              mmRef.current?.focus()
+            }
+            if (e.key === 'ArrowRight' && (e.currentTarget.selectionStart ?? 0) >= dd.length) {
+              e.preventDefault()
+              yyRef.current?.focus()
+            }
+          }}
+        />
+        <span className="select-none text-sm text-muted-foreground" aria-hidden>
+          /
+        </span>
+        <input
+          ref={yyRef}
+          type="text"
+          inputMode="numeric"
+          autoComplete="bday-year"
+          placeholder="YY"
+          maxLength={2}
+          value={yy}
+          aria-label="Year"
+          className={segmentClass}
+          onChange={(e) => {
+            onYy(takeDigits(e.target.value))
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Backspace' && yy === '') {
+              e.preventDefault()
+              ddRef.current?.focus()
+            }
+            if (e.key === 'ArrowLeft' && (e.currentTarget.selectionStart ?? 0) === 0) {
+              e.preventDefault()
+              ddRef.current?.focus()
+            }
+          }}
+        />
+      </div>
+      {error ? <p className="mt-1.5 text-xs text-primary">{error}</p> : null}
+    </div>
+  )
+}
+
+/** Parse MM/DD/YY → ISO `YYYY-MM-DD`, or null if incomplete/invalid. */
+function parseDobMmDdYy(mm: string, dd: string, yy: string): string | null {
+  if (mm.length !== 2 || dd.length !== 2 || yy.length !== 2) return null
+  const month = Number(mm)
+  const day = Number(dd)
+  const yyNum = Number(yy)
+  if (!Number.isFinite(month) || !Number.isFinite(day) || !Number.isFinite(yyNum)) return null
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null
+  const nowY = new Date().getFullYear()
+  const fullYear = yyNum > nowY % 100 ? 1900 + yyNum : 2000 + yyNum
+  const date = new Date(fullYear, month - 1, day)
+  if (
+    date.getFullYear() !== fullYear ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null
+  }
+  if (date.getTime() > Date.now()) return null
+  return `${fullYear}-${mm}-${dd}`
+}
+
+function birthdayCountdownLabel(iso: string): string {
+  const days = daysUntilBirthday(iso)
+  if (days === 0) return 'Today'
+  if (days === 1) return '1 day'
+  /* Same muted card pattern as Monthly Reloads “10 days”. */
+  return `${days} days`
+}
+
+/** Birthday reward — last in the list; asks for DOB before claim when missing. */
+function BirthdayRewardRow({ loggedOut = false }: { loggedOut?: boolean }) {
+  const { vipRewards, claimVipReward, profile, setDateOfBirth } = useShell()
+  const reward = vipRewards.find((r) => r.id === 'birthday')
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [askingDob, setAskingDob] = useState(false)
+  const [mm, setMm] = useState('')
+  const [dd, setDd] = useState('')
+  const [yy, setYy] = useState('')
+  const [dobError, setDobError] = useState<string | undefined>()
+
+  if (!reward) return null
+
+  if (loggedOut) {
+    return <VipClaimRow reward={reward} loggedOut onClaim={claimVipReward} />
+  }
+
+  const hasDob = Boolean(profile.dateOfBirth)
+  const daysLeft = hasDob && profile.dateOfBirth ? daysUntilBirthday(profile.dateOfBirth) : null
+  const isBirthdayToday = daysLeft === 0
+  const canClaim = hasDob && isBirthdayToday && reward.state === 'enable'
+
+  if (askingDob && !hasDob) {
+    return (
+      <article
+        data-name="Card_BirthdayDob"
+        className="flex w-full flex-col gap-3 rounded-[10px] border border-border bg-card p-5 shadow-[0_0_16px_rgba(0,0,0,0.06)]"
+      >
+        <div className="flex items-center gap-2">
+          <IconCake className="size-6 shrink-0 text-foreground" stroke={1.75} aria-hidden />
+          <p className="min-w-0 flex-1 text-sm font-semibold leading-5 text-foreground">
+            Add your birthday
+          </p>
+        </div>
+        <DobMmDdYy
+          mm={mm}
+          dd={dd}
+          yy={yy}
+          error={dobError}
+          onMm={(v) => {
+            setMm(v)
+            /* Re-clamp day if month shrinks max (e.g. 31 → Feb). */
+            if (dd.length === 2) setDd(clampDayDigits(dd, v))
+            setDobError(undefined)
+          }}
+          onDd={(v) => {
+            setDd(v)
+            setDobError(undefined)
+          }}
+          onYy={(v) => {
+            setYy(v)
+            setDobError(undefined)
+          }}
+        />
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 flex-1"
+            onClick={() => {
+              setAskingDob(false)
+              setDobError(undefined)
+              setMm('')
+              setDd('')
+              setYy('')
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            className="h-9 flex-1"
+            onClick={() => {
+              const iso = parseDobMmDdYy(mm, dd, yy)
+              if (!iso) {
+                setDobError('Enter a valid MM / DD / YY')
+                return
+              }
+              const ageMs = Date.now() - new Date(iso).getTime()
+              const ageYears = ageMs / (365.25 * 24 * 60 * 60 * 1000)
+              if (ageYears < 18) {
+                setDobError('You must be 18 or older')
+                return
+              }
+              setDateOfBirth(iso)
+              setAskingDob(false)
+              setMm('')
+              setDd('')
+              setYy('')
+            }}
+          >
+            Save
+          </Button>
+        </div>
+      </article>
+    )
+  }
+
+  const claimedOrLanding = reward.state === 'claimed' || reward.state === 'landing'
+  /* Countdown uses disabled (muted card, no lock) — same pattern as Monthly Reloads “10 days”. */
+  const displayState: LoyaltyClaimState = claimedOrLanding
+    ? (reward.state as LoyaltyClaimState)
+    : !hasDob
+      ? 'enable'
+      : canClaim
+        ? 'enable'
+        : 'disabled'
 
   return (
     <LoyaltyRewardCard
       rewardInfo={{
-        icon: <RewardGlyph kind={reward.kind} />,
+        icon: <IconCake className="size-6 text-foreground" stroke={1.75} aria-hidden />,
         title: reward.title,
-        subtitle: reward.subtitle,
         infoText: reward.infoText,
         infoLabel: 'More information',
         termsLabel: 'Terms and Conditions',
       }}
       action={{
-        state: displayReward.state as LoyaltyClaimState,
-        label: claimButtonLabel(displayReward),
+        state: displayState,
+        label: !hasDob
+          ? 'Add birthday'
+          : canClaim
+            ? claimButtonLabel(reward)
+            : claimedOrLanding
+              ? claimButtonLabel(reward)
+              : birthdayCountdownLabel(profile.dateOfBirth!),
         buttonRef: btnRef,
         onClick: () => {
-          if (showLogin) {
-            setLoggedIn(true)
+          if (!hasDob) {
+            setAskingDob(true)
             return
           }
-          onClaim(reward.id, btnRef.current)
+          if (canClaim) {
+            claimVipReward(reward.id, btnRef.current)
+          }
         },
       }}
     />
   )
 }
 
-const KIND_ICON: Record<VipRewardKind, Parameters<typeof VipFigmaIcon>[0]['name']> = {
+const KIND_ICON: Partial<Record<VipRewardKind, Parameters<typeof VipFigmaIcon>[0]['name']>> = {
   rakeback: 'transactions-filled',
   refer: 'user-plus',
   reloads: 'monthly-reload',
@@ -488,6 +904,47 @@ const KIND_ICON: Record<VipRewardKind, Parameters<typeof VipFigmaIcon>[0]['name'
   'free-spins': 'cherries',
 }
 
+/** Mini Daily Spin wheel — brand red / cream only (no jackpot neon). */
+function DailySpinGlyph({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn('relative inline-flex size-6 shrink-0 items-center justify-center', className)}
+    >
+      <svg viewBox="0 0 24 24" className="size-6" fill="none">
+        <circle cx="12" cy="12" r="10.2" fill="#1a1a1a" />
+        <circle
+          cx="12"
+          cy="12"
+          r="9.6"
+          fill="none"
+          stroke="#d4af37"
+          strokeWidth="1.15"
+        />
+        <path d="M12 12 L12 2.8 A9.2 9.2 0 0 1 18.5 5.5 Z" fill="#ee3536" />
+        <path d="M12 12 L18.5 5.5 A9.2 9.2 0 0 1 21.2 12 Z" fill="#f3ebe0" />
+        <path d="M12 12 L21.2 12 A9.2 9.2 0 0 1 18.5 18.5 Z" fill="#ee3536" />
+        <path d="M12 12 L18.5 18.5 A9.2 9.2 0 0 1 12 21.2 Z" fill="#f3ebe0" />
+        <path d="M12 12 L12 21.2 A9.2 9.2 0 0 1 5.5 18.5 Z" fill="#ee3536" />
+        <path d="M12 12 L5.5 18.5 A9.2 9.2 0 0 1 2.8 12 Z" fill="#f3ebe0" />
+        <path d="M12 12 L2.8 12 A9.2 9.2 0 0 1 5.5 5.5 Z" fill="#ee3536" />
+        <path d="M12 12 L5.5 5.5 A9.2 9.2 0 0 1 12 2.8 Z" fill="#f3ebe0" />
+        <circle cx="12" cy="12" r="2.1" fill="#d4af37" />
+        <circle cx="12" cy="12" r="1.2" fill="#f0d78c" />
+        <path d="M12 1.2 L13.4 3.6 H10.6 Z" fill="#ee3536" />
+      </svg>
+    </span>
+  )
+}
+
 function RewardGlyph({ kind }: { kind: VipRewardKind }) {
-  return <VipFigmaIcon name={KIND_ICON[kind]} />
+  if (kind === 'birthday') {
+    return <IconCake className="size-6 text-foreground" stroke={1.75} aria-hidden />
+  }
+  if (kind === 'daily-spin') {
+    return <DailySpinGlyph />
+  }
+  const name = KIND_ICON[kind]
+  if (!name) return <IconCake className="size-6 text-foreground" stroke={1.75} aria-hidden />
+  return <VipFigmaIcon name={name} />
 }

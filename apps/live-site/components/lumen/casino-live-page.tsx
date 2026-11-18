@@ -21,7 +21,7 @@ export function CasinoLiveLobby() {
   const { launchGame } = useShell()
 
   return (
-    <div data-name="live-casino_content" className="w-full bg-background pb-8">
+    <div data-name="live-casino_content" className="w-full bg-background pb-8 pt-4">
       <CasinoGameShelf
         title="VIP Tables"
         games={LIVE_VIP_TABLES}

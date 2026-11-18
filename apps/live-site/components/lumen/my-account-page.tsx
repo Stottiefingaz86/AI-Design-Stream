@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { IconInfoCircle } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import { LumenTooltip } from '@/components/ui/lumen-tooltip'
+import { AccountDeskDashboard } from '@/components/lumen/account-desk-dashboard'
+import { AccountProgressPanel } from '@/components/lumen/account-progress-panel'
 import { useShell } from '@/components/site/shell-context'
 import {
   MY_ACCOUNT_DEMO,
@@ -35,8 +37,10 @@ async function writeClipboard(text: string) {
  * Desktop loaded 2111:33136 · Mobile loaded 2111:33143
  */
 export function MyAccountPage() {
-  const { displayBalance, setCashierOpen } = useShell()
+  const { displayBalance, setCashierOpen, profile } = useShell()
   const [copied, setCopied] = useState(false)
+  const displayName = profile.fullName.trim() || MY_ACCOUNT_DEMO.displayName
+  const accountId = profile.accountId.trim() || MY_ACCOUNT_DEMO.accountId
   const vipColor = VIP_LEVEL_COLOR[MY_ACCOUNT_DEMO.vipLevel]
   const balance = formatAccountMoney(displayBalance || MY_ACCOUNT_DEMO.availableBalance)
   const freeBet = formatAccountMoney(MY_ACCOUNT_DEMO.freeBet)
@@ -49,7 +53,7 @@ export function MyAccountPage() {
 
   const copyId = async () => {
     try {
-      await writeClipboard(MY_ACCOUNT_DEMO.accountId)
+      await writeClipboard(accountId)
       setCopied(true)
       /* lumen-tip has no mouseleave — clear the stuck “Copy” tip so only Copied! shows. */
       const tip = document.getElementById('lumen-tip')
@@ -67,6 +71,8 @@ export function MyAccountPage() {
       data-name="section-my-account"
       className="flex w-full flex-col gap-4 bg-background px-4 pb-6 pt-4 lg:gap-4 lg:px-6 lg:pb-10 lg:pt-6"
     >
+      <AccountProgressPanel />
+
       <div className="flex items-center gap-1.5">
         <h1 className="text-xl font-semibold leading-7 text-foreground lg:text-2xl lg:leading-8">
           My Account
@@ -99,11 +105,11 @@ export function MyAccountPage() {
             />
             <div className="min-w-0 flex-1">
               <p className="truncate text-base font-semibold leading-6 text-card-foreground">
-                {MY_ACCOUNT_DEMO.displayName}
+                {displayName}
               </p>
               <div className="relative flex items-center gap-1">
-                <p className="text-sm font-medium leading-5 text-muted-foreground">
-                  {MY_ACCOUNT_DEMO.accountId}
+                <p className="truncate text-sm font-medium leading-5 text-muted-foreground">
+                  {accountId}
                 </p>
                 <div className="relative">
                   {/* Hover tip only when idle — drop data-tip while Copied! is up so tips never stack. */}
@@ -244,6 +250,9 @@ export function MyAccountPage() {
           </div>
         </div>
       </div>
+
+      {/* Trading-desk overview — under profile header; ShellSeo stays below in frame. */}
+      <AccountDeskDashboard />
     </section>
   )
 }

@@ -2,21 +2,34 @@
 
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { getProjectPass, isProjectAuthed, setProjectAuthed } from '@/lib/access'
+import { cn } from '@/lib/utils'
 
 export function PassGate({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [authed, setAuthed] = useState(false)
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
+  const [isDesignAgent, setIsDesignAgent] = useState(false)
 
   useEffect(() => {
+    setIsDesignAgent(
+      document.documentElement.hasAttribute('data-design-agent-route') ||
+        window.location.pathname.toLowerCase().startsWith('/designagent'),
+    )
     setAuthed(isProjectAuthed())
     setReady(true)
   }, [])
 
   // Server and the first client paint MUST match. Do not read window here.
   if (!ready) {
-    return <div className="min-h-svh bg-background" aria-busy aria-label="Loading" />
+    return (
+      <div
+        className="min-h-svh"
+        style={{ background: '#101010' }}
+        aria-busy
+        aria-label="Loading"
+      />
+    )
   }
 
   if (authed) return children
@@ -32,14 +45,23 @@ export function PassGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-svh items-center justify-center bg-[var(--header-inverted,#111)] px-4 text-white">
+    <div
+      className="flex min-h-svh items-center justify-center px-4 text-white"
+      style={{ background: isDesignAgent ? '#101010' : 'var(--header-inverted,#111)' }}
+    >
       <form
         onSubmit={submit}
         className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-white/10 bg-black/40 p-6"
       >
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">BetOnline</h1>
-          <p className="mt-1 text-sm text-white/60">Enter the passcode to open the site.</p>
+          <h1 className="text-lg font-semibold tracking-tight">
+            {isDesignAgent ? 'Design agent' : 'BetOnline'}
+          </h1>
+          <p className="mt-1 text-sm text-white/60">
+            {isDesignAgent
+              ? 'Enter the passcode to open the backoffice.'
+              : 'Enter the passcode to open the site.'}
+          </p>
         </div>
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="text-white/70">Passcode</span>
@@ -53,7 +75,14 @@ export function PassGate({ children }: { children: ReactNode }) {
           />
         </label>
         {error ? <p className="text-sm text-red-300">{error}</p> : null}
-        <button type="submit" className="h-10 rounded-lg bg-primary text-sm font-medium text-primary-foreground">
+        <button
+          type="submit"
+          className={cn(
+            'h-10 rounded-lg text-sm font-medium text-white',
+            !isDesignAgent && 'bg-primary text-primary-foreground',
+          )}
+          style={isDesignAgent ? { background: '#ff2d95' } : undefined}
+        >
           Enter
         </button>
       </form>

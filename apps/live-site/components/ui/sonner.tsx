@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import {
   CircleCheck,
@@ -6,18 +6,42 @@ import {
   LoaderCircle,
   OctagonX,
   TriangleAlert,
-} from "lucide-react"
-import { useTheme } from "next-themes"
-import { Toaster as Sonner } from "sonner"
+} from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { Toaster as Sonner, toast as sonnerToast } from 'sonner'
+import { playMessengerPopSound } from '@/lib/lumen/vip-celebrate'
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
+function withMessengerPop<T extends (...args: never[]) => unknown>(fn: T): T {
+  return ((...args: Parameters<T>) => {
+    playMessengerPopSound()
+    return fn(...args)
+  }) as T
+}
+
+/** Sonner toast + Intercom pop on every show. */
+const toast = Object.assign(withMessengerPop(sonnerToast), {
+  success: withMessengerPop(sonnerToast.success),
+  info: withMessengerPop(sonnerToast.info),
+  warning: withMessengerPop(sonnerToast.warning),
+  error: withMessengerPop(sonnerToast.error),
+  message: withMessengerPop(sonnerToast.message),
+  loading: withMessengerPop(sonnerToast.loading),
+  promise: ((...args: Parameters<typeof sonnerToast.promise>) => {
+    playMessengerPopSound()
+    return sonnerToast.promise(...args)
+  }) as typeof sonnerToast.promise,
+  custom: withMessengerPop(sonnerToast.custom),
+  dismiss: sonnerToast.dismiss.bind(sonnerToast),
+})
+
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const { theme = 'system' } = useTheme()
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={theme as ToasterProps['theme']}
       className="toaster group"
       icons={{
         success: <CircleCheck className="h-4 w-4" />,
@@ -29,12 +53,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
+            'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',
+          description: 'group-[.toast]:text-muted-foreground',
           actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
+            'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
           cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+            'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
         },
       }}
       {...props}
@@ -42,4 +66,4 @@ const Toaster = ({ ...props }: ToasterProps) => {
   )
 }
 
-export { Toaster }
+export { Toaster, toast }

@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/table'
 import { Typography } from '@/components/ui/typography'
 import { useShell } from '@/components/site/shell-context'
+import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
 import { MyBonusFiltersSheet } from '@/components/lumen/my-bonus-filters-sheet'
 import {
   ORIGINALS_GAMES,
@@ -377,11 +378,21 @@ function SportsBonusTable({ statusFilter }: { statusFilter: string }) {
             return (
               <Fragment key={row.id}>
                 <TableRow
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={open}
                   className={cn(
-                    'border-border transition-colors',
+                    'cursor-pointer border-border transition-colors',
                     ROW_HOVER,
                     open && ROW_OPEN,
                   )}
+                  onClick={() => setExpandedId(open ? null : row.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      setExpandedId(open ? null : row.id)
+                    }
+                  }}
                 >
                   <TableCell className="py-3 font-medium">{row.code}</TableCell>
                   <TableCell className="hidden py-3 tabular-nums md:table-cell">{row.amount}</TableCell>
@@ -391,14 +402,7 @@ function SportsBonusTable({ statusFilter }: { statusFilter: string }) {
                     <StatusBadge status={row.status} />
                   </TableCell>
                   <TableCell className="py-3 text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-expanded={open}
-                      aria-label={open ? `Collapse ${row.code}` : `Expand ${row.code}`}
-                      onClick={() => setExpandedId(open ? null : row.id)}
-                    >
+                    <span className="inline-flex size-8 items-center justify-center" aria-hidden>
                       <IconChevronDown
                         className={cn(
                           'size-4 text-muted-foreground transition-transform',
@@ -407,7 +411,7 @@ function SportsBonusTable({ statusFilter }: { statusFilter: string }) {
                         )}
                         stroke={2}
                       />
-                    </Button>
+                    </span>
                   </TableCell>
                 </TableRow>
                 <TableRow className="border-0 hover:bg-transparent">
@@ -462,11 +466,21 @@ function CasinoBonusTable() {
             return (
               <Fragment key={row.id}>
                 <TableRow
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={open}
                   className={cn(
-                    'border-border transition-colors',
+                    'cursor-pointer border-border transition-colors',
                     ROW_HOVER,
                     open && ROW_OPEN,
                   )}
+                  onClick={() => setExpandedId(open ? null : row.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      setExpandedId(open ? null : row.id)
+                    }
+                  }}
                 >
                   <TableCell className="py-3 font-medium">{row.name}</TableCell>
                   <TableCell className="hidden py-3 tabular-nums sm:table-cell">{row.code}</TableCell>
@@ -476,18 +490,15 @@ function CasinoBonusTable() {
                   </TableCell>
                   <TableCell className="hidden py-3 tabular-nums lg:table-cell">{row.rollover}</TableCell>
                   <TableCell className="hidden py-3 tabular-nums md:table-cell">{row.freeSpins}</TableCell>
-                  <TableCell className="py-3">
+                  <TableCell
+                    className="py-3"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
                     <CasinoActionCell action={row.action} onLaunch={launchGame} />
                   </TableCell>
                   <TableCell className="py-3 text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-expanded={open}
-                      aria-label={open ? `Collapse ${row.name}` : `Expand ${row.name}`}
-                      onClick={() => setExpandedId(open ? null : row.id)}
-                    >
+                    <span className="inline-flex size-8 items-center justify-center" aria-hidden>
                       <IconChevronDown
                         className={cn(
                           'size-4 text-muted-foreground transition-transform',
@@ -496,7 +507,7 @@ function CasinoBonusTable() {
                         )}
                         stroke={2}
                       />
-                    </Button>
+                    </span>
                   </TableCell>
                 </TableRow>
                 <TableRow className="border-0 hover:bg-transparent">
@@ -614,6 +625,10 @@ export function MyBonusPage({ className }: { className?: string }) {
       ) : (
         <SportsBonusTable statusFilter={applied.status} />
       )}
+
+      <div className="-mx-6 mt-8">
+        <CasinoLiveWinsCarousel />
+      </div>
 
       <MyBonusFiltersSheet
         open={filtersOpen}

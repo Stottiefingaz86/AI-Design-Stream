@@ -1,4 +1,7 @@
-/** Soft-nav only — no lobby skeleton on Specialty. */
+import { CasinoShelvesLobbySkeleton } from '@/components/lumen/casino-lobby-skeleton'
+
 export default function Loading() {
-  return null
+  return (
+    <CasinoShelvesLobbySkeleton titles={['Scratch Cards', 'Keno', 'Other Games']} />
+  )
 }

@@ -4,6 +4,27 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Lumen tokens set `font-family: Figtree` by name. next/font only registers a
+ * hashed family (`__figtree_*`), so bare `Figtree` was missing → browser Times.
+ * Self-host the real family name so tokens + body both resolve.
+ */
+@font-face {
+  font-family: 'Figtree';
+  src: url('/fonts/figtree-var.woff2') format('woff2');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root,
+[data-brand],
+.dark {
+  --font-family-font-sans: Figtree, ui-sans-serif, system-ui, sans-serif;
+  --typography-font-family-font-family-default: Figtree, ui-sans-serif, system-ui, sans-serif;
+  --typography-font-family-font-family: Figtree, ui-sans-serif, system-ui, sans-serif;
+}
+
 /* Static first-paint boot — layout also sets critical styles inline. */
 #site-boot-loader {
   position: fixed !important;
@@ -126,8 +147,35 @@
   backface-visibility: hidden;
 }
 
+/* Launcher Must Drop — never squeeze NumberFlow digits (max-width:100% causes clip). */
+.jackpot-must-drop-shake.jackpot-must-drop-shake--free {
+  max-width: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .jackpot-must-drop-shake {
+    animation: none;
+  }
+}
+
+/* Mini→Mega strip when Must Drop owns the left and leftover is too tight for static cells. */
+@keyframes jackpot-tier-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.jackpot-tier-marquee {
+  display: flex;
+  width: max-content;
+  animation: jackpot-tier-marquee 18s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jackpot-tier-marquee {
     animation: none;
   }
 }
@@ -186,6 +234,180 @@
   }
 }
 
+/* Daily Spin glyph — purple/pink orb pulse behind the wheel mark */
+@keyframes daily-spin-orb {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+    filter: blur(4px);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.12);
+    filter: blur(6px);
+  }
+}
+
+.daily-spin-orb {
+  background: radial-gradient(
+    circle at 40% 35%,
+    rgba(244, 114, 182, 0.85) 0%,
+    rgba(168, 85, 247, 0.55) 42%,
+    rgba(236, 72, 153, 0.15) 72%,
+    transparent 100%
+  );
+  animation: daily-spin-orb 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-spin-orb {
+    animation: none;
+    opacity: 0.65;
+    transform: scale(1);
+    filter: blur(5px);
+  }
+}
+
+/* Casino session rakeback — coins fly into header VIP crown */
+[data-rakeback-coins] {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.rakeback-fly-coin {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483646;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 9999px;
+  border: 1px solid rgba(227, 158, 61, 0.5);
+  background: radial-gradient(circle at 32% 28%, #fff8e6 0%, #e39e3d 55%, #9a6b28 100%);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  will-change: transform, opacity;
+}
+
+.rakeback-fly-coin--trail {
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-color: rgba(227, 158, 61, 0.25);
+  background: rgba(227, 158, 61, 0.35);
+  box-shadow: none;
+  filter: blur(0.6px);
+}
+
+.rakeback-impact-burst {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483646;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 9999px;
+  border: 1px solid rgba(227, 158, 61, 0.55);
+  background: rgba(227, 158, 61, 0.12);
+  box-shadow: none;
+  animation: rakeback-impact-ring 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  pointer-events: none;
+}
+
+.rakeback-impact-spark {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483646;
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(227, 158, 61, 0.7);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+@keyframes rakeback-impact-ring {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rakeback-fly-coin,
+  .rakeback-impact-burst,
+  .rakeback-impact-spark {
+    display: none;
+  }
+}
+
+/* Odds → betslip fly (primary dot + trail), same layer pattern as rakeback coins */
+[data-betslip-fly] {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.betslip-fly-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483646;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklch, var(--primary) 70%, white);
+  background: radial-gradient(
+    circle at 32% 28%,
+    color-mix(in oklch, var(--primary) 35%, white) 0%,
+    var(--primary) 58%,
+    color-mix(in oklch, var(--primary) 70%, black) 100%
+  );
+  box-shadow:
+    0 0 10px color-mix(in oklch, var(--primary) 55%, transparent),
+    0 1px 3px rgba(0, 0, 0, 0.28);
+  will-change: transform, opacity;
+}
+
+.betslip-fly-dot--trail {
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-color: transparent;
+  background: color-mix(in oklch, var(--primary) 45%, transparent);
+  box-shadow: none;
+  filter: blur(0.8px);
+}
+
+.betslip-dock-shake {
+  animation: vip-crown-wobble 0.55s ease-in-out 1;
+  transform-origin: 50% 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .betslip-fly-dot {
+    display: none;
+  }
+  .betslip-dock-shake {
+    animation: none;
+  }
+}
+
 .shell-chrome-btn,
 [data-name='header-brand'] button,
 [data-name='sidebar-container'] button,
@@ -210,6 +432,106 @@
 [data-name='nav-menu-icon-solid'] a:active {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Must follow shell-chrome-btn box-shadow:none — coins hit the VIP crown. */
+button.shell-chrome-btn.vip-rakeback-impact {
+  opacity: 1 !important;
+  box-shadow: 0 0 0 1px rgba(227, 158, 61, 0.65), 0 0 12px rgba(227, 158, 61, 0.35) !important;
+}
+
+/* 404 Figma code mark — monochrome slice glitch on the SVG layers */
+.error-404-glitch {
+  animation: error-404-glitch-base 4s steps(1, end) infinite;
+}
+
+.error-404-glitch-layer {
+  pointer-events: none;
+}
+
+.error-404-glitch-layer--a,
+.error-404-glitch-layer--b {
+  opacity: 0;
+}
+
+.error-404-glitch-layer--a {
+  animation: error-404-glitch-slice-a 4s steps(1, end) infinite;
+  clip-path: inset(12% 0 58% 0);
+}
+
+.error-404-glitch-layer--b {
+  animation: error-404-glitch-slice-b 4s steps(1, end) infinite;
+  clip-path: inset(52% 0 8% 0);
+}
+
+@keyframes error-404-glitch-base {
+  0%,
+  86%,
+  100% {
+    transform: none;
+  }
+  87% {
+    transform: translate(-1px, 0) skewX(-2deg);
+  }
+  88% {
+    transform: translate(1px, 0) skewX(1deg);
+  }
+  89% {
+    transform: none;
+  }
+}
+
+@keyframes error-404-glitch-slice-a {
+  0%,
+  86%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  87% {
+    transform: translate(-4px, 0);
+    opacity: 0.9;
+  }
+  88% {
+    transform: translate(3px, 1px);
+    opacity: 0.75;
+  }
+  89% {
+    transform: translate(-1px, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes error-404-glitch-slice-b {
+  0%,
+  87%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  88% {
+    transform: translate(4px, 0);
+    opacity: 0.85;
+  }
+  89% {
+    transform: translate(-3px, -1px);
+    opacity: 0.65;
+  }
+  90% {
+    transform: translate(1px, 0);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .error-404-glitch {
+    animation: none;
+  }
+
+  .error-404-glitch-layer--a,
+  .error-404-glitch-layer--b {
+    display: none;
+  }
 }
 
 /* Glass is the whole sub-menu bar — translucent so backdrop blur reads. */
@@ -380,7 +702,9 @@
 */
 [data-name='Product Page'] [data-shell-sticky-chrome] {
   position: sticky !important;
-  top: 0 !important;
+  /* Mobile: --shell-sticky-top is -chipH so page scrolls until main nav hits top.
+     Scroll-up reveal sets 0 so the same block slides down with quick-nav. */
+  top: var(--shell-sticky-top, 0px) !important;
   /* Above VIP carousel / motion z-indexes; below desktop hubs (100) and sheets. */
   z-index: 70 !important;
   flex-shrink: 0 !important;
@@ -435,6 +759,7 @@
   100% { transform: translateY(-140px) translateX(var(--ember-drift, 0px)); opacity: 0; }
 }
 .hero-ember { will-change: transform, opacity; }
+
 
 .tile-shimmer {
   background: linear-gradient(90deg, transparent 0%, color-mix(in oklch, var(--foreground) 12%, transparent) 50%, transparent 100%);
@@ -553,6 +878,71 @@
   opacity: 0.08;
   animation: lm-tile-shimmer 1.5s ease-in-out infinite;
 }
+
+/* Graded sport slabs — hover-only soft light bloom (no hard band) */
+@keyframes trending-slab-foil {
+  0% {
+    transform: translate3d(-55%, -35%, 0) scale(1);
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(45%, 40%, 0) scale(1.05);
+    opacity: 0;
+  }
+}
+.trending-slab-foil {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.trending-slab-foil::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 160%;
+  height: 90%;
+  margin: -45% 0 0 -80%;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse 70% 55% at 50% 50%,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(230, 240, 255, 0.1) 28%,
+    rgba(255, 255, 255, 0.03) 52%,
+    transparent 72%
+  );
+  mix-blend-mode: soft-light;
+  filter: blur(10px);
+  opacity: 0;
+  transform: translate3d(-55%, -35%, 0);
+  will-change: transform, opacity;
+}
+@media (hover: hover) and (pointer: fine) {
+  .group:hover .trending-slab-foil {
+    opacity: 1;
+  }
+  .group:hover .trending-slab-foil::after {
+    animation: trending-slab-foil 1.6s ease-in-out forwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trending-slab-foil,
+  .trending-slab-foil::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+}
 .lm-slide-pill { transition: left 280ms cubic-bezier(0.2, 0.8, 0.2, 1), width 280ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 
 .twitter-heart-sprite {
@@ -598,7 +988,7 @@ html, body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-figtree), var(--font-family-font-sans), sans-serif;
+  font-family: var(--font-figtree), Figtree, ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   margin: 0;
@@ -1449,12 +1839,12 @@ main[data-sidebar="inset"] > * {
 
 /* Ensure all parent containers up to body allow sticky.
  * Exclude portaled overlays (UBC / cashier / VIP hub / search / drawer / claim toast /
- * my-bonus + bet-history filters / Radix portals) — they need fixed + full height. Without this
- * carve-out, `position: relative !important` overrides Floating UI / overlay `fixed`
+ * my-bonus + bet-history filters / Radix portals / design-agent) — they need fixed + full height.
+ * Without this carve-out, `position: relative !important` overrides Floating UI / overlay `fixed`
  * and menus/sheets land off-screen. */
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]),
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]),
-body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-pick-a-game-menu]):not([data-radix-portal]):not([data-radix-popper-content-wrapper]) > div[class*="flex"] {
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-auth-modal-root]):not([data-profile-gate-root]):not([data-player-dossier-root]):not([data-ba-prd-root]):not([data-auth-password-rules]):not([data-auth-social-menu]):not([data-pick-a-game-menu]):not([data-soccer-alt-line-menu]):not([data-soccer-betslip-root]):not([data-radix-portal]):not([data-welcome-inbox-root]):not([data-product-tour-root]):not([data-promo-detail-root]):not([data-churn-rescue-root]):not([data-daily-spin-root]):not([data-notifications-root]):not([data-notifications-menu]):not([data-trends-filter-menu]):not([data-radix-popper-content-wrapper]):not([data-design-agent-app]):not([data-design-agent-modal]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-auth-modal-root]):not([data-profile-gate-root]):not([data-player-dossier-root]):not([data-ba-prd-root]):not([data-auth-password-rules]):not([data-auth-social-menu]):not([data-pick-a-game-menu]):not([data-soccer-alt-line-menu]):not([data-soccer-betslip-root]):not([data-radix-portal]):not([data-welcome-inbox-root]):not([data-product-tour-root]):not([data-promo-detail-root]):not([data-churn-rescue-root]):not([data-daily-spin-root]):not([data-notifications-root]):not([data-notifications-menu]):not([data-trends-filter-menu]):not([data-radix-popper-content-wrapper]):not([data-design-agent-app]):not([data-design-agent-modal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-auth-modal-root]):not([data-profile-gate-root]):not([data-player-dossier-root]):not([data-ba-prd-root]):not([data-auth-password-rules]):not([data-auth-social-menu]):not([data-pick-a-game-menu]):not([data-soccer-alt-line-menu]):not([data-soccer-betslip-root]):not([data-radix-portal]):not([data-welcome-inbox-root]):not([data-product-tour-root]):not([data-promo-detail-root]):not([data-churn-rescue-root]):not([data-daily-spin-root]):not([data-notifications-root]):not([data-notifications-menu]):not([data-trends-filter-menu]):not([data-radix-popper-content-wrapper]):not([data-radix-popper-content-wrapper]):not([data-design-agent-app]):not([data-design-agent-modal]),
+body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-auth-modal-root]):not([data-profile-gate-root]):not([data-player-dossier-root]):not([data-ba-prd-root]):not([data-auth-password-rules]):not([data-auth-social-menu]):not([data-pick-a-game-menu]):not([data-soccer-alt-line-menu]):not([data-soccer-betslip-root]):not([data-radix-portal]):not([data-welcome-inbox-root]):not([data-product-tour-root]):not([data-promo-detail-root]):not([data-churn-rescue-root]):not([data-daily-spin-root]):not([data-notifications-root]):not([data-notifications-menu]):not([data-trends-filter-menu]):not([data-radix-popper-content-wrapper]):not([data-design-agent-app]):not([data-design-agent-modal]) > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]):not([data-vip-hub-root]):not([data-cashier-redirect]):not([data-casino-search-root]):not([data-casino-game-root]):not([data-jackpot-dropdown]):not([data-vip-claim-toast]):not([data-my-bonus-filters-root]):not([data-bet-history-filters-root]):not([data-transactions-filters-root]):not([data-payments-filters-root]):not([data-security-remove-dialog]):not([data-auth-modal-root]):not([data-profile-gate-root]):not([data-player-dossier-root]):not([data-ba-prd-root]):not([data-auth-password-rules]):not([data-auth-social-menu]):not([data-pick-a-game-menu]):not([data-soccer-alt-line-menu]):not([data-soccer-betslip-root]):not([data-radix-portal]):not([data-welcome-inbox-root]):not([data-product-tour-root]):not([data-promo-detail-root]):not([data-churn-rescue-root]):not([data-daily-spin-root]):not([data-notifications-root]):not([data-notifications-menu]):not([data-trends-filter-menu]):not([data-radix-popper-content-wrapper]):not([data-radix-popper-content-wrapper]):not([data-design-agent-app]):not([data-design-agent-modal]) > div[class*="flex"] {
   overflow: visible !important;
   overflow-x: hidden !important;
   position: relative !important;
@@ -1474,6 +1864,44 @@ body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]
   overflow-x: hidden !important;
   overflow-y: auto !important;
   z-index: 220 !important;
+}
+
+/* Soccer Spread/Total alternate-line menu — body portal; scroll lives inside the list only (no double bar). */
+[data-soccer-alt-line-menu] {
+  position: fixed !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  z-index: 260 !important;
+  pointer-events: auto !important;
+}
+[data-soccer-alt-line-menu] [data-soccer-alt-line-list] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+[data-soccer-alt-line-menu] [data-soccer-alt-line-list]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Notifications ⋯ menu — same body-portal carve-out as pick-a-game. */
+[data-notifications-menu] {
+  position: fixed !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  z-index: 260 !important;
+  pointer-events: auto !important;
+}
+
+/* Trends View/Period/Metric/Range menus — body portal, no Radix Select. */
+[data-trends-filter-menu] {
+  position: fixed !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  z-index: 260 !important;
+  pointer-events: auto !important;
 }
 
 /* My Bonus / Bet History / Transactions / Payments filters sheets — same carve-out as VIP Hub / search. */
@@ -1500,6 +1928,282 @@ body > div:not([data-shell-drawer]):not([data-ubc-root]):not([data-cashier-root]
   height: 100% !important;
   max-height: none !important;
   overflow: visible !important;
+}
+
+/* Join / Login — must stay viewport-fixed; legacy body>div rules force relative otherwise. */
+[data-auth-modal-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 220 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: Figtree, var(--font-figtree), ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/*
+ * Profile gate (sports name / account level) — above betslip + VIP Hub.
+ * Same carve-out rule as auth / Daily Spin. Tailwind z alone is NOT enough.
+ */
+[data-profile-gate-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 260 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: auto !important;
+  font-family: Figtree, var(--font-figtree), ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* Player dossier (vs Top 10) — same stack as profile gate. */
+[data-player-dossier-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 260 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  pointer-events: auto !important;
+  font-family: Figtree, var(--font-figtree), ui-sans-serif, system-ui, sans-serif !important;
+}
+
+@media (min-width: 640px) {
+  [data-player-dossier-root] {
+    align-items: center !important;
+  }
+}
+
+/* BA workshop PRD — same body-portal carve-out as dossier / auth. */
+[data-ba-prd-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 260 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: stretch !important;
+  justify-content: flex-end !important;
+  pointer-events: auto !important;
+  font-family: Figtree, var(--font-figtree), ui-sans-serif, system-ui, sans-serif !important;
+}
+
+/* Laura welcome toast + FAB — same carve-out pattern; floats on top of the shell + dock. */
+[data-welcome-inbox-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 250 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+/* Promotions CMS detail dialog — above the shell, below Laura. */
+[data-promo-detail-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 230 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+[data-promo-detail-root][data-open='true'] {
+  pointer-events: auto !important;
+}
+
+/* Intercom product tours — above VIP Hub, Cashier and Laura. */
+[data-product-tour-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 300 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+/* Churn rescue after 3 losses — same fixed carve-out as auth / Intercom. */
+[data-churn-rescue-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 240 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+[data-churn-rescue-root] > * {
+  pointer-events: auto !important;
+}
+
+/*
+  Daily Spin — MUST sit above VIP Hub (z-200). Without this carve-out, legacy
+  body>div rules force position:relative and the modal paints UNDER the hub.
+  Every new body portal needs: (1) :not([data-…-root]) in the carve-out list,
+  (2) this fixed + z-index block. Never ship a portal with only a Tailwind z-*.
+*/
+/*
+  Daily Spin — same centered dialog chrome as Login (NOT fullscreen).
+  Left brand + right wheel. z-250 above VIP Hub / cashier.
+*/
+[data-daily-spin-root] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 250 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: none !important;
+}
+[data-daily-spin-root][data-open='true'] {
+  pointer-events: auto !important;
+}
+[data-daily-spin-root] > * {
+  pointer-events: auto !important;
+}
+
+[data-daily-spin-modal] {
+  position: relative !important;
+  background-color: var(--background) !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  height: min(86dvh, 640px) !important;
+  max-height: min(86dvh, 640px) !important;
+  overflow: hidden !important;
+}
+
+[data-daily-spin-modal] [data-daily-spin-form] {
+  background-color: var(--background) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (min-width: 900px) {
+  [data-daily-spin-modal] {
+    width: min(820px, calc(100vw - 3rem)) !important;
+    max-width: 820px !important;
+  }
+
+  [data-daily-spin-modal] [data-daily-spin-brand] {
+    width: 55% !important;
+    max-width: 55% !important;
+    flex: 0 0 55% !important;
+  }
+
+  [data-daily-spin-modal] [data-daily-spin-form] {
+    width: 45% !important;
+    max-width: 45% !important;
+    flex: 0 0 45% !important;
+  }
+}
+
+[data-daily-spin-modal] [data-daily-spin-brand] {
+  background-color: var(--primary) !important;
+  height: auto !important;
+  min-height: 100% !important;
+  align-self: stretch !important;
+}
+
+[data-auth-modal] {
+  position: relative !important;
+  /* Visible frost glass — page must read through; never opaque --background / --card wash. */
+  background-color: color-mix(in srgb, var(--background) 38%, transparent) !important;
+  background-image: none !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.25) !important;
+  backdrop-filter: blur(28px) saturate(1.25) !important;
+  opacity: 1 !important;
+  /* Same shell size for Login + Join — compact (~820×640). */
+  height: min(86dvh, 640px) !important;
+  max-height: min(86dvh, 640px) !important;
+  overflow: hidden !important;
+}
+
+/* Form column — frosted glass over banner edge + dimmed page. */
+[data-auth-modal] [data-auth-form] {
+  background-color: color-mix(in srgb, var(--background) 32%, transparent) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(1.2) !important;
+  backdrop-filter: blur(24px) saturate(1.2) !important;
+}
+
+/* Fields: whisper white frost (readable, blur visible). */
+[data-auth-modal] [data-auth-form] input:not([type='checkbox']) {
+  background-color: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+/* Compact Rainbet: banner ~55% / form ~45%, modal ~820 — not near full site width. */
+@media (min-width: 900px) {
+  [data-auth-modal] {
+    width: min(820px, calc(100vw - 3rem)) !important;
+    max-width: 820px !important;
+  }
+
+  [data-auth-modal] [data-auth-brand] {
+    width: 55% !important;
+    max-width: 55% !important;
+    flex: 0 0 55% !important;
+  }
+
+  [data-auth-modal] [data-auth-form] {
+    width: 45% !important;
+    max-width: 45% !important;
+    flex: 0 0 45% !important;
+  }
+}
+
+[data-auth-modal] [data-auth-brand] {
+  background-color: var(--primary) !important;
+  height: auto !important;
+  min-height: 100% !important;
+  aspect-ratio: auto !important;
+  align-self: stretch !important;
+}
+
+/* Password criteria tip — body-portaled; same carve-out as auth modal / pick-a-game. */
+[data-auth-password-rules] {
+  position: fixed !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  z-index: 500 !important;
+  pointer-events: none !important;
+}
+
+/* Social provider menu — body-portaled above auth (legacy body>div must not unstick). */
+[data-auth-social-menu] {
+  position: fixed !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: hidden !important;
+  z-index: 500 !important;
+  pointer-events: auto !important;
 }
 
 [data-my-bonus-filters-root] [data-my-bonus-filters],
@@ -1907,9 +2611,79 @@ button[data-active="true"][class*="SidebarMenuButton"],
   [data-cashier-root] [data-cashier-backdrop],
   [data-cashier-root] [data-name='Cashier'],
   [data-vip-hub-root] [data-vip-hub-backdrop],
-  [data-vip-hub-root] [data-name='VIP Hub'] {
+  [data-vip-hub-root] [data-name='VIP Hub'],
+  [data-notifications-root] [data-notifications-backdrop],
+  [data-notifications-root] [data-name='Notifications panel'] {
     transition: none;
   }
+}
+
+/* Notifications inbox — same carve-out + slide as VIP Hub / UBC. */
+[data-notifications-root='desktop'] {
+  position: fixed !important;
+  top: 68px !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  z-index: 100 !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+[data-notifications-root='mobile'] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200 !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+[data-notifications-root] [data-notifications-backdrop] {
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+}
+[data-notifications-root] [data-notifications-backdrop][data-state='open'] {
+  opacity: 1;
+}
+[data-notifications-root] [data-notifications-backdrop][data-state='open'] {
+  @starting-style {
+    opacity: 0;
+  }
+}
+
+[data-notifications-root='desktop'] [data-name='Notifications panel'] {
+  transform: translateX(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-notifications-root='desktop'] [data-name='Notifications panel'][data-state='open'] {
+  transform: translateX(0);
+}
+[data-notifications-root='desktop'] [data-name='Notifications panel'][data-state='open'] {
+  @starting-style {
+    transform: translateX(100%);
+  }
+}
+
+[data-notifications-root='mobile'] [data-name='Notifications panel'] {
+  transform: translateY(100%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+}
+[data-notifications-root='mobile'] [data-name='Notifications panel'][data-state='open'] {
+  transform: translateY(0);
+}
+[data-notifications-root='mobile'] [data-name='Notifications panel'][data-state='open'] {
+  @starting-style {
+    transform: translateY(100%);
+  }
+}
+[data-notifications-root='mobile'] [data-name='Notifications panel'][data-dragging='true'] {
+  transition: none;
 }
 
 [data-vip-hub-root='desktop'] {
@@ -2044,6 +2818,97 @@ button[data-active="true"][class*="SidebarMenuButton"],
   overflow: hidden !important;
 }
 
+/* Soccer betslip — flush bottom drawer; dock hides while open so Place Bet owns the slot. */
+[data-soccer-betslip-root] {
+  position: fixed !important;
+  inset: 0 0 0 0 !important;
+  z-index: 120 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-height: none !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+
+[data-soccer-betslip-root] [data-name='soccer-betslip'] {
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)) !important;
+  transform: translateY(110%);
+  transition: transform 300ms ease-in-out;
+  will-change: transform;
+  pointer-events: auto !important;
+  background: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+}
+[data-soccer-betslip-root] [data-name='soccer-betslip'][data-state='open'] {
+  transform: translateY(0);
+}
+@media (min-width: 1024px) {
+  [data-soccer-betslip-root] {
+    inset: auto 0 0 0 !important;
+    height: auto !important;
+    min-height: min(78vh, 560px) !important;
+    z-index: 120 !important;
+  }
+  /* Center with margin — not translateX(-50%) — so drag translateY doesn't shove it right. */
+  [data-soccer-betslip-root] [data-name='soccer-betslip'] {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 375px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-bottom: 0.75rem !important;
+    transform: translateY(110%);
+  }
+  [data-soccer-betslip-root] [data-name='soccer-betslip'][data-state='open'] {
+    transform: translateY(0);
+  }
+}
+[data-soccer-betslip-root] [data-name='soccer-betslip'][data-dragging='true'] {
+  transition: none;
+}
+
+[data-soccer-betslip-backdrop] {
+  opacity: 0;
+  transition: opacity 300ms ease-in-out;
+}
+[data-soccer-betslip-backdrop][data-state='open'] {
+  opacity: 1;
+}
+
+[data-soccer-betslip-root] [data-drag-handle] {
+  display: flex !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  min-height: 36px !important;
+  justify-content: center !important;
+  align-items: center !important;
+  opacity: 1 !important;
+  touch-action: none !important;
+}
+
+[data-soccer-betslip-root] [data-drag-handle] > span {
+  display: block !important;
+  width: 54px !important;
+  min-width: 54px !important;
+  height: 8px !important;
+  border-radius: 999px !important;
+  background: var(--surface-muted-2) !important;
+  opacity: 0.7 !important;
+}
+
 [data-cashier-root] [data-cashier-backdrop] {
   opacity: 0;
   transition: opacity 300ms ease-in-out;
@@ -2171,4 +3036,382 @@ button[data-active="true"][class*="SidebarMenuButton"],
   max-height: 100svh !important;
   min-height: 100svh !important;
   overflow: hidden !important;
+}
+
+/*
+  Closed overlays — kill hits on the root AND every descendant (children with
+  pointer-events:auto were still stealing taps). Keep visible for exit slide;
+  portals unmount after ~300ms.
+*/
+[data-shell-drawer][data-state='closed'],
+[data-shell-drawer][data-state='closed'] *,
+[data-ubc-root][data-open='false'],
+[data-ubc-root][data-open='false'] *,
+[data-cashier-root][data-open='false'],
+[data-cashier-root][data-open='false'] *,
+[data-vip-hub-root][data-open='false'],
+[data-vip-hub-root][data-open='false'] * {
+  pointer-events: none !important;
+}
+
+[data-shell-drawer][data-state='open'],
+[data-ubc-root][data-open='true'],
+[data-cashier-root][data-open='true'],
+[data-vip-hub-root][data-open='true'] {
+  pointer-events: auto !important;
+}
+
+/* Header chrome — no 300ms click delay; kills sticky-hover first-tap on iOS */
+[data-name='header-brand'] button.shell-chrome-btn,
+[data-shell-vip],
+[data-shell-balance],
+[data-auth-modal] input,
+[data-auth-modal] button,
+[data-auth-modal] [role='tab'] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+  Casino glass sub-nav — backdrop-filter on the bar can eat the first iOS tap
+  (promo pills work; casino didn’t). Own compositing layer + manipulation.
+*/
+[data-name='sub-menu'] [data-sub-menu-pill],
+[data-name='sub-menu'] [data-sub-menu-search],
+[data-name='sub-menu'] [data-sub-menu-fav] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateZ(0);
+  position: relative;
+  z-index: 10;
+}
+
+[data-name='game-tile'] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Off-canvas betslip panel still had pointer-events:auto and stole bottom taps. */
+[data-soccer-betslip-root] [data-name='soccer-betslip']:not([data-state='open']) {
+  pointer-events: none !important;
+}
+
+/*
+  Touch / coarse — no sticky :hover (that ate first taps). Pressed :active still shows.
+  Desktop hover stays on hand-written rules + Tailwind hoverOnlyWhenSupported.
+*/
+@media (hover: none), (pointer: coarse) {
+  [data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:hover:not(:active),
+  [data-brand='betonline'].dark [data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:hover:not(:active),
+  [data-name='promo-sub-menu'] [data-sub-menu-pill][data-active='false']:hover:not(:active),
+  [data-brand='betonline'].dark [data-name='promo-sub-menu'] [data-sub-menu-pill][data-active='false']:hover:not(:active) {
+    background: transparent !important;
+    color: var(--muted-foreground) !important;
+    box-shadow: none !important;
+  }
+
+  [data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:active,
+  [data-brand='betonline'].dark [data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:active,
+  [data-name='promo-sub-menu'] [data-sub-menu-pill][data-active='false']:active,
+  [data-brand='betonline'].dark [data-name='promo-sub-menu'] [data-sub-menu-pill][data-active='false']:active {
+    background: var(--surface-muted-3) !important;
+    color: var(--foreground) !important;
+  }
+
+  [data-brand='betonline'].dark [data-name='sub-menu'] [data-sub-menu-pill][data-active='false']:active,
+  [data-brand='betonline'].dark [data-name='promo-sub-menu'] [data-sub-menu-pill][data-active='false']:active {
+    background: var(--accent) !important;
+  }
+
+  [data-name='sub-menu-icon-chip'] button:hover:not(:active),
+  [data-brand='betonline'].dark [data-name='sub-menu-icon-chip'] button:hover:not(:active) {
+    background: transparent !important;
+  }
+
+  [data-name='sub-menu-icon-chip'] button:active,
+  [data-brand='betonline'].dark [data-name='sub-menu-icon-chip'] button:active {
+    background: var(--accent) !important;
+  }
+
+  .lm-shimmer-wrap[data-active][data-trigger='hover']:hover::after {
+    opacity: 0 !important;
+  }
+
+  [data-sidebar='menu-button']:hover:not([data-active='true']):not(:active) {
+    background: transparent !important;
+  }
+
+  a,
+  button,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+/* Jackpot wheel (Daily Spin) — ported from BOL shad */
+@keyframes jackpot-win-flash {
+  0%   { opacity: 0.08; }
+  50%  { opacity: 0.38; }
+  100% { opacity: 0.08; }
+}
+@keyframes jackpot-win-edge-flash {
+  0%   { opacity: 0.28; }
+  50%  { opacity: 0.58; }
+  100% { opacity: 0.28; }
+}
+@keyframes jackpot-win-burst-fill {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 0.88; }
+}
+@keyframes jackpot-win-burst-edge {
+  0%, 100% { stroke-opacity: 0.12; }
+  50% { stroke-opacity: 1; }
+}
+@keyframes jackpot-win-burst-sheen {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+.jackpot-winner-fill {
+  animation: jackpot-win-flash 0.46s ease-in-out infinite;
+}
+.jackpot-winner-edge {
+  animation: jackpot-win-edge-flash 0.46s ease-in-out infinite;
+}
+.jackpot-winner-flash-burst {
+  opacity: 0;
+  animation: jackpot-win-burst-fill 0.46s ease-in-out 3;
+  animation-fill-mode: forwards;
+}
+.jackpot-winner-edge-burst {
+  animation: jackpot-win-burst-edge 0.46s ease-in-out 3;
+  animation-fill-mode: forwards;
+}
+.jackpot-winner-sheen-burst {
+  animation: jackpot-win-burst-sheen 0.46s ease-in-out 3;
+  animation-fill-mode: forwards;
+}
+@keyframes seg-logo-in {
+  0%   { opacity: 0; }
+  100% { opacity: 0.9; }
+}
+@keyframes jackpot-rim-dash-spin {
+  to {
+    stroke-dashoffset: -112;
+  }
+}
+.jackpot-rim-dash {
+  animation: jackpot-rim-dash-spin 7s linear infinite;
+}
+@keyframes jackpot-landed-card-pulse {
+  0%, 100% { box-shadow: 0 0 48px rgba(251,191,36,0.35); }
+  50% { box-shadow: 0 0 72px rgba(251,191,36,0.55); }
+}
+.jackpot-landed-card {
+  animation: jackpot-landed-card-pulse 0.9s ease-in-out infinite;
+}
+
+/* Design agent app — not BetOnline brand; hot pink + #101010.
+ * Must beat legacy `body > div { position:relative; height:auto }` or the desk
+ * collapses to content height and the boot/#1a1a1a void looks like a grey block. */
+html.dark [data-design-agent-app],
+[data-brand].dark [data-design-agent-app],
+[data-design-agent-app] {
+  --background: #101010 !important;
+  --foreground: #f5f5f5 !important;
+  --card: #181818 !important;
+  --card-foreground: #f5f5f5 !important;
+  --popover: #181818 !important;
+  --popover-foreground: #f5f5f5 !important;
+  --primary: #ff2d95 !important;
+  --primary-foreground: #ffffff !important;
+  --secondary: #1c1c1c !important;
+  --secondary-foreground: #f5f5f5 !important;
+  --muted: #1c1c1c !important;
+  --muted-foreground: #a3a3a3 !important;
+  --accent: #222222 !important;
+  --accent-foreground: #f5f5f5 !important;
+  --destructive: #ff4d6d !important;
+  --border: #2a2a2a !important;
+  --input: #2a2a2a !important;
+  --ring: #ff2d95 !important;
+  --warning: #ffb020 !important;
+  color: #f5f5f5;
+  background-color: #0a0a0a;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200000 !important;
+  width: 100% !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+[data-design-agent-modal] {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 200100 !important;
+  height: 100svh !important;
+  max-height: 100svh !important;
+  overflow: hidden !important;
+}
+
+/* Design agent empty-state mark — quiet chromatic nudge (transparent PNG) */
+.da-glitch-logo {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  animation: da-glitch-base 5.5s steps(1, end) infinite;
+}
+
+.da-glitch-logo__layer {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.da-glitch-logo__layer--base {
+  position: relative;
+  z-index: 1;
+}
+
+.da-glitch-logo__layer--pink,
+.da-glitch-logo__layer--cyan {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  /* no mix-blend — screen was flashing the old black plate */
+}
+
+.da-glitch-logo__layer--pink {
+  filter: sepia(1) saturate(10) hue-rotate(300deg) brightness(1.05);
+  animation: da-glitch-slice-pink 5.5s steps(1, end) infinite;
+  clip-path: inset(10% 0 58% 0);
+}
+
+.da-glitch-logo__layer--cyan {
+  filter: sepia(1) saturate(7) hue-rotate(155deg) brightness(1.08);
+  animation: da-glitch-slice-cyan 5.5s steps(1, end) infinite;
+  clip-path: inset(52% 0 8% 0);
+}
+
+@keyframes da-glitch-base {
+  0%,
+  88%,
+  100% {
+    transform: none;
+  }
+  89% {
+    transform: translate(-1px, 0);
+  }
+  90% {
+    transform: translate(1px, 0);
+  }
+  91% {
+    transform: none;
+  }
+}
+
+@keyframes da-glitch-slice-pink {
+  0%,
+  88%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  89% {
+    transform: translate(-3px, 0);
+    opacity: 0.45;
+  }
+  90% {
+    transform: translate(2px, 0);
+    opacity: 0.28;
+  }
+  91% {
+    opacity: 0;
+  }
+}
+
+@keyframes da-glitch-slice-cyan {
+  0%,
+  89%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  90% {
+    transform: translate(3px, 0);
+    opacity: 0.4;
+  }
+  91% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .da-glitch-logo {
+    animation: none;
+  }
+  .da-glitch-logo__layer--pink,
+  .da-glitch-logo__layer--cyan {
+    display: none;
+  }
+}
+
+/* Design agent — stage pill + design-tool canvas (building stand-in) */
+.da-stage-pulse {
+  animation: da-stage-pulse 1.6s ease-in-out infinite;
+}
+@keyframes da-stage-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 45, 149, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 45, 149, 0);
+  }
+}
+
+.da-design-canvas__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse at center, #000 35%, transparent 75%);
+  pointer-events: none;
+}
+
+.da-design-canvas__scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 28%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 45, 149, 0.1),
+    transparent
+  );
+  animation: da-scan 2.8s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes da-scan {
+  0% {
+    top: -20%;
+  }
+  100% {
+    top: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .da-stage-pulse,
+  .da-design-canvas__scan {
+    animation: none;
+  }
 }

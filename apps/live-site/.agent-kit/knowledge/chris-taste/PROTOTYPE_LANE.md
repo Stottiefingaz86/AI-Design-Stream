@@ -7,6 +7,7 @@
 - Shipped product surfaces only.
 - **Do not** put unmerged initiatives in demo nav or product routes.
 - Example: Daily Races stays **off** `:3000` until Chris explicitly merges.
+- **VIP Hub → Benefits:** table lives on `/prototype/<slug>` only until Merge. Demo Benefits tab = empty (`EmptyVipTab`) — never ship `VipBenefitsPanel` into `vip-hub-sheet` without an explicit Merge.
 
 ## Initiative prototype (`:3001` local · same-origin hosted)
 
@@ -23,8 +24,9 @@
 - **Merge** = only when Chris says so — then restore product route + nav on `:3000` (e.g. `/promotions/races`).
 - Desk must **not** show a clickable “live demo after sign-off” URL. Preview tab is first.
 
-## Storybook (`:6006` local · `/storybook` hosted)
+## Lumen gallery (`/lumen` hosted · optional `:6006` local)
 
-- Local: `npm run storybook` → `http://127.0.0.1:6006`.
-- Hosted desk Links → `/storybook` (Lumen gallery stand-in). Full Storybook stays local unless `NEXT_PUBLIC_STORYBOOK_URL` is a public host.
-- Shell / casino stories must import from `apps/live-site/…`, not stale `src/components/lumen` copies.
+- Hosted desk Links → **Lumen** = `/lumen` — component library built from live-site modules (not Storybook UI).
+- Local: optional Classic Storybook at `http://127.0.0.1:6006` for DS work; desk may link it when on loopback.
+- Gallery / stories must import from `apps/live-site/…`, not stale `src/components/lumen` copies.
+- Legacy `/storybook` redirects to `/lumen`.

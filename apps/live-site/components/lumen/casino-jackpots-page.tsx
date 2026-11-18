@@ -18,7 +18,7 @@ export function CasinoJackpotsLobby() {
   const { launchGame } = useShell()
 
   return (
-    <div data-name="jackpots_content" className="w-full bg-background pb-8 pt-2">
+    <div data-name="jackpots_content" className="w-full bg-background pb-8 pt-4">
       {JACKPOT_BLOCKS.map((block) => (
         <CasinoJackpots
           key={block.seed}

@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
+import { useGalleryDevice } from '@/components/lumen/lumen-gallery/device-context'
 import { ShellIcon } from '@/components/site/shell-icons'
 import { useShellOptional } from '@/components/site/shell-context'
+import { usePressHandlers } from '@/components/site/use-tap-action'
 import { cn } from '@/lib/utils'
 
 /** Casino-Lumen sub-menu (69:47911 → sub-menu) — left to right. */
@@ -77,10 +79,48 @@ function favouritesActive(pathname: string | null) {
   return Boolean(pathname?.startsWith('/casino/category/favourites'))
 }
 
+function CasinoSubNavPill({
+  item,
+  active,
+  covered,
+  motion,
+  onSelect,
+}: {
+  item: SubNavItem
+  active: boolean
+  covered: boolean
+  motion: boolean
+  onSelect: () => void
+}) {
+  const press = usePressHandlers(onSelect)
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      data-sub-menu-pill=""
+      data-active={active ? 'true' : 'false'}
+      data-covered={covered ? 'true' : 'false'}
+      {...press}
+      className={cn(
+        'shell-chrome-btn relative z-10 inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-transparent px-4 text-sm font-normal leading-5 whitespace-nowrap',
+        'touch-manipulation transition-[transform,background-color,color] duration-150',
+        'active:scale-[0.97]',
+        covered
+          ? 'text-white'
+          : 'text-muted-foreground hover:bg-[var(--surface-muted-3)] hover:text-foreground active:bg-[var(--surface-muted-3)] active:text-foreground dark:hover:bg-accent dark:active:bg-accent',
+        !motion && 'transition-none',
+      )}
+    >
+      <span className="pointer-events-none">{item}</span>
+    </button>
+  )
+}
+
 /**
  * Figma sub-menu under the shell header. Usually wrapped in sticky chrome
- * with the header (`sticky={false}`); page content frosts under the glass
- * only after product chips have scrolled away. Sliding thumb for the glide.
+ * with the header (`sticky={false}`); chips may collapse on scroll-down.
+ * Sliding thumb for the glide.
  * Mobile: whole gray capsule swipes with the labels. Desktop: clipped chip + chevrons.
  */
 export function CasinoSubNav({
@@ -92,6 +132,7 @@ export function CasinoSubNav({
 }: CasinoSubNavOptions) {
   const router = useRouter()
   const pathname = usePathname()
+  const galleryDevice = useGalleryDevice()
   const shell = useShellOptional()
   const casinoSearchOpen = shell?.casinoSearchOpen ?? false
   const setCasinoSearchOpen = shell?.setCasinoSearchOpen
@@ -107,11 +148,32 @@ export function CasinoSubNav({
   /** White label only after the red thumb finishes covering the pill (~240ms of 300ms travel). */
   const [covered, setCovered] = useState<SubNavItem | null>(null)
   const firstCover = useRef(true)
+  /* Gallery mobile = swipe only — never show edge chevrons (Chris hard rule). */
+  const showEdgeArrows = galleryDevice ? galleryDevice !== 'mobile' : true
+  const arrowClass = cn(
+    'absolute top-1/2 z-20 size-9 -translate-y-1/2 items-center justify-center rounded-full',
+    'border border-border/60 bg-background/55 text-foreground backdrop-blur-md',
+    'outline-none hover:bg-background/75 focus-visible:ring-2 focus-visible:ring-ring',
+    showEdgeArrows ? 'hidden md:inline-flex' : 'hidden',
+  )
 
   useEffect(() => {
     const next = defaultActive !== undefined ? defaultActive : activeFromPath(pathname)
     setActive((prev) => (prev === next ? prev : next))
   }, [pathname, defaultActive])
+
+  /* Warm casino destinations so Lobby ↔ Live / Slots doesn’t wait on the chunk. */
+  useEffect(() => {
+    const hrefs = new Set<string>(Object.values(SUBNAV_HREF).filter(Boolean) as string[])
+    hrefs.add('/casino/category/favourites')
+    hrefs.forEach((href) => {
+      try {
+        router.prefetch(href)
+      } catch {
+        /* prefetch can throw offline — ignore */
+      }
+    })
+  }, [router])
 
   useEffect(() => {
     if (!active) {
@@ -168,7 +230,8 @@ export function CasinoSubNav({
     }
   }, [active, measureThumb, measureOverflow])
 
-  /* Keep the active label in view so the thumb never sits over empty space. */
+  /* Keep the active label in view so the thumb never sits over empty space.
+     Instant scroll on touch — smooth scroll steals the next tap on iOS. */
   useLayoutEffect(() => {
     const track = trackRef.current
     const btn = track?.querySelector<HTMLElement>('[data-sub-menu-pill][data-active="true"]')
@@ -178,10 +241,14 @@ export function CasinoSubNav({
     const btnRight = btnLeft + btn.offsetWidth
     const viewLeft = scroller.scrollLeft
     const viewRight = viewLeft + scroller.clientWidth
+    const coarse =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(hover: none), (pointer: coarse)').matches
+    const behavior: ScrollBehavior = coarse ? 'auto' : 'smooth'
     if (btnLeft < viewLeft + 8) {
-      scroller.scrollTo({ left: Math.max(0, btnLeft - 16), behavior: 'smooth' })
+      scroller.scrollTo({ left: Math.max(0, btnLeft - 16), behavior })
     } else if (btnRight > viewRight - 8) {
-      scroller.scrollTo({ left: btnRight - scroller.clientWidth + 16, behavior: 'smooth' })
+      scroller.scrollTo({ left: btnRight - scroller.clientWidth + 16, behavior })
     }
   }, [active])
 
@@ -276,50 +343,34 @@ export function CasinoSubNav({
                   )}
                   style={{ left: thumb.x, width: thumb.w, opacity: thumb.ready ? 1 : 0 }}
                 />
-                {CASINO_SUBNAV.map((item) => {
-                  const on = item === active
-                  const isCovered = item === covered
-                  return (
-                    <button
-                      key={item}
-                      type="button"
-                      role="tab"
-                      aria-selected={on}
-                      data-sub-menu-pill=""
-                      data-active={on ? 'true' : 'false'}
-                      data-covered={isCovered ? 'true' : 'false'}
-                      onClick={() => {
-                        setActive(item)
-                        const href = SUBNAV_HREF[item]
-                        if (href && href !== pathname) {
-                          shell?.startNavigating(href)
-                          router.push(href)
-                        }
-                      }}
-                      className={cn(
-                        'shell-chrome-btn relative z-10 inline-flex h-11 shrink-0 items-center justify-center rounded-full bg-transparent px-4 text-sm font-normal leading-5 whitespace-nowrap',
-                        isCovered ? 'text-white' : 'text-muted-foreground',
-                      )}
-                    >
-                      <span>{item}</span>
-                    </button>
-                  )
-                })}
+                {CASINO_SUBNAV.map((item) => (
+                  <CasinoSubNavPill
+                    key={item}
+                    item={item}
+                    active={item === active}
+                    covered={item === covered}
+                    motion={motion}
+                    onSelect={() => {
+                      setActive(item)
+                      const href = SUBNAV_HREF[item]
+                      if (href && href !== pathname) {
+                        shell?.startNavigating(href)
+                        router.push(href)
+                      }
+                    }}
+                  />
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Desktop only — glass chevrons when the capsule is clipped. */}
-          {canScrollBack ? (
+          {/* Desktop/tablet only — glass chevrons when the capsule is clipped. Never on mobile. */}
+          {canScrollBack && showEdgeArrows ? (
             <button
               type="button"
               aria-label="Scroll categories back"
               data-sub-menu-scroll-back=""
-              className={cn(
-                'absolute left-1 top-1/2 z-20 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full md:inline-flex',
-                'border border-border/60 bg-background/55 text-foreground backdrop-blur-md',
-                'outline-none hover:bg-background/75 focus-visible:ring-2 focus-visible:ring-ring',
-              )}
+              className={cn(arrowClass, 'left-1')}
               onClick={() => {
                 const el = scrollRef.current
                 if (!el) return
@@ -329,16 +380,12 @@ export function CasinoSubNav({
               <IconChevronLeft className="size-4" strokeWidth={2} />
             </button>
           ) : null}
-          {canScrollMore ? (
+          {canScrollMore && showEdgeArrows ? (
             <button
               type="button"
               aria-label="Scroll categories forward"
               data-sub-menu-scroll-more=""
-              className={cn(
-                'absolute right-1 top-1/2 z-20 hidden size-9 -translate-y-1/2 items-center justify-center rounded-full md:inline-flex',
-                'border border-border/60 bg-background/55 text-foreground backdrop-blur-md',
-                'outline-none hover:bg-background/75 focus-visible:ring-2 focus-visible:ring-ring',
-              )}
+              className={cn(arrowClass, 'right-1')}
               onClick={() => {
                 const el = scrollRef.current
                 if (!el) return

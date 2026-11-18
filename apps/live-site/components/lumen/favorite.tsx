@@ -1,9 +1,9 @@
 'use client'
 
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { IconHeart } from '@tabler/icons-react'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
 import { ParticleBurst } from './animations'
 
@@ -28,6 +28,10 @@ export function Favorite({
   const buttonRef = useRef<HTMLButtonElement>(null)
   const [on, setOn] = useState(isFavorited)
   const [animating, setAnimating] = useState(false)
+
+  useEffect(() => {
+    setOn(isFavorited)
+  }, [isFavorited])
   const [origin, setOrigin] = useState<{ x: number; y: number } | null>(null)
   const [mounted, setMounted] = useState(false)
 

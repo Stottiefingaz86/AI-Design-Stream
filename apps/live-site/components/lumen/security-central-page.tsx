@@ -11,7 +11,7 @@ import {
   IconShieldCheck,
   IconShieldLock,
 } from '@tabler/icons-react'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 import { Button } from '@/components/ui/button'
 import { LumenTooltip } from '@/components/ui/lumen-tooltip'
 import { cn } from '@/lib/utils'

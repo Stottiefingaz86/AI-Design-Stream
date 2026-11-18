@@ -62,6 +62,11 @@ const Carousel = React.forwardRef<
       {
         /* Lower = snappier arrow/API scrolls. Embla drag force is separate — mobile swipe unchanged. */
         duration: 14,
+        /*
+          Default Embla threshold is tiny — micro finger jitter cancels the click on game
+          tiles (logged-out auth felt like long-press only). Raise so a real swipe still drags.
+        */
+        dragThreshold: 28,
         ...opts,
         axis: orientation === "horizontal" ? "x" : "y",
       },

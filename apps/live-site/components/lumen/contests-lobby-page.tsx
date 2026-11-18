@@ -239,7 +239,8 @@ function ContestCornerArt({ art }: { art: ContestCard['art'] }) {
   )
 }
 
-function ContestCardView({ card }: { card: ContestCard }) {
+/** Contest lobby card — prize, status, CTAs, corner art. */
+export function ContestCardView({ card }: { card: ContestCard }) {
   return (
     <motion.article
       data-name="card-base"

@@ -82,12 +82,24 @@ Use these numbers in BRDs when arguing friction cuts (Activate needle: &lt;2 min
 
 ---
 
+## Mobbin (live peer screens)
+
+**Connected in Cursor** as MCP `plugin-mobbin-mobbin`. Use it when building or advising on flows peers already solved (join like Rainbet, rewards chrome, lobby activity, cashier).
+
+1. Search Mobbin (web first for casino peers) for the screen/flow.
+2. Compare hits to **Ideas Chris likes** above + `competitors/` screenshots.
+3. Translate into Lumen + BetOnline shell — never clone.
+4. If MCP returns paid-plan / auth errors: fall back to this file + local screenshots and say Mobbin is blocked.
+
+Wired into `.cursor/skills/lumen-betonline-build/SKILL.md` so every live-site build can pull peer UX before inventing.
+
 ## BRD checklist (agents)
 
 When Chris asks for a BRD or feature write-up:
 
 1. Open `BRIEF.md` — which core bet / initiative / feature #?
 2. Open this file — any Chris-liked competitor pattern?
-3. Open journey audit — any timed friction this removes?
-4. Propose Lumen/shell shape — never “clone Rainbet/Winna.”
-5. Do **not** implement unless he explicitly asks to build.
+3. **Mobbin** (when available) — peer screens for the same flow; cite links.
+4. Open journey audit — any timed friction this removes?
+5. Propose Lumen/shell shape — never “clone Rainbet/Winna.”
+6. Do **not** implement unless he explicitly asks to build.

@@ -20,3 +20,6 @@ tokens/dist
 
 storybook-static
 *storybook.log
+
+apps/live-site/.next-prototype
+*.zip

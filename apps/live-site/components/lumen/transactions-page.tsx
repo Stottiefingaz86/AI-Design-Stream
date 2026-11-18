@@ -27,6 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { LumenTooltip } from '@/components/ui/lumen-tooltip'
+import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
 import { TransactionsFiltersSheet } from '@/components/lumen/transactions-filters-sheet'
 import {
   EMPTY_TX_FILTERS,
@@ -388,6 +389,10 @@ export function TransactionsPage({ className }: { className?: string }) {
         key={`${applied.product}-${applied.txType}-${applied.dateRange}`}
         filters={applied}
       />
+
+      <div className="-mx-4 mt-8 lg:-mx-6">
+        <CasinoLiveWinsCarousel />
+      </div>
 
       <TransactionsFiltersSheet
         open={filtersOpen}

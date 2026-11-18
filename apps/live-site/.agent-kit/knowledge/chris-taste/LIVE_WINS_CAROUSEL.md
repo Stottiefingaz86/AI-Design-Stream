@@ -6,7 +6,6 @@
 
 - **Homepage:** under hero, **above Continue Playing** (then Originals).
 - **Casino lobby:** after Continue Playing when logged in, **above Originals**.
-- **`Future Feature` badge** beside the title (muted secondary pill + info `i`). Tooltip: not part of casino discovery and engagement — concept preview only.
 - **Title = shelf sub-header:** `Typography` `h4` / `semibold` — same as Originals / Slots / Continue Playing.
 - **Shelf title only** — no pill / border box around “Live Wins” (same as Originals).
 - Title tap: **pause icon → always play** (overrides center pause); **live → pause**. No border/box/focus ring on the title.

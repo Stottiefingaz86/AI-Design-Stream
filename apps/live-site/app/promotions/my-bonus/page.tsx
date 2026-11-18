@@ -6,7 +6,7 @@ import { ShellFrame } from '@/components/site/shell-frame'
 /** Promo26 My Bonus — Sports / Casino tables inside the shipped shell. */
 export default function Page() {
   return (
-    <ShellFrame loggedIn>
+    <ShellFrame>
       <MyBonusPage />
     </ShellFrame>
   )

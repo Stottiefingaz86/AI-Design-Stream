@@ -1,5 +1,4 @@
 import type { PromoLobbyBannerItem } from '@/components/lumen/casino-lobby-banners'
-import { CASINO_LOBBY_PROMO_BANNERS } from '@/lib/lumen/casino-lobby-promos'
 
 /** Promo26 SubMenu filters — All Promotions lobby. */
 export const PROMO_FILTERS = [
@@ -23,37 +22,76 @@ export type PromoLobbyCard = {
   category: PromoFilterId
 }
 
-/** Banner strip — same 340×164 PromoLobbyBanner cards as casino; no VIP/Races. */
+/**
+ * Banner strip — own list (not a dump of casino promos).
+ * Removed for now: Halloween, Game of the Week, Diner Match, Originals Boost.
+ */
 export const PROMOTIONS_LOBBY_BANNERS: PromoLobbyBannerItem[] = [
-  ...CASINO_LOBBY_PROMO_BANNERS,
   {
-    id: 'diner-match',
-    tag: 'Deposit',
-    title: 'Diner Match',
-    body: 'First deposit bonus up to 250%.',
-    buttonLabel: 'Claim Now',
-    imageSrc: '/banners/promo-diner-art.png',
-    imageAlt: 'Diner Match',
+    id: '100-free-spins',
+    tag: 'Promo',
+    title: '100 Welcome Free Spins',
+    body: 'Get rewarded with 100 Free Spins when you make your first deposit.',
+    buttonLabel: 'Deposit',
+    imageSrc: '/banners/100-free-spins.jpg',
+    imageAlt: '100 Welcome Free Spins',
+    imageMode: 'bleed',
+    imageClassName: 'scale-[1.28] object-[88%_center] origin-right',
+    bleedScrim: 'strong',
   },
   {
-    id: 'originals-boost',
-    tag: 'Casino',
-    title: 'Originals Boost',
-    body: 'Extra rewards on BetOnline Originals this week.',
-    buttonLabel: 'Play Now',
-    imageSrc: '/banners/promo-originals-art.png',
-    imageAlt: 'Originals Boost',
+    id: 'vip-match',
+    tag: 'Become a VIP',
+    title: 'Instant VIP Match',
+    body: 'Instantly get access to VIP Host, Lossback & exclusive benefits.',
+    buttonLabel: 'Match Status Now',
+    imageSrc: '/banners/vip-match.jpg',
+    imageAlt: 'Instant VIP Match',
+    imageMode: 'bleed',
+  },
+  {
+    id: 'casino-rakeback',
+    tag: 'VIP',
+    title: 'Casino Rakeback',
+    body: 'All VIP levels. No catch. Just cash.',
+    buttonLabel: 'Learn More',
+    imageSrc: '/banners/casino-rakeback.jpg',
+    imageAlt: 'Casino Rakeback',
+    imageMode: 'bleed',
+  },
+  {
+    id: '25k-daily-race',
+    tag: 'Race',
+    title: '$25k Daily Race',
+    body: 'The more you wager the higher you climb.',
+    buttonLabel: 'Join Race',
+    imageSrc: '/banners/25k-daily-race.jpg',
+    imageAlt: '$25k Daily Race',
+    imageMode: 'bleed',
+  },
+  {
+    id: 'cash-boosts',
+    tag: 'VIP',
+    title: 'Cash Boosts',
+    body: 'Simply click and claim. Cash — no strings attached.',
+    buttonLabel: 'Claim Now',
+    imageSrc: '/banners/cash-boosts.jpg',
+    imageAlt: 'Cash Boosts',
+    imageMode: 'bleed',
   },
 ]
+
+/** Reward art — sentence-case titles baked into the stills. */
+const REWARD = '/betonline-rewards-sentence-case'
 
 /** Promo26 4×3 grid cards. */
 export const PROMOTIONS_LOBBY_CARDS: PromoLobbyCard[] = [
   {
-    id: 'poker-treasure',
-    title: 'Poker Treasure Hunt',
-    body: 'Hit the tables and chase timed rewards across cash games and tournaments.',
-    imageSrc: '/promotions/promo-card-hero.png',
-    category: 'poker',
+    id: 'cash-drop-codes',
+    title: 'Cash Drop Codes',
+    body: 'Claim a Cash Drop Code in our Daily Drops Telegram channel for extra cash.',
+    imageSrc: `${REWARD}/cash-drop-codes.jpg`,
+    category: 'vip',
   },
   {
     id: 'diner-deposit',
@@ -64,9 +102,9 @@ export const PROMOTIONS_LOBBY_CARDS: PromoLobbyCard[] = [
   },
   {
     id: 'weekly-boost',
-    title: 'Weekly Boost',
+    title: 'Weekly Boosts',
     body: 'Reload every week as you climb VIP with boosted rewards.',
-    imageSrc: '/banners/promo-weekly-art.png',
+    imageSrc: `${REWARD}/weekly-boosts.jpg`,
     category: 'vip',
   },
   {
@@ -91,45 +129,52 @@ export const PROMOTIONS_LOBBY_CARDS: PromoLobbyCard[] = [
     category: 'casino',
   },
   {
-    id: 'sports-odds',
-    title: 'Sports Odds Boost',
-    body: 'Boosted markets on NFL, NBA, and soccer this week.',
-    imageSrc: '/promotions/promo-card-hero.png',
-    category: 'sports',
+    id: 'vip-match',
+    title: 'Instant VIP Match',
+    body: 'Instantly get access to VIP Host, Lossback & exclusive benefits.',
+    imageSrc: `${REWARD}/vip-match.jpg`,
+    category: 'vip',
   },
   {
     id: 'vip-cashback',
     title: 'VIP Cashback',
     body: 'Weekly cashback for VIP members across sports and casino.',
-    imageSrc: '/promotions/promo-card-hero.png',
+    imageSrc: `${REWARD}/vip-cashback.jpg`,
     category: 'vip',
   },
   {
-    id: 'racebook-daily',
-    title: 'Racebook Daily',
-    body: 'Daily specials on thoroughbred and harness racing markets.',
-    imageSrc: '/promotions/promo-card-hero.png',
-    category: 'racebook',
+    id: 'casino-rakeback',
+    title: 'Casino Rakeback',
+    body: 'All VIP levels. No catch. Just cash.',
+    imageSrc: `${REWARD}/casino-rakeback.jpg`,
+    category: 'vip',
   },
   {
-    id: 'esports-parlay',
-    title: 'Esports Parlay',
-    body: 'Parlay boosts on CS, LoL, and Dota match markets.',
-    imageSrc: '/promotions/promo-card-hero.png',
-    category: 'esports',
+    id: 'monthly-boosts',
+    title: 'Monthly Boosts',
+    body: 'Monthly cash boosts that stack as you climb VIP.',
+    imageSrc: `${REWARD}/monthly-boosts.jpg`,
+    category: 'vip',
   },
   {
-    id: 'poker-rakeback',
-    title: 'Poker Rakeback',
-    body: 'Earn extra value at the tables with limited-time rakeback.',
-    imageSrc: '/promotions/promo-card-hero.png',
-    category: 'poker',
+    id: 'post-monthly-boost',
+    title: 'Post-Monthly Boost',
+    body: 'Extra boost after your monthly cycle — exclusive to higher VIP tiers.',
+    imageSrc: `${REWARD}/post-monthly-boost.jpg`,
+    category: 'vip',
   },
   {
-    id: 'deposit-crypto',
-    title: 'Crypto Deposit Bonus',
-    body: 'Extra match when you fund with popular cryptocurrencies.',
-    imageSrc: '/promotions/promo-card-hero.png',
-    category: 'deposit',
+    id: 'refer-a-friend',
+    title: 'Refer a Friend',
+    body: 'Earn commission when friends you refer place qualifying bets.',
+    imageSrc: `${REWARD}/refer-a-friend-commission.jpg`,
+    category: 'vip',
+  },
+  {
+    id: 'birthday-reward',
+    title: 'Birthday Reward',
+    body: 'A birthday cash reward once a year — claim when the day arrives.',
+    imageSrc: `${REWARD}/birthday-reward.jpg`,
+    category: 'vip',
   },
 ]

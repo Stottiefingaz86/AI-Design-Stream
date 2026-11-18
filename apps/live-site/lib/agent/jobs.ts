@@ -1107,7 +1107,7 @@ function lumenMapForJob(job: AgentJob): {
     components: ['Map to existing Lumen / shell neighbors for this surface.'],
     tokens: ['`bg-card`, `border-border`, `text-muted-foreground`, `primary`'],
     motion: sharedMotion,
-    notes: 'Fill during refine if new primitives are required (Storybook first).',
+    notes: 'Fill during refine if new primitives are required (Lumen gallery first).',
   }
 }
 
@@ -1201,7 +1201,7 @@ async function writeDevDelivery(job: AgentJob): Promise<string> {
     '',
     map.notes,
     '',
-    'Storybook: `http://127.0.0.1:6006` (`npm run storybook` from repo root).',
+    'Lumen gallery: `/lumen` (hosted). Local DS tooling optional at `:6006`.',
     '',
   ].join('\n')
 

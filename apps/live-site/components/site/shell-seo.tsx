@@ -253,8 +253,8 @@ export function ShellSeo() {
   const [open, setOpen] = useState(false)
 
   return (
-    <section data-name="SEO" className="bg-background px-6 pb-6">
-      <div className="flex w-full flex-col gap-3 rounded-lg border-b border-border bg-card p-6">
+    <section data-name="SEO" className="bg-background px-6 py-8">
+      <div className="flex w-full flex-col gap-3 rounded-[10px] border border-border bg-card p-6 shadow-[0_0_16px_rgba(0,0,0,0.06)]">
         <div className={cn('relative overflow-hidden', open ? 'h-auto' : 'h-[196px]')}>
           <div className="flex items-start justify-center gap-14">
             <div className="flex min-w-0 flex-1 flex-col gap-7">

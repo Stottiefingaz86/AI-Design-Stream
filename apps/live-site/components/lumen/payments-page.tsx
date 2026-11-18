@@ -26,6 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { LumenTooltip } from '@/components/ui/lumen-tooltip'
+import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
 import { PaymentsFiltersSheet } from '@/components/lumen/payments-filters-sheet'
 import {
   EMPTY_PAYMENT_FILTERS,
@@ -379,6 +380,10 @@ export function PaymentsPage({ className }: { className?: string }) {
       </div>
 
       <PaymentsTable key={`${applied.type}-${applied.dateRange}`} filters={applied} />
+
+      <div className="-mx-4 mt-8 lg:-mx-6">
+        <CasinoLiveWinsCarousel />
+      </div>
 
       <PaymentsFiltersSheet
         open={filtersOpen}

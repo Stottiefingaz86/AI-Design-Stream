@@ -2,13 +2,14 @@
 
 import { useTheme } from 'next-themes'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type HTMLAttributes } from 'react'
 import { createPortal } from 'react-dom'
 import NumberFlow from '@number-flow/react'
 import { Button } from '@/components/ui/button'
 import { useShell } from './shell-context'
 import { ShellIcon, type ShellIconName } from './shell-icons'
 import { useDragToClose } from './use-drag-to-close'
+import { useBackdropClose, useTapAction } from './use-tap-action'
 import { cn } from '@/lib/utils'
 
 type UbcMenuItem = {
@@ -19,7 +20,7 @@ type UbcMenuItem = {
   value?: string
   /** Soft-nav href. Omit for non-route actions (VIP Hub) or not-yet-built (RAF). */
   href?: string
-  action?: 'vip-hub'
+  action?: 'vip-hub' | 'notifications'
 }
 
 const ACCOUNT_ITEMS: UbcMenuItem[] = [
@@ -27,9 +28,6 @@ const ACCOUNT_ITEMS: UbcMenuItem[] = [
   {
     label: 'Pending Bets',
     icon: 'betslip',
-    badge: '4',
-    badgeMuted: true,
-    value: '$40.00',
     href: '/account/bet-history?status=Pending',
   },
   { label: 'Transactions History', icon: 'transactions', href: '/account/transactions' },
@@ -53,17 +51,10 @@ export function ShellUbc() {
     setVipHubOpen,
   } = useShell()
 
-  const toggleCashier = () => {
-    setCashierOpen(!cashierOpen)
-  }
-
-  const toggleAccount = () => {
-    setDrawerOpen(!drawerOpen)
-  }
-
-  const toggleVip = () => {
-    setVipHubOpen(!vipHubOpen)
-  }
+  /* Same chrome control toggles open/close. useTapAction on the button eats iOS ghost clicks. */
+  const toggleCashier = () => setCashierOpen(!cashierOpen)
+  const toggleAccount = () => setDrawerOpen(!drawerOpen)
+  const toggleVip = () => setVipHubOpen(!vipHubOpen)
 
   return (
     <div className="flex items-center gap-2">
@@ -76,15 +67,16 @@ export function ShellUbc() {
 
 function BalanceButton({ onClick, open = false }: { onClick: () => void; open?: boolean }) {
   const { displayBalance } = useShell()
+  const onTap = useTapAction(onClick)
 
   return (
     <button
       type="button"
       data-shell-balance=""
-      onClick={onClick}
+      onClick={onTap}
       aria-expanded={open}
       aria-label={open ? 'Close wallet' : 'Open wallet'}
-      className="shell-chrome-btn flex h-9 items-center overflow-hidden rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] pl-1.5 transition-colors duration-200 ease-in-out hover:bg-white/10"
+      className="shell-chrome-btn flex h-9 items-center overflow-hidden rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] pl-1.5 transition-colors duration-200 ease-in-out hover:bg-white/10 active:bg-white/15"
     >
       <span className="px-1 text-xs font-medium leading-4 text-[rgba(255,255,255,0.87)]">
         $
@@ -115,14 +107,29 @@ export function VipButton({
   /** Shell header logged-out VIP IconButton (3191:780450). */
   variant?: 'loggedOut' | 'default'
 }) {
-  const { vipClaimCount, loggedIn } = useShell()
+  const { vipClaimCount, loggedIn, vipIconPulse } = useShell()
   const needsAttention = loggedIn && vipClaimCount > 0
   const loggedOut = variant === 'loggedOut'
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const onTap = useTapAction(onClick)
+
+  /* Re-fire crown shake when session rakeback coins land. */
+  useEffect(() => {
+    if (!vipIconPulse || loggedOut) return
+    const el = btnRef.current
+    if (!el) return
+    el.classList.remove('vip-crown-wobble')
+    // Force reflow so the same animation can restart.
+    void el.offsetWidth
+    el.classList.add('vip-crown-wobble')
+  }, [vipIconPulse, loggedOut])
 
   return (
     <button
+      ref={btnRef}
       type="button"
-      onClick={onClick}
+      data-shell-vip=""
+      onClick={onTap}
       aria-expanded={open}
       aria-label={
         needsAttention
@@ -130,16 +137,17 @@ export function VipButton({
           : 'VIP Hub'
       }
       className={cn(
+        /* Match Login / Join h-9 (36px) — not size-11. */
         'shell-chrome-btn relative inline-flex size-9 items-center justify-center rounded-lg transition-[background-color,border-color,opacity] duration-200 ease-in-out',
         loggedOut
-          ? 'border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] hover:bg-white/10'
-          : 'border border-[rgba(227,158,61,0.55)] bg-[rgba(227,158,61,0.18)] opacity-80 hover:border-[rgba(227,158,61,0.95)] hover:bg-[rgba(227,158,61,0.42)] hover:opacity-100',
-        needsAttention && !loggedOut && 'vip-crown-wobble opacity-100',
+          ? 'border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] hover:bg-white/10 active:bg-white/15'
+          : 'border border-[rgba(227,158,61,0.55)] bg-[rgba(227,158,61,0.18)] opacity-80 hover:border-[rgba(227,158,61,0.95)] hover:bg-[rgba(227,158,61,0.42)] hover:opacity-100 active:opacity-100',
+        needsAttention && !loggedOut && 'opacity-100',
       )}
     >
       {loggedOut ? (
         /* Shell 3191:780450 — secondary IconButton + white/60 crown */
-        <ShellIcon name="crownMuted" className="size-4" />
+        <ShellIcon name="crownMuted" className="size-4 opacity-60" />
       ) : (
         <ShellIcon name="crownGold" className="size-4 opacity-100" />
       )}
@@ -153,16 +161,28 @@ export function VipButton({
 }
 
 function AccountButton({ onClick, open = false }: { onClick: () => void; open?: boolean }) {
+  const { unreadNotificationCount } = useShell()
+  const onTap = useTapAction(onClick)
+  const hasUnread = unreadNotificationCount > 0
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={onTap}
       aria-expanded={open}
-      aria-label="Account"
-      className="shell-chrome-btn relative inline-flex size-9 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] transition-colors duration-200 ease-in-out hover:bg-white/10"
+      aria-label={
+        hasUnread
+          ? `Account, ${unreadNotificationCount} unread notification${unreadNotificationCount === 1 ? '' : 's'}`
+          : 'Account'
+      }
+      className="shell-chrome-btn relative inline-flex size-9 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(250,250,250,0.05)] transition-colors duration-200 ease-in-out hover:bg-white/10 active:bg-white/15"
     >
       <ShellIcon name="account" className="size-4" />
-      <span className="absolute right-0 top-0 size-1.5 rounded-full border border-[var(--header-inverted)] bg-destructive" />
+      {hasUnread ? (
+        <span
+          className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-destructive ring-2 ring-[var(--background)]"
+          aria-hidden
+        />
+      ) : null}
     </button>
   )
 }
@@ -201,20 +221,24 @@ export function UbcSheet({ open, onClose }: { open: boolean; onClose: () => void
 }
 
 function DesktopUbc({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const closeBackdrop = useBackdropClose(open, onClose)
   return (
     <div
       data-ubc-root="desktop"
+      data-open={open ? 'true' : 'false'}
       className={cn(
         'pointer-events-none fixed bottom-0 left-0 right-0 top-[68px] z-40 hidden lg:block',
-        open && 'pointer-events-auto'
+        open && 'pointer-events-auto',
       )}
+      aria-hidden={!open}
+      {...(!open ? ({ inert: '' } as HTMLAttributes<HTMLDivElement>) : {})}
     >
       <button
         type="button"
         aria-label="Close account"
         data-ubc-backdrop=""
         data-state={open ? 'open' : 'closed'}
-        onClick={onClose}
+        onClick={closeBackdrop}
         className="absolute inset-0 border-0 bg-black/60"
       />
       <aside
@@ -233,22 +257,26 @@ function DesktopUbc({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 function MobileUbc({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { sheetRef, offset, dragging, bind } = useDragToClose(open, onClose)
+  const closeBackdrop = useBackdropClose(open, onClose)
   const backdrop = open ? Math.max(0, 1 - offset / 320) : 0
 
   return (
     <div
       data-ubc-root="mobile"
+      data-open={open ? 'true' : 'false'}
       className={cn(
         'pointer-events-none fixed inset-0 z-[200] lg:hidden',
-        open && 'pointer-events-auto'
+        open && 'pointer-events-auto',
       )}
+      aria-hidden={!open}
+      {...(!open ? ({ inert: '' } as HTMLAttributes<HTMLDivElement>) : {})}
     >
       <button
         type="button"
         aria-label="Close account"
         data-ubc-backdrop=""
         data-state={open ? 'open' : 'closed'}
-        onClick={onClose}
+        onClick={closeBackdrop}
         className="absolute inset-0 border-0 bg-black/60"
         style={dragging ? { opacity: backdrop, transition: 'none' } : undefined}
       />
@@ -287,8 +315,18 @@ export function UbcPanel({
   showClose?: boolean
 }) {
   const router = useRouter()
-  const { setLoggedIn, setVipHubOpen, vipClaimCount, displayBalance, startDeepLink } =
-    useShell()
+  const {
+    setLoggedIn,
+    setVipHubOpen,
+    setNotificationsOpen,
+    vipClaimCount,
+    unreadNotificationCount,
+    displayBalance,
+    startDeepLink,
+    profile,
+  } = useShell()
+  const displayName = profile.fullName.trim()
+  const accountId = profile.accountId.trim() || '—'
 
   return (
     <div data-name="UBC_content" className="flex w-full flex-col gap-5 pb-6">
@@ -306,9 +344,13 @@ export function UbcPanel({
           ) : null}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium leading-5 text-foreground">
-              User Name &lt;Nickname&gt;
+              {displayName || '—'}
             </p>
-            <p className="text-xs font-medium leading-4 text-muted-foreground">b1234567</p>
+            {accountId && accountId !== displayName ? (
+              <p className="truncate text-xs font-medium leading-4 text-muted-foreground">
+                {accountId}
+              </p>
+            ) : null}
           </div>
           <ThemeToggleButton />
         </div>
@@ -325,7 +367,19 @@ export function UbcPanel({
 
       <div className="flex flex-col gap-3">
         <Divider />
-        <MenuRow item={{ label: 'Notifications', icon: 'bell', badge: '12' }} />
+        <MenuRow
+          item={{
+            label: 'Notifications',
+            icon: 'bell',
+            ...(unreadNotificationCount > 0
+              ? { badge: String(unreadNotificationCount) }
+              : {}),
+          }}
+          onClick={() => {
+            /* Open inbox first — setNotificationsOpen closes UBC itself. */
+            setNotificationsOpen(true)
+          }}
+        />
         <Divider />
         <div className="flex flex-col gap-2">
           {ACCOUNT_ITEMS.map((item) => (

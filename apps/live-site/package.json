@@ -9,8 +9,9 @@
     "dev": "next dev -p 3000",
     "dev:3001": "PROTOTYPE_LANE=1 next dev -p 3001",
     "dev:3002": "next dev -p 3002",
-    "prebuild": "node scripts/sync-agent-kit.mjs",
+    "prebuild": "node scripts/sync-agent-kit.mjs && node scripts/bundle-ba-artifacts.mjs",
     "agent-kit:sync": "node scripts/sync-agent-kit.mjs",
+    "ba-artifacts:bundle": "node scripts/bundle-ba-artifacts.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -48,6 +49,7 @@
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^11.3.19",
+    "input-otp": "^1.5.0",
     "lodash": "^4.17.23",
     "lodash.clamp": "^4.0.3",
     "lucide-react": "^0.562.0",

@@ -352,3 +352,19 @@
 [data-shell-story] [data-name='header-brand'] .lg\:hidden {
   display: unset !important;
 }
+
+/*
+ * Desktop product sidebar — live-site uses `hidden lg:flex` + `fixed`.
+ * Force visible + contained inside the Storybook desktop frame.
+ */
+[data-shell-story-desktop] [data-name='sidebar-container'] {
+  position: absolute !important;
+  inset: 0 auto 0 0 !important;
+  display: flex !important;
+  height: 100% !important;
+  z-index: 40 !important;
+}
+
+[data-shell-story-desktop] [data-name='header-brand'] {
+  position: relative !important;
+}
