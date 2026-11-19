@@ -1,0 +1,157 @@
+{
+  "slug": "sportsbook",
+  "title": "Sportsbook \u00b7 Full offering (V1 prod)",
+  "status": "ready_for_review",
+  "signoff": "CH",
+  "site_version": "v1",
+  "links": {
+    "prod": "https://design-request-app-one.vercel.app/sports",
+    "figma": "https://www.figma.com/design/MYeELetKW9xye1shSpm8Fn/?node-id=173-653",
+    "handover": "specs/sportsbook/handover/"
+  },
+  "prototype": {
+    "app": "apps/live-site",
+    "routes": [
+      "/sports",
+      "/sports/soccer",
+      "/sports/football/[league]",
+      "/sports/soccer/event/[eventId]",
+      "/sports/football/event/[eventId]",
+      "/sports/my-bets"
+    ],
+    "source": [
+      "components/lumen/sports-home-page.tsx",
+      "components/lumen/soccer-sport-page.tsx",
+      "components/lumen/nfl-sport-page.tsx",
+      "components/lumen/sports-event-view.tsx",
+      "components/lumen/soccer-betslip.tsx",
+      "components/lumen/my-bets-page.tsx",
+      "lib/lumen/sports-home.ts",
+      "lib/lumen/soccer-event.ts",
+      "lib/lumen/sports-bets-store.ts"
+    ]
+  },
+  "screens": [
+    {
+      "id": "S1",
+      "name": "Sports home",
+      "figma": {
+        "desktop_dark": "180:988",
+        "desktop_light": "193:8355",
+        "mobile_dark": "195:15139",
+        "mobile_light": "197:19911"
+      }
+    },
+    {
+      "id": "S1b",
+      "name": "Home \u00b7 SGP added + betslip open",
+      "figma": {
+        "desktop_dark": "193:6067",
+        "desktop_light": "193:8505",
+        "mobile_dark": "195:17964",
+        "mobile_light": "197:21371"
+      }
+    },
+    {
+      "id": "S4",
+      "name": "Event view \u00b7 live",
+      "figma": {
+        "desktop_dark": "190:3281",
+        "desktop_light": "193:8656",
+        "mobile_dark": "195:16620",
+        "mobile_light": "197:22944"
+      }
+    },
+    {
+      "id": "S3",
+      "name": "Event view \u00b7 pre-match",
+      "figma": {
+        "desktop_dark": "190:4144",
+        "desktop_light": "193:8763",
+        "mobile_dark": "195:17115",
+        "mobile_light": "197:23715"
+      }
+    },
+    {
+      "id": "S9",
+      "name": "My Bets",
+      "figma": {
+        "desktop_dark": "191:5292",
+        "desktop_light": "193:8872",
+        "mobile_dark": "195:17576",
+        "mobile_light": "197:24452"
+      }
+    }
+  ],
+  "components": {
+    "popular-live-card": "176:691",
+    "sgp-pack-card": "179:906",
+    "odds-boost-card": "179:1037",
+    "nfl-event-row": "180:939",
+    "event-header": "189:3336",
+    "market-tabs": "189:3337",
+    "market-card": "189:3416",
+    "live-stream-panel": "189:3417",
+    "live-stats-card": "189:3435",
+    "betslip-sgp-parlay": "188:3405",
+    "my-bets-row": "191:5291",
+    "bet-status-badge": "191:5186",
+    "odds-button": "48:678",
+    "betslip-leg": "51:784"
+  },
+  "journeys": "journeys.md",
+  "states": "states.md",
+  "interactions": "interactions.md",
+  "data": "data-and-errors.md",
+  "tokens": "tokens.md",
+  "acceptance": "dev-delivery.md#acceptance-criteria",
+  "acceptance_ids": [
+    "AC-01",
+    "AC-02",
+    "AC-03",
+    "AC-04",
+    "AC-05",
+    "AC-06",
+    "AC-07",
+    "AC-08",
+    "AC-09",
+    "AC-10",
+    "AC-11",
+    "AC-12",
+    "AC-13",
+    "AC-14",
+    "AC-15",
+    "AC-16",
+    "AC-17",
+    "AC-18",
+    "AC-19",
+    "AC-20",
+    "AC-21",
+    "AC-22",
+    "AC-23"
+  ],
+  "gaps": [
+    {
+      "id": "D-09",
+      "text": "SGP pack with a suspended leg",
+      "status": "needs_design"
+    },
+    {
+      "id": "D-10",
+      "text": "My Bets load failure",
+      "status": "needs_design"
+    },
+    {
+      "id": "A11Y-1",
+      "text": "OddsButton lacks aria-pressed",
+      "status": "dev_fix"
+    }
+  ],
+  "rules": [
+    "Lumen tokens only",
+    "Betslip always dark",
+    "Header and footer always dark",
+    "Sub-nav glass follows page mode",
+    "Touch rails swipe only"
+  ]
+}
