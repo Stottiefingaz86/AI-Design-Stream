@@ -148,8 +148,8 @@ export function EventMissing({ sportLabel, href }: { sportLabel: string; href: s
   )
 }
 
-/** `null` until mounted — lets the rail vs in-flow media mount once (never two video decoders). */
-function useIsDesktop(): boolean | null {
+/** `null` until mounted — lets the rail vs in-flow media mount once (never two video decoders). Also used by V5 Combos. */
+export function useIsDesktop(): boolean | null {
   const [desktop, setDesktop] = useState<boolean | null>(null)
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)')
@@ -306,7 +306,8 @@ export function SportsEventView({
 
 // ─── Breadcrumbs + switcher ───────────────────────────────────
 
-function EventBreadcrumbs({ model, onBack }: { model: SportsEventModel; onBack: () => void }) {
+/** Also used by V5 Combos. */
+export function EventBreadcrumbs({ model, onBack }: { model: SportsEventModel; onBack: () => void }) {
   return (
     <div data-name="breadcrumbs" className="mb-4 flex items-center gap-2 sm:gap-3">
       <button
@@ -497,7 +498,8 @@ const LIVE_CARD_STYLE: CSSProperties = {
     'linear-gradient(90deg, color-mix(in srgb, var(--destructive) 7%, transparent), transparent 22%)',
 }
 
-function EventHeader({ model }: { model: SportsEventModel }) {
+/** Also used by V5 Combos. */
+export function EventHeader({ model }: { model: SportsEventModel }) {
   const { event } = model
   const live = !!event.live
   const score = event.score ?? [0, 0]
@@ -1478,7 +1480,8 @@ function enterFullscreen(frame: HTMLElement | null) {
   video?.webkitEnterFullscreen?.()
 }
 
-function MediaPanel({ model }: { model: SportsEventModel }) {
+/** Also used by V5 Combos. */
+export function MediaPanel({ model }: { model: SportsEventModel }) {
   const { loggedIn } = useShell()
   const [media, setMedia] = useState<Media>('stream')
   const frameRef = useRef<HTMLDivElement>(null)
@@ -1953,7 +1956,8 @@ function FieldTracker({ model }: { model: SportsEventModel }) {
 
 // ─── Live stats + timeline ────────────────────────────────────
 
-function LiveStatsCard({ model }: { model: SportsEventModel }) {
+/** Also used by V5 Combos. */
+export function LiveStatsCard({ model }: { model: SportsEventModel }) {
   const [view, setView] = useState<'stats' | 'timeline'>('stats')
   const live = model.live
   if (!live) return null
@@ -2135,7 +2139,8 @@ function SideCard({
   )
 }
 
-function WinProbabilityCard({ model }: { model: SportsEventModel }) {
+/** Also used by V5 Combos. */
+export function WinProbabilityCard({ model }: { model: SportsEventModel }) {
   const { event, info } = model
   const [ph, pd, pa] = info.winProb
   const pct = (p: number) => Math.round(p * 100)
@@ -2215,7 +2220,8 @@ function FormRow({ team, form }: { team: string; form: FormResult[] }) {
   )
 }
 
-function PreMatchCards({ model }: { model: SportsEventModel }) {
+/** Also used by V5 Combos. */
+export function PreMatchCards({ model }: { model: SportsEventModel }) {
   const { event, info } = model
   const noTies = model.sport === 'nfl'
   const tally = info.h2h.reduce(

@@ -1,95 +1,33 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { IconStack2 } from '@tabler/icons-react'
+import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
+import { revealShellDock } from '@/components/site/shell-scroll'
+import { setSoccerSlip } from '@/lib/lumen/soccer-slip-store'
 import { soccerTeamLogo } from '@/lib/lumen/soccer-sport'
+import { toggleLeg } from '@/lib/lumen/v5-combos'
+import { flyBetDotToSlip } from '@/lib/lumen/vip-celebrate'
 import { cn } from '@/lib/utils'
 
 /**
- * V5 · Combos building blocks. Lumen tokens only — the combo glow is a conic sweep of
- * Lumen brand tokens, never raw colours.
+ * V5 · Combos building blocks — V1 sportsbook grammar (same card, chip and type scale),
+ * with the prediction-market layer on top: chance %, multipliers, Yes / No.
+ * Hover lights the surface up; borders never change on hover.
  */
 
-export const V5_CARD = 'rounded-2xl border border-border bg-card'
+/** Same card as the V1 boards. */
+export const V5_CARD = 'rounded-[10px] border border-border bg-card shadow-[0_0_16px_rgba(0,0,0,0.06)]'
 
-/** Conic sweep used for the combo glow (button, slip, builder). */
-export const COMBO_SWEEP =
-  'bg-[conic-gradient(from_0deg,var(--brand-superpurple-400),var(--brand-highblue-400),var(--brand-wildneongreen-400),var(--brand-superyellow-400),var(--brand-superorange-400),var(--brand-superpurple-400))]'
+/** Light-up on hover — surface brightens, no stroke. */
+export const V5_LIGHT_UP = 'transition-colors duration-150 hover:bg-surface-muted-2'
 
-/** Rotating gradient border around any content. */
-export function ComboGlow({
-  children,
-  className,
-  innerClassName,
-  active = true,
-  rounded = 'rounded-2xl',
-}: {
-  children: ReactNode
-  className?: string
-  innerClassName?: string
-  active?: boolean
-  rounded?: string
-}) {
-  return (
-    <div className={cn('relative isolate overflow-hidden', active ? 'p-[2px]' : 'p-px', rounded, className)}>
-      <div
-        aria-hidden
-        className={cn(
-          'absolute left-1/2 top-1/2 -z-10 aspect-square w-[220%] -translate-x-1/2 -translate-y-1/2 transition-opacity duration-500',
-          COMBO_SWEEP,
-          active ? 'animate-[spin_6s_linear_infinite] opacity-100' : 'opacity-0',
-        )}
-      />
-      {!active ? <div aria-hidden className={cn('absolute inset-0 -z-10 bg-border', rounded)} /> : null}
-      {/* Card is translucent in dark — sit it on the page colour so the sweep only shows at the edge. */}
-      <div className={cn('relative h-full bg-background', rounded)}>
-        <div className={cn('h-full bg-card', rounded, innerClassName)}>{children}</div>
-      </div>
-    </div>
-  )
-}
-
-/** The COMBO entry point — glow pill like the exchange's. */
-export function ComboButton({
-  onClick,
-  size = 'md',
-  label = 'Combo',
-  className,
-}: {
-  onClick: () => void
-  size?: 'sm' | 'md' | 'lg'
-  label?: string
-  className?: string
-}) {
-  return (
-    <ComboGlow rounded="rounded-full" className={cn('shrink-0', className)}>
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          'flex w-full items-center justify-center gap-2 rounded-full font-semibold uppercase tracking-[0.14em] text-foreground transition-colors hover:bg-accent',
-          size === 'sm' && 'h-8 px-3 text-[11px]',
-          size === 'md' && 'h-10 px-5 text-xs',
-          size === 'lg' && 'h-12 px-6 text-sm',
-        )}
-      >
-        <IconStack2 className={size === 'lg' ? 'size-5' : 'size-4'} stroke={2} aria-hidden />
-        {label}
-      </button>
-    </ComboGlow>
-  )
-}
-
+/** Live marker — steady, never pulsing. */
 export function LiveDot({ className }: { className?: string }) {
-  return (
-    <span className={cn('relative inline-flex size-2 shrink-0', className)} aria-hidden>
-      <span className="absolute inset-0 animate-ping rounded-full bg-[var(--live)] opacity-60" />
-      <span className="relative inline-flex size-2 rounded-full bg-[var(--live)]" />
-    </span>
-  )
+  return <span className={cn('inline-block size-2 shrink-0 rounded-full bg-[var(--live)]', className)} aria-hidden />
 }
 
+/** League mark on a white plate — same plate as the V1 league tiles. */
 export function LeagueTile({
   src,
   size = 'md',
@@ -102,13 +40,14 @@ export function LeagueTile({
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center border border-border bg-secondary',
-        size === 'sm' && 'size-7 rounded-lg p-1',
-        size === 'md' && 'size-10 rounded-xl p-1.5',
-        size === 'lg' && 'size-14 rounded-2xl p-2 md:size-16',
+        'inline-flex shrink-0 items-center justify-center rounded-md bg-white',
+        size === 'sm' && 'size-7 p-1',
+        size === 'md' && 'size-9 p-1.5',
+        size === 'lg' && 'size-12 p-2',
         className,
       )}
     >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="" className="size-full object-contain" />
     </span>
   )
@@ -127,7 +66,7 @@ export function Crest({ name, className }: { name: string; className?: string })
     return (
       <span
         className={cn(
-          'inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-muted-3 text-[10px] font-semibold text-muted-foreground',
+          'inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-muted-3 text-[9px] font-semibold text-muted-foreground',
           className,
         )}
         aria-hidden
@@ -137,30 +76,56 @@ export function Crest({ name, className }: { name: string; className?: string })
     )
   }
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt=""
-      className={cn('size-7 shrink-0 object-contain', className)}
+      className={cn('size-6 shrink-0 object-contain', className)}
       onError={() => setFailed(true)}
     />
   )
 }
 
-/** Chance bar under a team name — length is the chance. */
+/** Draw row mark. */
+export function DrawMark({ className }: { className?: string }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-surface-muted-3 text-[10px] font-semibold text-muted-foreground',
+        className,
+      )}
+      aria-hidden
+    >
+      X
+    </span>
+  )
+}
+
+/** Chance bar under a team name — length is the chance (V1 popular-card bar). */
 export function ProbBar({ value, lead, className }: { value: number; lead: boolean; className?: string }) {
   return (
-    <span className={cn('block h-[3px] w-full overflow-hidden rounded-full', className)} aria-hidden>
+    <span className={cn('block h-1 w-full overflow-hidden rounded-full bg-secondary', className)} aria-hidden>
       <motion.span
-        className={cn('block h-full rounded-full', lead ? 'bg-foreground' : 'bg-muted-foreground opacity-50')}
-        initial={{ width: 0 }}
+        className={cn('block h-full rounded-full', lead ? 'bg-foreground' : 'bg-muted-foreground')}
+        initial={false}
         animate={{ width: `${Math.max(2, Math.min(100, value))}%` }}
-        transition={{ type: 'spring', stiffness: 120, damping: 22 }}
+        transition={{ type: 'spring', stiffness: 140, damping: 24 }}
       />
     </span>
   )
 }
 
-/** % pill CTA — filled when the pick is in the combo. */
+const CHIP =
+  'inline-flex shrink-0 items-center justify-center rounded-lg border tabular-nums transition-colors'
+const CHIP_IDLE = 'border-border bg-secondary text-foreground hover:bg-accent'
+const CHIP_ON = 'border-primary bg-primary text-primary-foreground'
+
+function stop(e: React.MouseEvent) {
+  e.stopPropagation()
+  e.preventDefault()
+}
+
+/** Odds chip with the chance — V1 OddsButton shape: small top line, value below. */
 export function ChancePill({
   chance,
   selected,
@@ -171,79 +136,70 @@ export function ChancePill({
   chance: number
   selected: boolean
   onClick: (el: HTMLElement) => void
+  /** Small top line, e.g. the multiplier "1.69x". */
   label?: string
   className?: string
 }) {
   return (
-    <motion.button
+    <button
       type="button"
-      whileTap={{ scale: 0.94 }}
       aria-pressed={selected}
       onClick={(e) => {
-        e.stopPropagation()
-        e.preventDefault()
+        stop(e)
         onClick(e.currentTarget)
       }}
-      className={cn(
-        'relative z-10 inline-flex h-9 min-w-[60px] shrink-0 items-center justify-center gap-1.5 rounded-full border px-3 text-sm font-semibold tabular-nums transition-colors',
-        selected
-          ? 'border-success bg-success text-success-foreground'
-          : 'border-border bg-secondary text-success hover:border-[var(--opacity-success-60)]',
-        className,
-      )}
+      className={cn(CHIP, 'h-11 min-w-[76px] flex-col gap-0.5 px-2', selected ? CHIP_ON : CHIP_IDLE, className)}
     >
-      {label ? <span className="font-medium">{label}</span> : null}
-      {fmtPctRound(chance)}
-    </motion.button>
+      {label ? (
+        <span className={cn('text-[10px] font-medium leading-3.5', selected ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+          {label}
+        </span>
+      ) : null}
+      <span className="text-sm font-semibold leading-5">{fmtPctRound(chance)}</span>
+    </button>
   )
 }
 
-/** Yes ¢ / No ¢ — exchange colours: success for Yes, destructive for No (V5 only). */
+/** Yes / No price chip — V1 odds-chip grammar, primary when picked. */
 export function YesNoButton({
   side,
-  cents,
+  value,
+  unit = 'cents',
   selected,
   onClick,
   compact = false,
-  showPercent = false,
   className,
 }: {
   side: 'yes' | 'no'
-  cents: number
+  /** ¢ price, or % chance when `unit="percent"`. */
+  value: number
+  unit?: 'cents' | 'percent'
   selected: boolean
   onClick: (el: HTMLElement) => void
   compact?: boolean
-  /** Show the chance (%) instead of the price (¢). */
-  showPercent?: boolean
   className?: string
 }) {
-  const yes = side === 'yes'
   return (
-    <motion.button
+    <button
       type="button"
-      whileTap={{ scale: 0.95 }}
       aria-pressed={selected}
       onClick={(e) => {
-        e.stopPropagation()
-        e.preventDefault()
+        stop(e)
         onClick(e.currentTarget)
       }}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center gap-1 rounded-full border font-semibold tabular-nums transition-colors',
-        compact ? 'h-9 min-w-[64px] px-3 text-sm' : 'h-11 min-w-[96px] px-4 text-[15px] md:min-w-[120px]',
-        yes
-          ? selected
-            ? 'border-success bg-success text-success-foreground'
-            : 'border-border text-success hover:border-[var(--opacity-success-60)] hover:bg-[var(--opacity-success-10)]'
-          : selected
-            ? 'border-destructive bg-destructive text-destructive-foreground'
-            : 'border-border text-destructive hover:border-[var(--opacity-destructive-60)] hover:bg-[var(--opacity-destructive-10)]',
+        CHIP,
+        'gap-1.5 text-sm',
+        compact ? 'h-9 min-w-[76px] px-2.5' : 'h-10 min-w-[108px] px-3',
+        selected ? CHIP_ON : CHIP_IDLE,
         className,
       )}
     >
-      {showPercent ? null : <span className="font-medium">{yes ? 'Yes' : 'No'}</span>}
-      <span>{showPercent ? `${Math.round(cents)}%` : `${Math.round(cents)}¢`}</span>
-    </motion.button>
+      <span className={cn('font-medium', selected ? 'text-primary-foreground/80' : 'text-muted-foreground')}>
+        {side === 'yes' ? 'Yes' : 'No'}
+      </span>
+      <span className="font-semibold">{unit === 'percent' ? `${Math.round(value)}%` : `${Math.round(value)}¢`}</span>
+    </button>
   )
 }
 
@@ -266,41 +222,27 @@ export function fmtVol(n: number): string {
   return `${fmtUsd(n, 0)} vol`
 }
 
-/** Stack of demo avatar initials for "N people on this". */
-export function AvatarStack({ names, className }: { names: string[]; className?: string }) {
-  const tones = [
-    'bg-[var(--brand-superpurple-500)]',
-    'bg-[var(--brand-highblue-500)]',
-    'bg-[var(--brand-wildgreen-500)]',
-    'bg-[var(--brand-superorange-500)]',
-  ]
-  return (
-    <span className={cn('flex -space-x-1.5', className)} aria-hidden>
-      {names.slice(0, 4).map((n, i) => (
-        <span
-          key={`${n}-${i}`}
-          className={cn(
-            'inline-flex size-5 items-center justify-center rounded-full border-2 border-card text-[9px] font-bold text-primary-foreground',
-            tones[i % tones.length],
-          )}
-        >
-          {n[0]!.toUpperCase()}
-        </span>
-      ))}
-    </span>
-  )
+/** American odds → implied chance (0–100). "EVEN" counts as 50. */
+export function chanceFromAmerican(odds: string): number {
+  const t = odds.trim().toUpperCase()
+  if (t === 'EVEN' || t === 'EV') return 50
+  const n = Number.parseFloat(t.replace(/[^\d.-]/g, ''))
+  if (!Number.isFinite(n) || n === 0) return 50
+  const p = t.startsWith('-') ? Math.abs(n) / (Math.abs(n) + 100) : 100 / (n + 100)
+  return Math.min(99, Math.max(1, p * 100))
 }
 
-export function avatarTone(name: string): string {
-  const tones = [
-    'bg-[var(--brand-superpurple-500)]',
-    'bg-[var(--brand-highblue-500)]',
-    'bg-[var(--brand-wildgreen-500)]',
-    'bg-[var(--brand-superorange-500)]',
-    'bg-[var(--brand-queenpink-500)]',
-    'bg-[var(--brand-lowcyan-500)]',
-  ]
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
-  return tones[h % tones.length]!
+/** Pick → existing betslip, with the V1 fly-to-slip beat. */
+export function useV5Pick() {
+  return (pick: SoccerSlipPick, el?: HTMLElement | null) => {
+    let added = false
+    setSoccerSlip((prev) => {
+      added = !prev.some((p) => p.id === pick.id)
+      return toggleLeg(prev, pick)
+    })
+    if (added) {
+      revealShellDock()
+      flyBetDotToSlip(el ?? null, pick.id)
+    }
+  }
 }
