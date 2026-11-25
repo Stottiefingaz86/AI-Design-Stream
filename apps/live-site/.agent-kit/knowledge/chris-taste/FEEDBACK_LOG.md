@@ -417,6 +417,180 @@ Format for new chronological entries (bottom of file):
 - **Do:** Explain: HTML capture flattens SVGs→IMAGE + drops Mode bindings. Rebuild handover with Lumen DS instances from the same library the live site uses; quarantine captures as refs; delete when rebuilt.
 - **Don't:** Keep polishing capture frames as if they were the design system.
 
+### 2026-11-12 — Soccer alt-line slot reel
+- **Sentiment:** mixed
+- **Surface:** Soccer Spread/Total alternate lines
+- **Signal:** Selected line should stay on the event-row axis (red ring); scroll must never leave the ring between two rows; click smooth-scrolls into centre like a slot reel.
+- **Do:** Fixed destructive ring locked to selector/odds Y; mandatory snap on a fixed stride (no flex gap); open with active line in ring; click → smooth scroll to ring then apply; settle-correct if scroll stops mid-tick. See `SOCCER_ALT_LINES.md`.
+- **Don't:** Free-scroll list where the highlight drifts off the board row or sits in the gutter between lines.
+
+### 2026-11-12 — Alt-line size match + one scrollbar + tap-to-roll
+- **Sentiment:** negative
+- **Surface:** Soccer Spread/Total alternate lines
+- **Signal:** Popover odds smaller than event-row (visible shift on open); two scrollbars clashing; don’t like fixed reel frame — red = current selection; tap rolls into place then closes.
+- **Do:** Measure board chip pair for exact W/H; same OddsButton chrome; open overlays board chips with zero shift; red outline on selected only; tap → smooth scroll into board slot → apply/close; single inner list scroll, scrollbar hidden; menu shell overflow hidden.
+- **Don't:** Smaller popover chips; outer+inner scrollbars; free-scroll fixed ring that drifts off the event row.
+
+### 2026-11-12 — Alt-line empty spacers + clipped red
+- **Sentiment:** negative
+- **Surface:** Soccer Spread/Total alternate lines
+- **Signal:** “terrible” — big empty gaps top/bottom in the scroll; red selection clipped at the popover edge.
+- **Do:** Compact list only (no padY spacers); short list repositions menu so active row = board chips; inset red (`shadow inset`) so ring isn’t clipped.
+- **Don't:** Fake top/bottom spacers for a middle “slot”; outer `outline`/`ring` that gets chopped by `overflow: hidden`.
+
+### 2026-11-12 — Alt-line: one team at a time, no red stroke
+- **Sentiment:** negative
+- **Surface:** Soccer Spread/Total alternate lines
+- **Signal:** Popover was swapping both teams' lines on one tap. Left side = team A, right side = team B — change only the one tapped. Remove the red row stroke; use the same hover/selection as the event row.
+- **Do:** Each popover chip is its own button; tap updates only that side on the board + slip. Chips reuse `OddsButton` hover + primary selected fill. See `SOCCER_ALT_LINES.md`.
+- **Don't:** Whole-row pick that moves both sides; destructive inset ring around the row.
+
+### 2026-11-12 — Alt-line: main line centred, pair moves, tapped pick to slip
+- **Sentiment:** negative (correcting the per-side change)
+- **Surface:** Soccer Spread/Total alternate lines
+- **Signal:** “what we did was wrong” — main/default line must be the centre row; higher lines above, lower below (4.25, 4, 3.75, **3.5**, 3.25…). Tapping an option updates the **pair** on the event row and adds the **tapped** pick to the betslip.
+- **Do:** Sort rows high → low; active board line overlays the board chips; tap → pair on board + tapped pick on slip (replace existing leg for that event market). See `SOCCER_ALT_LINES.md`.
+- **Don't:** Per-side line state that moves only one team on the board; ascending lists; tap that changes the board without adding the pick.
+
+### 2026-11-12 — Alt-line reopen: anchor on main line, not selection
+- **Sentiment:** mixed (first open “perfect”)
+- **Surface:** Soccer Spread/Total alternate lines
+- **Signal:** On reopen the menu re-centred on the red (picked) line; main line must always be centre.
+- **Do:** Anchor the menu on the main/default row every open; selection only changes chip fill.
+- **Don't:** Re-anchor the ladder on the picked / board line.
+
+### 2026-11-12 — Betslip: one selection per market
+- **Sentiment:** neutral (new rule)
+- **Surface:** Soccer betslip (board chips + alt-line popover)
+- **Signal:** Only one market selection per market can be on the betslip; a newer pick updates the existing leg (Spread −1 (−110) → −2 (−115) shows only −2 (−115)).
+- **Do:** Replace the leg in place for same event + market; different markets still stack into a parlay.
+- **Don't:** Stack two picks from the same market (e.g. home + draw, or two spread lines).
+
+### 2026-11-12 — No Asian handicaps; American lines + odds
+- **Sentiment:** negative
+- **Surface:** Soccer Spread/Total alternate lines
+- **Signal:** Remove all x.25 / x.75 lines — should be American.
+- **Do:** Half/whole-point ladders (±0.5 steps); valid American prices only (≤ −100 / ≥ +100), priced via implied probability.
+- **Don't:** Quarter (Asian) lines; prices between −99 and +99.
+
+### 2026-11-13 — Site version switch lives in Laura's arrival message
+- **Sentiment:** negative (moved)
+- **Surface:** Site versions (V1, V2, …)
+- **Signal:** Version toggle in the UBC was wrong — UBC only shows when logged in and skips onboarding.
+- **Do:** On arrival (once per browser session), Laura's Intercom card says "You're viewing V1 · Current site." and lists other versions; tapping one saves it and reloads the site in that version. Registry: `lib/lumen/site-versions.ts`.
+- **Don't:** Put the version picker in the UBC / account drawer, or behind login.
+
+### 2026-11-13 — Version pop every landing + always in Intercom Home
+- **Sentiment:** negative (once-per-session was wrong)
+- **Surface:** Laura site-version arrival card
+- **Signal:** "Pop only showed once and now I can't access it."
+- **Do:** Pop on every landing with the messenger pop sound (like other Laura messages); keep the version list permanently in Intercom Home.
+- **Don't:** Gate arrival messages behind sessionStorage "seen" flags, or leave a setting reachable only from a one-shot pop.
+
+### 2026-11-18 — No auto-open Intercom for site version
+- **Sentiment:** negative
+- **Surface:** Laura site-version arrival pop
+- **Signal:** "Intercom keeps popping up repeatedly — don't make it trigger open; I can go to Home manually."
+- **Do:** Keep the version list in Intercom Home only; player opens it.
+- **Don't:** Auto-open Intercom on every landing for informational messages (version, settings). Reserve auto-open for earned moments (welcome after join, level-up, VIP match).
+
+### 2026-11-18 — V2: Challenges, Raffles, Races in Promotions side menu
+- **Sentiment:** neutral (new direction, refs supplied)
+- **Surface:** V2 site version · Promotions sidebar
+- **Signal:** Wanted V2 with Challenges (Winna grid), Raffles (Rainbet weekly raffle), Races (Winna daily race podium + leaderboard) in the side menu.
+- **Do:** Gate new features behind `useSiteVersion() === 'v2'`; translate peer layouts into Lumen cards/Tabs/tokens and BOL red banner art; reuse CasinoGameTile, RankCrest, toast, openAuth.
+- **Don't:** Change V1 navigation when building V2 features; clone Winna/Rainbet blue/gold chrome or crypto coin icons.
+
+### 2026-11-18 — Hates image-banner heroes on V2 promo pages; Challenges underwhelming
+- **Sentiment:** negative
+- **Surface:** V2 Raffles / Races / Challenges heroes + challenge cards
+- **Signal:** "I hate the banners you made, layout can be cleaner, challenges looks underwhelming." Ref: Rainbet Casino Challenges (centered icon hero, horizontal cards with Play Game).
+- **Do:** Use `PromoPageHero` — bordered card, soft primary radial glow, 64px primary icon tile, centered title with `text-primary` accent word, short subtitle, centered countdown/tabs/CTA beneath. Challenges = horizontal cards (art left; title, objective with bold numbers, Prize/Provider rows, full-width "Play Game" primary button that launches the game).
+- **Don't:** Put promo art JPGs behind a black gradient with glass countdown overlays as page heroes; ship portrait-tile-only grids for challenges with no clear CTA; add a separate page h1 above a hero that already says it.
+
+### 2026-11-18 — Races simpler (V1 card structure), raffle hero too tall, perforated tickets
+- **Sentiment:** negative (refine)
+- **Surface:** V2 Races / Raffles
+- **Signal:** "Daily race can simplify like Rainbet and structure more like our daily race cards; raffle banner is so tall; tickets should be perforated."
+- **Do:** Races = page h1 + Daily/Weekly tabs on the right → V1-style status card (title + mono clock, Position / Wagered / Current Prize cells) → leaderboard. Raffle hero = `PromoPageHero compact` (one row: icon + title left, countdown + CTA right). Tickets = stub + dashed perforation + half-moon notches, "Draw #N" over the number.
+- **Don't:** Tall centered heroes or top-3 podium cards on races; flat pill tickets.
+
+### 2026-11-18 — Red stroke + glow on promo hero = "AI slop, harsh"
+- **Sentiment:** strong negative
+- **Surface:** V2 Raffle / Race top cards
+- **Signal:** "Looks shit, AI slop, not clean, why the stroke, where is the subtleness, so harsh."
+- **Do:** Keep the standard card (`border-border`, normal shadow). If adding atmosphere: a faint primary wash (~9%) in one corner and a near-invisible slow sheen (foreground ~3%, 9s). Claimed/confirm state = quiet muted text + small success check.
+- **Don't:** Primary-tinted borders, inset red hairlines, outer red glows, big glowing icon shadows, bordered success chips. Subtle > loud, always.
+
+### 2026-11-18 — No red accent words in headings; promo heroes = homepage hero style
+- **Sentiment:** negative
+- **Surface:** V2 Raffles / Races / Challenges headers
+- **Signal:** "I hate the red text on headers only, we don't do this anywhere else. Look how clean our homepage 'Built for winners' banner is — same style."
+- **Do:** `PromoPageHero` = solid `bg-primary` banner, `rounded-[14px]`, Figtree 900 white title, white/95 subtitle, white Register-style CTA (`PROMO_HERO_CTA`), `bg-black/20` tiles for icon / countdown cells / stats. Same recipe as `home-hero.tsx`.
+- **Don't:** Two-tone headings ("$20K **Weekly Raffle**" in red), dark card heroes with red glows, coloured accent words anywhere in titles.
+
+### 2026-11-18 — No icon tiles next to promo hero titles
+- **Sentiment:** negative
+- **Surface:** V2 Raffles / Races / Challenges banners
+- **Signal:** "Remove the icons next to the headers on raffles races and challenges."
+- **Do:** Promo hero is type + CTA + countdown only (homepage "Built for winners" density).
+- **Don't:** Ticket / trophy / target icon chips beside the title.
+
+### 2026-11-18 — V2 Promotions arrival product tour
+- **Sentiment:** positive (requested)
+- **Surface:** V2 /promotions
+- **Signal:** On V2, arriving at Promotions should run a product tour for Challenges, Raffles, and Races (new Daily Race location).
+- **Do:** Once per browser (`lumen-tour-seen-v2-promotions`); spotlight sidebar/drawer `data-tour` hooks; open mobile drawer for targets; short COPY.md facts.
+- **Don't:** Auto-open Intercom for this; re-fire every visit; point Races at VIP Hub in this intro.
+
+### 2026-11-18 — Promo tour needs welcome + no AI slop / no dashes
+- **Sentiment:** negative
+- **Surface:** V2 Promotions product tour
+- **Signal:** "Not very welcoming, introduce with party emoji then where to find them; remove AI slop text and dashed, I keep telling you."
+- **Do:** Open with centred 🎉 welcome ("What's new" / short fact / Let's go); then spotlight Challenges → Raffles → Races with one-line facts. Progress = equal dots (not elongated dashes). No em-dashes in player copy.
+- **Don't:** Jump straight into a cold nav spotlight; pitchy multi-clause bodies; em-dash lines; stretched pill "dash" progress.
+
+### 2026-11-18 — Soccer event view (live + pre-match), V1
+- **Sentiment:** negative on the reference, positive on the direction
+- **Surface:** `/sports/soccer/event/[id]` (opens from board team names / row chevron)
+- **Signal:** "The reference design is shit; live shows live stream + match tracker on the right; highest quality, look at bet365; build on V1."
+- **Do:** Markets left, sticky rail right (lg+): live = Live Stream / Match Tracker tabs + Stats / Timeline; pre-match = Who wins? + Form + Head to head + Match info. Mobile: media in-flow above the market pills. Ladders show main line ±1 with "Show all N lines". One shared slip store across board + event view.
+- **Don't:** Asian handicaps or quarter lines; wall-of-rows all-open ladders; a homemade stream clip from another sport; gate this behind V2.
+
+### 2026-11-18 — Event rail under sub-nav, alt points, NFL + slip + My Bets
+- **Sentiment:** negative (rail), positive (scope requested)
+- **Surface:** event view, `/sports/football`, betslip, `/sports/my-bets`
+- **Signal:** "The side panel is going under the sub nav, should stick before"; wants alt points dropdown for goals; NFL league + event; straights / parlays / SGPs in slip and My Bets; confirmation; "product owner prototype: don't use design, just the content."
+- **Do:** Stick to `--shell-chrome-h`; reuse `AlternateLinePicker` on the event view; one generic event view per sport model; auto SGP / parlay in one slip; neutral Pending pill. See `US_SPORTS_BETSLIP_MY_BETS.md`.
+- **Don't:** Hardcoded sticky tops; copy the prototype's look; slip mode tabs; red Pending pills.
+
+## 2026-11-18 — Sports round 2 (negative)
+- Don't: US grid board ("looks awful") → Do: league cards with column rail (header over two chips), See All + Show N More.
+- Don't: text tabs for Live Stream / Tracker → Do: square icon buttons like bet365.
+- Don't: bespoke My Bets ("looks shocking", broken on mobile) → Do: reuse Bet History table/figures/expand patterns.
+- Don't: auto-pop the betslip on route changes → Do: open only on first pick.
+- Don't: accordion hover touching content → Do: inset hover with spacing.
+- Do: team names above alt-line popup; spinner on sub-nav taps.
+
+## 2026-11-18 — Sports round 3 (negative)
+- Don't: clustered football odds → Do: gaps per market + period dividers like soccer.
+- Don't: empty betslip after removing last pick → Do: close it.
+- Don't: alt-popup labels touching chips; pitch touching panel edges → Do: spacing.
+- Don't: blue links in My Bets; boxed figures card top → Do: muted links; pill tabs + flat stats strip.
+- Do: All Football tile; live score + clock on My Bets live legs.
+
+## 2026-11-18 — Football board style (negative)
+- Don't: period dividers / stacked chip columns on the football board → Do: copy the soccer board layout (header over side-by-side chips, gap between markets).
+- Correction: keep the American top/bottom stacking, but with the soccer chip style and spacing. Not side-by-side chips.
+
+## 2026-11-18 — Event markets (negative)
+- Don't: put every ladder behind the alt popup → Do: full-list layouts for Asian Handicap, Goal Spread 3-way, team totals per team, 1H correct score.
+
+## 2026-11-18 — Live glow + outrights (negative)
+- Don't: red border / glow on live cards → Do: faint left-edge red wash only.
+- Don't: short outright list cards → Do: searchable grid, top 12 + Show all.
+- Don't: hide the betslip after navigation → Do: always show the collapsed dock when picks exist.
+
 ## 2026-11-18 — Sports Home (positive / locked)
 - Do: `/sports` real home — casino banners, Popular live mix (soccer+NFL) with ML % bar, sleek SGP pack shelf (whole pack → slip as one SGP), Games/Outrights/All Leagues, Premier League then NFL boards, Live Wins + betslip.
 - Don't: redirect Sports Home to soccer; invent PropShopX chrome; put SGP packs as single-leg adds; Sports Home sidebar active off exact `/sports`.
@@ -434,5 +608,176 @@ Format for new chronological entries (bottom of file):
 - Don't: blank red circles for selected SGP legs; cards that navigate with no feedback; status pills on Sports Home (for now).
 - Do: ticked nodes; banner-style preloader on Popular / SGP / Boost cards when opening an event.
 
+## 2026-11-18 — My Bets tabs
+- Do: All first in the status pill track (All → Pending → Settled); default All.
+
 ## 2026-11-18 — Mega Parlay icon
 - Do: sports sidebar Mega Parlay uses Lumen DS hexagon **MP** mark (`ShellIcon megaParlay`, `public/shell/figma/sports/mega-parlay.svg` from 52196:37903) — not the users/people glyph.
+
+## 2026-11-18 — Event Back
+- Do: from Sports Home → event → Back lands on `/sports`. Same for soccer/football/My Bets.
+
+## 2026-11-18 — Betslip underfunded
+- Do: **Deposit to place bet** when balance < stake; open cashier. Don't place on $0.
+
+## 2026-11-19 — Sports V3 markets (negative → corrected)
+- Don't: make V3 a replacement for sports (dropping betslip, SGP, Odds Boosts carousels, match tracker / streams, parlay nav); multi-colour chart lines or green/red Yes/No buttons; rails that clip inside the page gutter; a collapsed betslip dock with no affordance.
+- Do: V3 = traditional sports **plus** Polymarket-style content (Markets shelf under Popular, event "Who wins?" chance card, My Bets titled Portfolio with an account-value hero); monochrome like the ML % bar with neutral price chips; rails bleed to the gutter like the banner row; up chevron far right on the collapsed slip dock. See `SPORTS_V3_MARKETS.md`.
+
+## 2026-11-19 — Sports V3 markets polish (mixed)
+- Do: keep traditional + Polymarket mix (Markets shelf + event Who wins? + Portfolio on top of real sports).
+- Don't: open a trade side sheet on Buy / Yes / No — market prices go into the **normal betslip** (fly + dock), same as board odds.
+- Don't: side-by-side chart + truncated Buy column ("block UI") — stack header → chance → full-width chart → full-width outcome rows.
+- Do: make each chart line clearly tied to a team (short end labels + matching stroke swatch on the row; solid favourite / dashed others, still monochrome).
+
+## 2026-11-19 — Betslip live + event alt grids + Markets card
+- Do: live legs on the betslip show **clock + score** next to the event (red clock, bold score, muted event name). Same on SGP headers.
+- Do: event-view ladder markets (Alternate Spread / Total / …) show **all lines in a 2-col grid**, not main pair + alt stepper.
+- Do: V3 featured Markets card is compact and includes that game’s Yes/No markets in the same card.
+- Don't: rename My Bets to Portfolio — keep **My Bets** in nav / rail / dock / page title (account-value hero on V3 My Bets is fine).
+
+## 2026-11-19 — Markets featured + rails
+- Don't: crush the featured Markets card (96px chart, h-10 rows, range tabs jammed into the chance line).
+- Do: featured = header → chance → ~140px chart → range → full moneyline rows → **More markets** as a 2-col grid of Yes/No cards.
+- Don't: nest HorizontalRail inside padded sections with extra `-mx` (clips under shell `overflow-x-hidden`).
+- Do: title in `px-4/6`, rail full column width with its own gutter + snap-start (same as banners).
+
+## 2026-11-19 — Featured Markets not skinny rows
+- Don't: moneyline as full-width h-12 strips with Buy on the far right + short chart + range jammed next to chance.
+- Do: one padded featured card; ~180px chart; range under chart; moneyline + more markets as 2-col grids that fill the card.
+
+## 2026-11-19 — Top movers density
+- Don't: stretch Top movers with `justify-around` / `flex-1` to match the tall featured card.
+- Do: `h-fit self-start` packed rows; event label as secondary line.
+
+## 2026-11-19 — Movers gap + football/soccer shelves
+- Don't: stretch Top movers to featured height (empty void inside or below).
+- Do: pack movers; put More markets full-width under the pair.
+- Do: Football/Soccer — SGP mode pill; Odds Boosts + Mega Parlays under boards; V3 Markets filtered to that sport.
+
+## 2026-11-19 — Kalshi CTAs + kill Markets grid
+- Don't: “Buy 43¢” on market CTAs (Kalshi uses % pills + multipliers).
+- Don't: nest mini-cards / separate More-markets grid under featured (looks like a broken dashboard).
+- Do: chance pill CTA (`59%`); multiplier beside row (`1.61x`); one featured card with dense outcome + more-market rows; Top movers packed with ~9 teams (no empty stretched column).
+
+## 2026-11-19 — Sport mode pills + featured card
+- Don't: put Odds Boosts / Mega Parlays under Games boards.
+- Do: Football/Soccer sub-nav = Games | SGP | Odds Boosts | Mega Parlays | …; Markets only at bottom of Games.
+- Do: featured card = roomy 2-col outcome tiles + more-markets cards; Kalshi % pills + multipliers (not skinny rows, not Buy ¢).
+
+## 2026-11-19 — Movers tabs + real megas
+- Don't: leave empty gap beside featured / stretch an empty movers card.
+- Do: one side panel with tabs **Movers | Volume | Live**, `items-stretch` to match featured height, list scrolls inside.
+- Do: Mega Parlays = **4+ legs**, big odds — never 2-leg “megas”.
+
+## 2026-11-19 — Featured too huge + market topic filters
+- **Sentiment:** negative
+- **Surface:** Markets shelf / featured card
+- **Signal:** Hates the oversized featured card; wants it smaller; wants filters Football / Soccer / Entertainment / Politics.
+- **Don't:** Room-filling featured (tall chart + big outcome tiles + fat more-markets grid); stretch side panel into empty void.
+- **Do:** Dense featured (`h-fit`, ~104px chart, compact team header, outcome rows with multiplier + % pill); category pills **All | Football | Soccer | Entertainment | Politics**; side panel `h-fit self-start`.
+
+## 2026-11-19 — Kill featured More markets
+- **Sentiment:** negative
+- **Surface:** Markets featured card
+- **Signal:** Doesn't like the bottom “More markets” Yes/No block on the featured card.
+- **Don't:** Nest spread/total / Yes-No props under the featured card.
+- **Do:** Featured = moneyline (or topic outcomes) only; props live in the Market questions rail.
+
+## 2026-11-19 — Movers Yes/No context + Popular filter chips
+- **Sentiment:** negative
+- **Surface:** Markets shelf filters + movers side list
+- **Signal:** Bare “Yes/No” doesn’t say what you’re betting on; wants Politics/Entertainment icons; Markets filters should match Popular chips (not a different red pill track).
+- **Don't:** Show Yes/No without the question; invent a separate red mode-pill filter under Markets; empty minus-circle marks for topic rows.
+- **Do:** Mover primary = `Yes · {question}`; category icon marks; Markets chips = same as Popular (`h-8 rounded-lg` + ShellIcon football/soccer/entertainment/politics).
+
+## 2026-11-19 — 3-up trending + side segmented filter
+- **Sentiment:** negative
+- **Surface:** Markets shelf
+- **Signal:** One huge featured market wastes the row — fit 3 across; side table still bad; want SEA/SF-style tabs or filter icon; “All” should say **Trending**.
+- **Don't:** Bare All label; ugly flat Movers/Volume/Live underline tabs without a category control.
+- **Do:** First filter chip = **Trending**; side = pill segmented Movers|Volume|Live + filter popover; rows keep question context + ShellIcon marks.
+
+## 2026-11-19 — Keep main card; 2 equal triples
+- **Sentiment:** negative
+- **Surface:** Markets shelf
+- **Signal:** Hates uneven tiles; only 1 market per tile; removed the main chart card by mistake; wants **3 markets side-by-side** inside a card; click opens more markets.
+- **Don't:** Replace the featured chart card with a row of mismatched single-market tiles.
+- **Do:** Keep **main featured** with **3 markets across** on that card.
+
+## 2026-11-19 — No invented secondary cards; 3 across ON featured
+- **Sentiment:** negative
+- **Surface:** Markets shelf
+- **Signal:** Still one market stretched full-width on featured; hated the extra COV/MUN triple cards (“where did these come from, I didn’t ask”); wants polish/alignment.
+- **Don't:** Invent a second row of event cards; stretch moneyline alone across the featured card.
+- **Do:** **Only** the main featured card (+ side movers + questions rail). Featured footer = **Winner | line | line** three equal columns. Click featured → event for more.
+
+## 2026-11-19 — Featured CTA size + movers height align
+- **Sentiment:** mixed (better, but polish)
+- **Surface:** Markets featured + movers
+- **Signal:** Odds pills too small / misaligned; featured bottom edge not aligned with movers panel.
+- **Don't:** Tiny `h-7` % pills.
+- **Do:** Column CTAs `h-10` / ~72px wide with label+multiplier stack.
+
+## 2026-11-19 — No stretch gap on featured
+- **Sentiment:** negative
+- **Surface:** Markets featured
+- **Signal:** Massive empty gap between chart and the 3 market columns after height-stretch.
+- **Don't:** `mt-auto` that pulls markets to the bottom of a tall card (void under the chart).
+- **Do:** Featured content packed under the chart; outer cards may `items-stretch` so **borders** align.
+
+## 2026-11-19 — Movers top 6 + border align
+- **Sentiment:** mixed
+- **Surface:** Markets movers
+- **Signal:** List too long; still not aligned with featured.
+- **Don't:** Dump 12–14 mover rows; leave featured/movers tops/bottoms mismatched.
+- **Do:** Side list = **top 6** only; `items-stretch` so card chrome bottoms match; filler under the 6 rows (not under the featured chart).
+
+## 2026-11-19 — Markets pair must not collapse
+- **Sentiment:** negative
+- **Surface:** Markets shelf / category filters
+- **Signal:** Entertainment (sparse) shrunk the movers table and broke the page layout.
+- **Don't:** Let featured+movers height follow sparse content and collapse the shelf.
+- **Do:** Featured keeps **`min-h-[440px]`**; empty category shows a full-height empty card.
+
+## 2026-11-19 — Kill movers filter + empty filler
+- **Sentiment:** negative
+- **Surface:** Markets movers
+- **Signal:** Table still bad; remove the filter button; empty void under the 6 rows.
+- **Don't:** Filter icon on movers; stretch/filler under a short top-6 list.
+- **Do:** Movers = tabs only; category filter stays on the shelf chips above.
+
+## 2026-11-19 — Movers row count fits featured height
+- **Sentiment:** mixed
+- **Surface:** Markets movers
+- **Signal:** Show an amount that matches the trending/featured card height (not a fixed 6 with leftover void).
+- **Don't:** Fixed row count that leaves empty chrome or overflows the featured.
+- **Do:** `ResizeObserver` on featured → movers shows however many rows fit that height (`h-fit`, no filler).
+
+## 2026-11-19 — Featured = event Who wins? + hover
+- **Sentiment:** negative
+- **Surface:** Markets featured
+- **Signal:** Lost hover when selecting; don’t want the 3 market columns — match event-view Who wins? tiles.
+- **Don't:** Winner|line|line column footer on featured; missing hover/selected chrome.
+- **Do:** Event-view outcome tiles (swatch · crest · % · mult · change · % pill); tile hover + selected border; card `hover:border-foreground/15`.
+
+## 2026-11-19 — Movers same height as featured card
+- **Sentiment:** negative
+- **Surface:** Markets movers
+- **Signal:** Side list widget still shorter than the featured card; bottoms must align.
+- **Don't:** `h-fit` / `items-start` leaving movers shorter than featured.
+- **Do:** Grid `items-stretch` + both cards `h-full`; fit row count to featured height; list scrolls inside if needed so outer borders match.
+
+## 2026-11-19 — Featured options carousel not stack
+- **Sentiment:** negative
+- **Surface:** Markets featured / Who wins? tiles
+- **Signal:** Multi-outcome options wrapping to a second row with empty space (“like the offering” → carousel).
+- **Don't:** Stack / wrap outcome tiles into a multi-row grid when there are more than fit.
+- **Do:** One-row carousel when 3+ outcomes (swipe; glass arrows on fine pointer); 2-outcome stays side-by-side grid.
+
+## 2026-11-19 — Markets category pills clipped again
+- **Sentiment:** negative
+- **Surface:** Markets category chips / sub-nav
+- **Signal:** Entertainment chip cropped mid-label; wants full-width track again.
+- **Don't:** Let shell `overflow-x-hidden` clip pills mid-label when the row expands past the column.
+- **Do:** Full-width pill track (`w-full min-w-0` + `overflow-x-auto`); padding on the track; chips `shrink-0` + `whitespace-nowrap`.

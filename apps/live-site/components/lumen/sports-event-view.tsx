@@ -161,7 +161,14 @@ function useIsDesktop(): boolean | null {
   return desktop
 }
 
-export function SportsEventView({ model }: { model: SportsEventModel }) {
+export function SportsEventView({
+  model,
+  marketsCard,
+}: {
+  model: SportsEventModel
+  /** V3 prediction-market card, under the event header. */
+  marketsCard?: ReactNode
+}) {
   const router = useRouter()
   const desktop = useIsDesktop()
   const { startNavigating } = useShell()
@@ -219,6 +226,7 @@ export function SportsEventView({ model }: { model: SportsEventModel }) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="min-w-0">
           <EventHeader model={model} />
+          {marketsCard}
 
           {/* Below lg the media / stats sit in-flow; lg+ they move to the sticky rail. */}
           <div className="mt-4 lg:hidden">
@@ -943,26 +951,37 @@ function LinePair({
   )
 }
 
-function LadderBody(props: BodyProps<LadderMarket>) {
-  const { market } = props
-  const family = market.columns[0].label === 'Over' ? 'total' : 'spread'
+/** Every alternate line on the card as a 2-col grid — no stepper / alt popup. */
+function LadderBody({
+  market,
+  suspended,
+  selectedIds,
+  priced,
+  ticks,
+  onSelect,
+}: BodyProps<LadderMarket>) {
   return (
     <div>
-      <div className="mb-1.5 flex gap-1 pr-8">
-        <div className="grid min-w-0 flex-1 grid-cols-2 gap-1 px-1">
-          <ColumnHead {...market.columns[0]} />
-          <ColumnHead {...market.columns[1]} />
-        </div>
+      <div className="mb-1.5 grid grid-cols-2 gap-1.5 px-1">
+        <ColumnHead {...market.columns[0]} />
+        <ColumnHead {...market.columns[1]} />
       </div>
-      <LinePair
-        {...props}
-        rows={market.rows}
-        mainLine={market.mainLine}
-        title={market.altTitle}
-        family={family}
-        columns={[market.columns[0].label, market.columns[1].label]}
-        slip={() => ({ market: slipMarketOf(market) })}
-      />
+      <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+        {market.rows.map((r) => (
+          <div key={r.line} className="grid grid-cols-2 gap-1.5">
+            {[r.a, r.b].map((cell) => (
+              <EventOdds
+                key={cell.id}
+                pick={priced(cell)}
+                tick={ticks[cell.id]}
+                locked={suspended}
+                selected={selectedIds.has(cell.id)}
+                onSelect={(p, el) => onSelect(p, { market: slipMarketOf(market) }, el)}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

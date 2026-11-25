@@ -24,6 +24,11 @@ import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-caro
 import { ShelfSeeMore } from '@/components/lumen/shelf-see-more'
 import { SoccerBetslip, type SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import {
+  SportBoostsShelf,
+  SportMegaShelf,
+  SportSgpShelf,
+} from '@/components/lumen/sports-home-page'
+import {
   BoardTeamBadge,
   BreadcrumbMenu,
   LeagueQuickLinks,
@@ -57,9 +62,12 @@ const CARD = 'rounded-[10px] border border-border bg-card shadow-[0_0_16px_rgba(
 const EVENT_ROW_H = 'h-[148px]'
 const SCORE_COL_W = 'w-[min(42%,300px)]'
 
-type Mode = 'games' | 'outrights' | 'leagues'
+type Mode = 'games' | 'sgp' | 'boosts' | 'mega' | 'outrights' | 'leagues'
 const MODES: { id: Mode; label: string }[] = [
   { id: 'games', label: 'Games' },
+  { id: 'sgp', label: 'SGP' },
+  { id: 'boosts', label: 'Odds Boosts' },
+  { id: 'mega', label: 'Mega Parlays' },
   { id: 'outrights', label: 'Outrights' },
   { id: 'leagues', label: 'All Leagues' },
 ]
@@ -89,9 +97,12 @@ function slipFor(event: SoccerEvent, pick: SoccerOdds, market: string): SoccerSl
 export function NflSportPage({
   className,
   initialLeague = 'all',
+  markets,
 }: {
   className?: string
   initialLeague?: FootballLeague | 'all'
+  /** V3 — sport-filtered Markets shelf under the boards. */
+  markets?: ReactNode
 }) {
   const router = useRouter()
   const { startNavigating } = useShell()
@@ -201,6 +212,12 @@ export function NflSportPage({
             />
           ))
         : null}
+
+      {displayMode === 'games' && markets ? markets : null}
+
+      {displayMode === 'sgp' ? <SportSgpShelf sport="nfl" bleed /> : null}
+      {displayMode === 'boosts' ? <SportBoostsShelf sport="nfl" bleed /> : null}
+      {displayMode === 'mega' ? <SportMegaShelf sport="nfl" bleed /> : null}
 
       {displayMode === 'outrights' ? (
         <FuturesView selectedIds={selectedIds} onPick={addPick} />

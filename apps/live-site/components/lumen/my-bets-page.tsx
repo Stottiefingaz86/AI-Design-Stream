@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -160,7 +160,13 @@ function LegNode({ status }: { status: BetStatus }) {
   return <span className="block size-4 rounded-full border-2 border-muted-foreground bg-card" />
 }
 
-export function MyBetsPage() {
+export function MyBetsPage({
+  title = 'My Bets',
+  hero,
+}: {
+  title?: string
+  hero?: ReactNode
+} = {}) {
   const pathname = usePathname()
   const { loggedIn, openAuth, startNavigating } = useShell()
   const bets = useSportsBets()
@@ -209,12 +215,12 @@ export function MyBetsPage() {
     >
       <div className="mb-4 flex items-center gap-1.5">
         <h1 className="text-xl font-semibold leading-7 text-foreground lg:text-2xl lg:leading-8">
-          My Bets
+          {title}
         </h1>
         <LumenTooltip label="Open and settled sports bets" side="bottom">
           <button
             type="button"
-            aria-label="About My Bets"
+            aria-label={`About ${title}`}
             className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <IconInfoCircle className="size-4" stroke={1.75} aria-hidden />
@@ -234,6 +240,7 @@ export function MyBetsPage() {
         </div>
       ) : (
         <>
+          {hero}
           <ModePillTrack
             active={tab}
             onChange={setTab}

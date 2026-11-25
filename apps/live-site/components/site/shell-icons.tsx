@@ -27,6 +27,7 @@ export type ShellIconName =
   | 'desktop'
   | 'dice'
   | 'diamond'
+  | 'entertainment'
   | 'football'
   | 'download'
   | 'drawer'
@@ -47,6 +48,7 @@ export type ShellIconName =
   | 'menu'
   | 'moon'
   | 'play'
+  | 'politics'
   | 'popular'
   | 'popularSports'
   | 'promos'
@@ -126,6 +128,7 @@ const ICONS: Record<ShellIconName, string> = {
   /** Homepage dock — Shell 4308:278685 */
   dice: '/shell/figma/dock/casino-dice.svg',
   diamond: '/shell/figma/poker/diamond.svg',
+  entertainment: '/shell/figma/markets/entertainment.svg',
   download: '/shell/figma/poker/download.svg',
   drawer: '/shell/figma/ubc/drawer.svg',
   external: '/shell/figma/promo/external.svg',
@@ -147,6 +150,7 @@ const ICONS: Record<ShellIconName, string> = {
   menu: '/shell/figma/header/menu.svg',
   moon: '/shell/figma/ubc/moon.svg',
   play: '/shell/figma/poker/play.svg',
+  politics: '/shell/figma/markets/politics.svg',
   popular: '/shell/figma/casino/popular.svg',
   /** PropShopX sportsbook home `Popular` shooting star (321:153695). */
   popularSports: '/shell/figma/sports/popular.svg',

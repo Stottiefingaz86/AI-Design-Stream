@@ -1,6 +1,7 @@
 import type { ShellIconName } from "./shell-icons";
 import {
   DEFAULT_SITE_VERSION,
+  versionAtLeast,
   type SiteVersionId,
 } from "@/lib/lumen/site-versions";
 
@@ -282,7 +283,10 @@ export function navItemActive(
       !pathname.startsWith("/sports/football/nfl")
     );
   }
-  if (item.label === "My Bets" && item.href === "/sports/my-bets") {
+  if (
+    (item.label === "My Bets" || item.label === "Portfolio") &&
+    item.href === "/sports/my-bets"
+  ) {
     return pathname.startsWith("/sports/my-bets");
   }
   if (item.label === "All Promotions") {
@@ -355,11 +359,11 @@ export function navForProduct(
             emphasis: true,
           },
           {
-            label: "My Bets",
-            href: "/sports/my-bets",
-            icon: "ticket",
-            emphasis: true,
-          },
+                label: "My Bets",
+                href: "/sports/my-bets",
+                icon: "ticket",
+                emphasis: true,
+              },
           {
             label: "Live Betting",
             href: SPORTS_HOME_HREF,
@@ -478,7 +482,7 @@ export function navForProduct(
         items: [
           { label: "All Promotions", href: "/promotions", icon: "megaphone" },
           { label: "My Bonus", href: "/promotions/my-bonus", icon: "gift" },
-          ...(version === "v2"
+          ...(versionAtLeast(version, "v2")
             ? ([
                 {
                   label: "Challenges",

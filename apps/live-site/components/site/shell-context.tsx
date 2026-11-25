@@ -310,6 +310,11 @@ type ShellContextValue = {
   balance: number
   /** Animated balance shown in chrome (NumberFlow) */
   displayBalance: number
+  /**
+   * Debit the wallet (sports place, etc.). Returns false when underfunded —
+   * caller should open cashier instead.
+   */
+  spendBalance: (amount: number) => boolean
   vipRewards: VipReward[]
   vipClaimCount: number
   claimVipReward: (id: string, button?: HTMLButtonElement | null) => void
@@ -1405,6 +1410,18 @@ export function ShellProvider({
     }, RAKEBACK_FLY_DELAY_MS)
   }, [promoteToSilver, router])
 
+  /** Sports (and similar) cash outlay — keeps NumberFlow chrome in sync. */
+  const spendBalance = useCallback((amount: number) => {
+    const spend = Number(amount)
+    if (!Number.isFinite(spend) || spend <= 0) return true
+    if (balanceRef.current + 1e-9 < spend) return false
+    const next = Math.max(0, Number((balanceRef.current - spend).toFixed(2)))
+    balanceRef.current = next
+    setBalance(next)
+    setDisplayBalance(next)
+    return true
+  }, [])
+
   const startNavigating = useCallback((href?: string) => {
     if (timerRef.current) {
       window.clearTimeout(timerRef.current)
@@ -2136,6 +2153,7 @@ export function ShellProvider({
       closeGameLauncher,
       balance,
       displayBalance,
+      spendBalance,
       vipRewards,
       vipClaimCount,
       claimVipReward,
@@ -2185,6 +2203,7 @@ export function ShellProvider({
       authOpen,
       authView,
       balance,
+      spendBalance,
       casinoSearchOpen,
       claimMissionReward,
       claimVipReward,

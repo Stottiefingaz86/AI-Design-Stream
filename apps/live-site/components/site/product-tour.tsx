@@ -27,7 +27,7 @@ import {
   type ProductTourAction,
   type ProductTourStep,
 } from '@/lib/lumen/product-tours'
-import { useSiteVersion } from '@/lib/lumen/site-versions'
+import { useSiteVersion, versionAtLeast } from '@/lib/lumen/site-versions'
 import { cn } from '@/lib/utils'
 
 const TARGET_TIMEOUT_MS = 4000
@@ -163,7 +163,9 @@ function V2PromotionsArrivalTour() {
     if (pathname !== '/promotions' && pathname !== '/promotions/') return
     /* Read search in the effect — avoids useSearchParams suspending ProductTourHost. */
     const force = shouldForceV2PromotionsTour(window.location.search)
-    const onV2 = version === 'v2' || document.documentElement.dataset.siteVersion === 'v2'
+    const onV2 =
+      versionAtLeast(version, 'v2') ||
+      ['v2', 'v3'].includes(document.documentElement.dataset.siteVersion ?? '')
     if (!onV2) {
       if (force) {
         console.warn(

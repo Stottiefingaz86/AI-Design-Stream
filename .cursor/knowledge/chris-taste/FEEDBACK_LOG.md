@@ -619,3 +619,165 @@ Format for new chronological entries (bottom of file):
 
 ## 2026-11-18 — Betslip underfunded
 - Do: **Deposit to place bet** when balance < stake; open cashier. Don't place on $0.
+
+## 2026-11-19 — Sports V3 markets (negative → corrected)
+- Don't: make V3 a replacement for sports (dropping betslip, SGP, Odds Boosts carousels, match tracker / streams, parlay nav); multi-colour chart lines or green/red Yes/No buttons; rails that clip inside the page gutter; a collapsed betslip dock with no affordance.
+- Do: V3 = traditional sports **plus** Polymarket-style content (Markets shelf under Popular, event "Who wins?" chance card, My Bets titled Portfolio with an account-value hero); monochrome like the ML % bar with neutral price chips; rails bleed to the gutter like the banner row; up chevron far right on the collapsed slip dock. See `SPORTS_V3_MARKETS.md`.
+
+## 2026-11-19 — Sports V3 markets polish (mixed)
+- Do: keep traditional + Polymarket mix (Markets shelf + event Who wins? + Portfolio on top of real sports).
+- Don't: open a trade side sheet on Buy / Yes / No — market prices go into the **normal betslip** (fly + dock), same as board odds.
+- Don't: side-by-side chart + truncated Buy column ("block UI") — stack header → chance → full-width chart → full-width outcome rows.
+- Do: make each chart line clearly tied to a team (short end labels + matching stroke swatch on the row; solid favourite / dashed others, still monochrome).
+
+## 2026-11-19 — Betslip live + event alt grids + Markets card
+- Do: live legs on the betslip show **clock + score** next to the event (red clock, bold score, muted event name). Same on SGP headers.
+- Do: event-view ladder markets (Alternate Spread / Total / …) show **all lines in a 2-col grid**, not main pair + alt stepper.
+- Do: V3 featured Markets card is compact and includes that game’s Yes/No markets in the same card.
+- Don't: rename My Bets to Portfolio — keep **My Bets** in nav / rail / dock / page title (account-value hero on V3 My Bets is fine).
+
+## 2026-11-19 — Markets featured + rails
+- Don't: crush the featured Markets card (96px chart, h-10 rows, range tabs jammed into the chance line).
+- Do: featured = header → chance → ~140px chart → range → full moneyline rows → **More markets** as a 2-col grid of Yes/No cards.
+- Don't: nest HorizontalRail inside padded sections with extra `-mx` (clips under shell `overflow-x-hidden`).
+- Do: title in `px-4/6`, rail full column width with its own gutter + snap-start (same as banners).
+
+## 2026-11-19 — Featured Markets not skinny rows
+- Don't: moneyline as full-width h-12 strips with Buy on the far right + short chart + range jammed next to chance.
+- Do: one padded featured card; ~180px chart; range under chart; moneyline + more markets as 2-col grids that fill the card.
+
+## 2026-11-19 — Top movers density
+- Don't: stretch Top movers with `justify-around` / `flex-1` to match the tall featured card.
+- Do: `h-fit self-start` packed rows; event label as secondary line.
+
+## 2026-11-19 — Movers gap + football/soccer shelves
+- Don't: stretch Top movers to featured height (empty void inside or below).
+- Do: pack movers; put More markets full-width under the pair.
+- Do: Football/Soccer — SGP mode pill; Odds Boosts + Mega Parlays under boards; V3 Markets filtered to that sport.
+
+## 2026-11-19 — Kalshi CTAs + kill Markets grid
+- Don't: “Buy 43¢” on market CTAs (Kalshi uses % pills + multipliers).
+- Don't: nest mini-cards / separate More-markets grid under featured (looks like a broken dashboard).
+- Do: chance pill CTA (`59%`); multiplier beside row (`1.61x`); one featured card with dense outcome + more-market rows; Top movers packed with ~9 teams (no empty stretched column).
+
+## 2026-11-19 — Sport mode pills + featured card
+- Don't: put Odds Boosts / Mega Parlays under Games boards.
+- Do: Football/Soccer sub-nav = Games | SGP | Odds Boosts | Mega Parlays | …; Markets only at bottom of Games.
+- Do: featured card = roomy 2-col outcome tiles + more-markets cards; Kalshi % pills + multipliers (not skinny rows, not Buy ¢).
+
+## 2026-11-19 — Movers tabs + real megas
+- Don't: leave empty gap beside featured / stretch an empty movers card.
+- Do: one side panel with tabs **Movers | Volume | Live**, `items-stretch` to match featured height, list scrolls inside.
+- Do: Mega Parlays = **4+ legs**, big odds — never 2-leg “megas”.
+
+## 2026-11-19 — Featured too huge + market topic filters
+- **Sentiment:** negative
+- **Surface:** Markets shelf / featured card
+- **Signal:** Hates the oversized featured card; wants it smaller; wants filters Football / Soccer / Entertainment / Politics.
+- **Don't:** Room-filling featured (tall chart + big outcome tiles + fat more-markets grid); stretch side panel into empty void.
+- **Do:** Dense featured (`h-fit`, ~104px chart, compact team header, outcome rows with multiplier + % pill); category pills **All | Football | Soccer | Entertainment | Politics**; side panel `h-fit self-start`.
+
+## 2026-11-19 — Kill featured More markets
+- **Sentiment:** negative
+- **Surface:** Markets featured card
+- **Signal:** Doesn't like the bottom “More markets” Yes/No block on the featured card.
+- **Don't:** Nest spread/total / Yes-No props under the featured card.
+- **Do:** Featured = moneyline (or topic outcomes) only; props live in the Market questions rail.
+
+## 2026-11-19 — Movers Yes/No context + Popular filter chips
+- **Sentiment:** negative
+- **Surface:** Markets shelf filters + movers side list
+- **Signal:** Bare “Yes/No” doesn’t say what you’re betting on; wants Politics/Entertainment icons; Markets filters should match Popular chips (not a different red pill track).
+- **Don't:** Show Yes/No without the question; invent a separate red mode-pill filter under Markets; empty minus-circle marks for topic rows.
+- **Do:** Mover primary = `Yes · {question}`; category icon marks; Markets chips = same as Popular (`h-8 rounded-lg` + ShellIcon football/soccer/entertainment/politics).
+
+## 2026-11-19 — 3-up trending + side segmented filter
+- **Sentiment:** negative
+- **Surface:** Markets shelf
+- **Signal:** One huge featured market wastes the row — fit 3 across; side table still bad; want SEA/SF-style tabs or filter icon; “All” should say **Trending**.
+- **Don't:** Bare All label; ugly flat Movers/Volume/Live underline tabs without a category control.
+- **Do:** First filter chip = **Trending**; side = pill segmented Movers|Volume|Live + filter popover; rows keep question context + ShellIcon marks.
+
+## 2026-11-19 — Keep main card; 2 equal triples
+- **Sentiment:** negative
+- **Surface:** Markets shelf
+- **Signal:** Hates uneven tiles; only 1 market per tile; removed the main chart card by mistake; wants **3 markets side-by-side** inside a card; click opens more markets.
+- **Don't:** Replace the featured chart card with a row of mismatched single-market tiles.
+- **Do:** Keep **main featured** with **3 markets across** on that card.
+
+## 2026-11-19 — No invented secondary cards; 3 across ON featured
+- **Sentiment:** negative
+- **Surface:** Markets shelf
+- **Signal:** Still one market stretched full-width on featured; hated the extra COV/MUN triple cards (“where did these come from, I didn’t ask”); wants polish/alignment.
+- **Don't:** Invent a second row of event cards; stretch moneyline alone across the featured card.
+- **Do:** **Only** the main featured card (+ side movers + questions rail). Featured footer = **Winner | line | line** three equal columns. Click featured → event for more.
+
+## 2026-11-19 — Featured CTA size + movers height align
+- **Sentiment:** mixed (better, but polish)
+- **Surface:** Markets featured + movers
+- **Signal:** Odds pills too small / misaligned; featured bottom edge not aligned with movers panel.
+- **Don't:** Tiny `h-7` % pills.
+- **Do:** Column CTAs `h-10` / ~72px wide with label+multiplier stack.
+
+## 2026-11-19 — No stretch gap on featured
+- **Sentiment:** negative
+- **Surface:** Markets featured
+- **Signal:** Massive empty gap between chart and the 3 market columns after height-stretch.
+- **Don't:** `mt-auto` that pulls markets to the bottom of a tall card (void under the chart).
+- **Do:** Featured content packed under the chart; outer cards may `items-stretch` so **borders** align.
+
+## 2026-11-19 — Movers top 6 + border align
+- **Sentiment:** mixed
+- **Surface:** Markets movers
+- **Signal:** List too long; still not aligned with featured.
+- **Don't:** Dump 12–14 mover rows; leave featured/movers tops/bottoms mismatched.
+- **Do:** Side list = **top 6** only; `items-stretch` so card chrome bottoms match; filler under the 6 rows (not under the featured chart).
+
+## 2026-11-19 — Markets pair must not collapse
+- **Sentiment:** negative
+- **Surface:** Markets shelf / category filters
+- **Signal:** Entertainment (sparse) shrunk the movers table and broke the page layout.
+- **Don't:** Let featured+movers height follow sparse content and collapse the shelf.
+- **Do:** Featured keeps **`min-h-[440px]`**; empty category shows a full-height empty card.
+
+## 2026-11-19 — Kill movers filter + empty filler
+- **Sentiment:** negative
+- **Surface:** Markets movers
+- **Signal:** Table still bad; remove the filter button; empty void under the 6 rows.
+- **Don't:** Filter icon on movers; stretch/filler under a short top-6 list.
+- **Do:** Movers = tabs only; category filter stays on the shelf chips above.
+
+## 2026-11-19 — Movers row count fits featured height
+- **Sentiment:** mixed
+- **Surface:** Markets movers
+- **Signal:** Show an amount that matches the trending/featured card height (not a fixed 6 with leftover void).
+- **Don't:** Fixed row count that leaves empty chrome or overflows the featured.
+- **Do:** `ResizeObserver` on featured → movers shows however many rows fit that height (`h-fit`, no filler).
+
+## 2026-11-19 — Featured = event Who wins? + hover
+- **Sentiment:** negative
+- **Surface:** Markets featured
+- **Signal:** Lost hover when selecting; don’t want the 3 market columns — match event-view Who wins? tiles.
+- **Don't:** Winner|line|line column footer on featured; missing hover/selected chrome.
+- **Do:** Event-view outcome tiles (swatch · crest · % · mult · change · % pill); tile hover + selected border; card `hover:border-foreground/15`.
+
+## 2026-11-19 — Movers same height as featured card
+- **Sentiment:** negative
+- **Surface:** Markets movers
+- **Signal:** Side list widget still shorter than the featured card; bottoms must align.
+- **Don't:** `h-fit` / `items-start` leaving movers shorter than featured.
+- **Do:** Grid `items-stretch` + both cards `h-full`; fit row count to featured height; list scrolls inside if needed so outer borders match.
+
+## 2026-11-19 — Featured options carousel not stack
+- **Sentiment:** negative
+- **Surface:** Markets featured / Who wins? tiles
+- **Signal:** Multi-outcome options wrapping to a second row with empty space (“like the offering” → carousel).
+- **Don't:** Stack / wrap outcome tiles into a multi-row grid when there are more than fit.
+- **Do:** One-row carousel when 3+ outcomes (swipe; glass arrows on fine pointer); 2-outcome stays side-by-side grid.
+
+## 2026-11-19 — Markets category pills clipped again
+- **Sentiment:** negative
+- **Surface:** Markets category chips / sub-nav
+- **Signal:** Entertainment chip cropped mid-label; wants full-width track again.
+- **Don't:** Let shell `overflow-x-hidden` clip pills mid-label when the row expands past the column.
+- **Do:** Full-width pill track (`w-full min-w-0` + `overflow-x-auto`); padding on the track; chips `shrink-0` + `whitespace-nowrap`.

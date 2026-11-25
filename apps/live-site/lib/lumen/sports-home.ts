@@ -356,6 +356,33 @@ export function sportsHomeSgpPacks(): SgpPack[] {
       )
     }
   }
+
+  const dal = find(NFL_GAME_SECTIONS, 'dal-phi')
+  if (dal) {
+    const { section, event } = dal
+    const [ml, sp] = nflBoardColumns(event)
+    if (ml && sp) {
+      packs.push(
+        pack('sgp-dal-phi', section, event, 'nfl', [
+          {
+            id: ml.cells[1]!.id,
+            label: event.homeAbbr,
+            odds: ml.cells[1]!.odds,
+            market: ml.slipMarket,
+            display: `${event.home} to win`,
+          },
+          {
+            id: sp.cells[1]!.id,
+            label: sp.cells[1]!.slipLabel ?? sp.cells[1]!.label,
+            odds: sp.cells[1]!.odds,
+            market: sp.slipMarket,
+            display: `${event.home} ${sp.cells[1]!.label}`,
+          },
+        ]),
+      )
+    }
+  }
+
   return packs
 }
 
@@ -456,4 +483,157 @@ export function sportsHomeOddsBoosts(): OddsBoost[] {
     })
   }
   return out
+}
+
+/** Light haircut — megas are 4+ legs for huge tickets. */
+const MEGA_HAIRCUT = 0.92
+const MEGA_MIN_LEGS = 4
+
+/** Cross-game mega parlays — 4+ legs, big odds; distinct eventIds → slip Parlay. */
+export type MegaParlay = {
+  id: string
+  sport: 'soccer' | 'nfl'
+  title: string
+  legs: SgpLeg[]
+  odds: string
+}
+
+type MegaSeed = {
+  id: string
+  sport: 'soccer' | 'nfl'
+  title: string
+  legs: { eventId: string; pick: 'ml0' | 'ml1' | 'ml2' | 'totO' | 'totU'; display: string }[]
+}
+
+function megaLeg(
+  sport: 'soccer' | 'nfl',
+  eventId: string,
+  pick: MegaSeed['legs'][number]['pick'],
+  display: string,
+): SgpLeg | null {
+  const hit = find(sport === 'nfl' ? NFL_GAME_SECTIONS : SOCCER_GAME_SECTIONS, eventId)
+  if (!hit) return null
+  const { event } = hit
+  const eventLabel = sport === 'nfl' ? nflEventLabel(event) : soccerEventLabel(event)
+  const eventHref = sport === 'nfl' ? nflEventHref(event.id) : soccerEventHref(event.id)
+  let cell: SoccerOdds | undefined
+  let market = 'Moneyline'
+  if (sport === 'nfl') {
+    const [ml, , tot] = nflBoardColumns(event)
+    if (pick === 'ml0') cell = ml?.cells[0]
+    else if (pick === 'ml1') cell = ml?.cells[1]
+    else if (pick === 'totO') {
+      cell = tot?.cells[0]
+      market = tot?.slipMarket ?? 'Total'
+    } else if (pick === 'totU') {
+      cell = tot?.cells[1]
+      market = tot?.slipMarket ?? 'Total'
+    }
+  } else {
+    const picks = event.desktopPicks ?? event.picks
+    if (pick === 'ml0') cell = picks[0]
+    else if (pick === 'ml1') cell = picks[1]
+    else if (pick === 'ml2') cell = picks[2]
+    else if (pick === 'totO') {
+      cell = event.totalLines?.[1]?.a
+      market = 'Total'
+    } else if (pick === 'totU') {
+      cell = event.totalLines?.[1]?.b
+      market = 'Total'
+    }
+  }
+  if (!cell) return null
+  return {
+    id: `${event.id}-mega-${cell.id}`,
+    label: cell.slipLabel ?? cell.label,
+    odds: cell.odds,
+    market,
+    display,
+    eventLabel,
+    eventId: event.id,
+    eventHref,
+    sport,
+    live: !!event.live,
+  }
+}
+
+/** 4+ legs across games — underdogs / overs for ticket-size odds. */
+const MEGA_SEEDS: MegaSeed[] = [
+  {
+    id: 'mega-nfl-1',
+    sport: 'nfl',
+    title: 'Sunday longshot mega',
+    legs: [
+      { eventId: 'sea-sf', pick: 'ml1', display: '49ers to win' },
+      { eventId: 'kc-buf', pick: 'ml0', display: 'Chiefs to win' },
+      { eventId: 'dal-phi', pick: 'ml0', display: 'Cowboys to win' },
+      { eventId: 'mia-nyj', pick: 'totO', display: 'MIA @ NYJ Over' },
+      { eventId: 'lar-ari', pick: 'ml1', display: 'Cardinals to win' },
+    ],
+  },
+  {
+    id: 'mega-nfl-2',
+    sport: 'nfl',
+    title: 'NFC / AFC bomb',
+    legs: [
+      { eventId: 'chi-min', pick: 'ml0', display: 'Bears to win' },
+      { eventId: 'det-gb', pick: 'totO', display: 'DET @ GB Over' },
+      { eventId: 'bal-cin', pick: 'ml1', display: 'Bengals to win' },
+      { eventId: 'sea-sf', pick: 'totO', display: 'SEA @ SF Over' },
+    ],
+  },
+  {
+    id: 'mega-soccer-1',
+    sport: 'soccer',
+    title: 'EPL upset mega',
+    legs: [
+      { eventId: 'mun-mci', pick: 'ml0', display: 'Man United to win' },
+      { eventId: 'cov-bri', pick: 'ml0', display: 'Coventry to win' },
+      { eventId: 'lee-new', pick: 'ml0', display: 'Leeds to win' },
+      { eventId: 'bre-che', pick: 'totO', display: 'Brentford vs Chelsea Over' },
+      { eventId: 'tot-avl', pick: 'ml2', display: 'Aston Villa to win' },
+    ],
+  },
+  {
+    id: 'mega-soccer-2',
+    sport: 'soccer',
+    title: 'Europe goals mega',
+    legs: [
+      { eventId: 'rma-bar', pick: 'totO', display: 'El Clasico Over' },
+      { eventId: 'atm-sev', pick: 'ml0', display: 'Atlético to win' },
+      { eventId: 'vil-bet', pick: 'ml2', display: 'Betis to win' },
+      { eventId: 'lei-nor', pick: 'totO', display: 'Leicester vs Norwich Over' },
+    ],
+  },
+]
+
+export function sportsHomeMegaParlays(): MegaParlay[] {
+  const out: MegaParlay[] = []
+  for (const seed of MEGA_SEEDS) {
+    const legs = seed.legs
+      .map((l) => megaLeg(seed.sport, l.eventId, l.pick, l.display))
+      .filter((l): l is SgpLeg => !!l)
+    if (legs.length < MEGA_MIN_LEGS) continue
+    const product = legs.reduce((acc, p) => acc * americanToDecimal(parseAmerican(p.odds)), 1)
+    out.push({
+      id: seed.id,
+      sport: seed.sport,
+      title: seed.title,
+      legs,
+      odds: decimalToAmerican(1 + (product - 1) * MEGA_HAIRCUT),
+    })
+  }
+  return out
+}
+
+export function sportSgpPacks(sport: 'soccer' | 'nfl'): SgpPack[] {
+  return sportsHomeSgpPacks().filter((p) => p.sport === sport)
+}
+
+export function sportOddsBoosts(sport: 'soccer' | 'nfl'): OddsBoost[] {
+  return sportsHomeOddsBoosts().filter((b) => b.sport === sport)
+}
+
+export function sportMegaParlays(sport: 'soccer' | 'nfl'): MegaParlay[] {
+  return sportsHomeMegaParlays().filter((m) => m.sport === sport)
 }

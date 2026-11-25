@@ -61,3 +61,4 @@ Product owner prototype (PropShopX) = content + rules only, never its visuals.
 
 ## Betslip balance (Nov 2026)
 - Logged in with stake **above wallet balance** → CTA is **Deposit to place bet** (primary) and opens cashier. Never place when underfunded. Logged out stays **Login to bet**.
+- Successful place **debits wallet** via `spendBalance` (chrome NumberFlow updates). Underfunded → Deposit CTA, no place.

@@ -11,10 +11,11 @@ export function middleware(request: NextRequest) {
   const isHosted = Boolean(process.env.VERCEL || process.env.VERCEL_ENV)
   /* V2 ships its own Races page in the side menu. */
   const versionParam = request.nextUrl.searchParams.get('v')
+  const cookieVersion = request.cookies.get('lumen-site-version')?.value
   const isV2 =
-    request.cookies.get('lumen-site-version')?.value === 'v2' ||
-    versionParam === 'v2' ||
-    versionParam === '2'
+    cookieVersion === 'v2' ||
+    cookieVersion === 'v3' ||
+    ['v2', '2', 'v3', '3'].includes(versionParam ?? '')
 
   /* Local :3000 only — hosted Vercel serves prototypes on the same origin. */
   if (

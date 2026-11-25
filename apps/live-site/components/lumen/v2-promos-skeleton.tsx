@@ -1,7 +1,7 @@
 'use client'
 
 import { DailyRacesSkeleton } from '@/components/lumen/daily-races-skeleton'
-import { useSiteVersion } from '@/lib/lumen/site-versions'
+import { useSiteVersion, versionAtLeast } from '@/lib/lumen/site-versions'
 import { cn } from '@/lib/utils'
 
 function Block({ className }: { className?: string }) {
@@ -56,5 +56,5 @@ export function RacesV2Skeleton() {
 
 /** /promotions/races is the V1 panel or the V2 page depending on site version. */
 export function RacesRouteSkeleton() {
-  return useSiteVersion() === 'v2' ? <RacesV2Skeleton /> : <DailyRacesSkeleton />
+  return versionAtLeast(useSiteVersion(), 'v2') ? <RacesV2Skeleton /> : <DailyRacesSkeleton />
 }

@@ -1,19 +1,8 @@
 import { useSyncExternalStore } from 'react'
 
-/**
- * Site versions — V1 is the live site (short-term goals). Later versions branch
- * from it with `useSiteVersion()` so each one can add features or rearrange
- * without touching V1. Add a row here and the Intercom Home tab lists it.
- */
-export const SITE_VERSIONS = [
-  { id: 'v1', label: 'V1', name: 'Current site', description: 'Short-term goals' },
-  { id: 'v2', label: 'V2', name: 'Next site', description: 'Challenges, raffles and races' },
-] as const
+import { DEFAULT_SITE_VERSION, SITE_VERSIONS, type SiteVersion, type SiteVersionId } from './site-versions-list'
 
-export type SiteVersionId = (typeof SITE_VERSIONS)[number]['id']
-export type SiteVersion = (typeof SITE_VERSIONS)[number]
-
-export const DEFAULT_SITE_VERSION: SiteVersionId = 'v1'
+export { DEFAULT_SITE_VERSION, SITE_VERSIONS, type SiteVersion, type SiteVersionId }
 
 const COOKIE = 'lumen-site-version'
 const ONE_YEAR_S = 60 * 60 * 24 * 365
@@ -70,6 +59,12 @@ function subscribe(listener: Listener) {
 
 export function useSiteVersion(): SiteVersionId {
   return useSyncExternalStore(subscribe, get, () => DEFAULT_SITE_VERSION)
+}
+
+/** Versions stack — V3 keeps everything V2 shipped. */
+export function versionAtLeast(id: SiteVersionId, min: SiteVersionId): boolean {
+  const order = SITE_VERSIONS.map((v) => v.id as SiteVersionId)
+  return order.indexOf(id) >= order.indexOf(min)
 }
 
 export function getSiteVersion(id: SiteVersionId): SiteVersion {

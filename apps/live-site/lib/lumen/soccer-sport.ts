@@ -1,7 +1,7 @@
 /** PropShopX sport-specific page — Soccer // Games demo seed. */
 import { nflTeamByName } from '@/lib/lumen/nfl-teams'
 
-export type SoccerMode = 'games' | 'outrights' | 'leagues'
+export type SoccerMode = 'games' | 'sgp' | 'boosts' | 'mega' | 'outrights' | 'leagues'
 
 export type SoccerLineFamily = 'spread' | 'total'
 export type SoccerLineSide = 'a' | 'b'
@@ -84,6 +84,9 @@ export type SoccerCountryGroup = {
 
 export const SOCCER_MODES: { id: SoccerMode; label: string }[] = [
   { id: 'games', label: 'Games' },
+  { id: 'sgp', label: 'SGP' },
+  { id: 'boosts', label: 'Odds Boosts' },
+  { id: 'mega', label: 'Mega Parlays' },
   { id: 'outrights', label: 'Outrights' },
   { id: 'leagues', label: 'All Leagues' },
 ]
@@ -125,9 +128,12 @@ export const SOCCER_QUICK_LINKS: SoccerQuickLink[] = [
   },
 ]
 
-/** League page mode pills — Games | All Leagues (Figma 355:27661). */
+/** League page mode pills — Games | SGP | Odds Boosts | Mega | All Leagues. */
 export const SOCCER_LEAGUE_MODES: { id: SoccerMode; label: string }[] = [
   { id: 'games', label: 'Games' },
+  { id: 'sgp', label: 'SGP' },
+  { id: 'boosts', label: 'Odds Boosts' },
+  { id: 'mega', label: 'Mega Parlays' },
   { id: 'leagues', label: 'All Leagues' },
 ]
 

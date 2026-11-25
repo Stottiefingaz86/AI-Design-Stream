@@ -30,6 +30,11 @@ import { Typography } from '@/components/ui/typography'
 import { ShelfSeeMore } from '@/components/lumen/shelf-see-more'
 import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
 import { SoccerBetslip, type SoccerSlipPick } from '@/components/lumen/soccer-betslip'
+import {
+  SportBoostsShelf,
+  SportMegaShelf,
+  SportSgpShelf,
+} from '@/components/lumen/sports-home-page'
 import { useShell } from '@/components/site/shell-context'
 import { revealShellDock } from '@/components/site/shell-scroll'
 import { flyBetDotToSlip } from '@/lib/lumen/vip-celebrate'
@@ -1526,7 +1531,14 @@ function boardPickMeta(event: SoccerEvent) {
   }
 }
 
-export function SoccerSportPage({ className }: { className?: string }) {
+export function SoccerSportPage({
+  className,
+  markets,
+}: {
+  className?: string
+  /** V3 — sport-filtered Markets shelf under the boards. */
+  markets?: ReactNode
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -1836,6 +1848,12 @@ export function SoccerSportPage({ className }: { className?: string }) {
             />
           ))
         : null}
+
+      {displayMode === 'games' && markets ? markets : null}
+
+      {displayMode === 'sgp' ? <SportSgpShelf sport="soccer" bleed /> : null}
+      {displayMode === 'boosts' ? <SportBoostsShelf sport="soccer" bleed /> : null}
+      {displayMode === 'mega' ? <SportMegaShelf sport="soccer" bleed /> : null}
 
       {displayMode === 'outrights' && !leagueView ? (
         <OutrightsBoard

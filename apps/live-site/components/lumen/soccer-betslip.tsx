@@ -8,6 +8,7 @@ import {
   IconAlertTriangle,
   IconCheck,
   IconChevronDown,
+  IconChevronUp,
   IconChevronLeft,
   IconChevronRight,
   IconTrash,
@@ -29,6 +30,7 @@ import {
   type SportsBet,
 } from '@/lib/lumen/sports-bets-store'
 import { getSlipAddTick, useSlipAddTick } from '@/lib/lumen/soccer-slip-store'
+import { slipLiveMeta } from '@/lib/lumen/slip-live'
 import { fireJoinWelcomeConfetti } from '@/lib/lumen/vip-celebrate'
 import { cn } from '@/lib/utils'
 
@@ -264,6 +266,7 @@ export function SoccerBetslip({
     loggedIn,
     openAuth,
     balance,
+    spendBalance,
     setCashierOpen,
   } = useShell()
   const [open, setOpen] = useState(false)
@@ -561,6 +564,12 @@ export function SoccerBetslip({
 
     if (placed.length === 0) {
       setErrors(Object.fromEntries(rejected.map((r) => [r.key, r.reason])))
+      return
+    }
+
+    const spent = placed.reduce((sum, b) => sum + b.stake, 0)
+    if (!spendBalance(spent)) {
+      setCashierOpen(true)
       return
     }
 
@@ -924,12 +933,14 @@ export function SoccerBetslip({
                       {picks.map((pick, i) => {
                         const stakeText = straightStakes[pick.id] ?? DEFAULT_STAKE
                         const toWin = winForOdds(pick.odds, parseStake(stakeText))
+                        const live = slipLiveMeta(pick)
                         return (
                           <motion.div
                             key={pick.id}
                             layout
                             data-name="betslip-leg"
                             data-betslip-leg={pick.id}
+                            data-live={live ? '' : undefined}
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 12, transition: { duration: 0.18 } }}
@@ -964,9 +975,23 @@ export function SoccerBetslip({
                                 <div className="truncate text-xs leading-4 text-foreground">
                                   {pick.market}
                                 </div>
-                                <div className="truncate text-xs leading-4 text-muted-foreground">
-                                  {pick.eventLabel}
-                                </div>
+                                {live ? (
+                                  <div className="flex min-w-0 items-center gap-1.5 text-xs leading-4">
+                                    <span className="shrink-0 font-medium tabular-nums text-destructive">
+                                      {live.clock}
+                                    </span>
+                                    <span className="shrink-0 font-semibold tabular-nums text-foreground">
+                                      {live.score}
+                                    </span>
+                                    <span className="min-w-0 truncate text-muted-foreground">
+                                      {pick.eventLabel}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="truncate text-xs leading-4 text-muted-foreground">
+                                    {pick.eventLabel}
+                                  </div>
+                                )}
                               </div>
                               <OddsTag odds={pick.odds} was={drifts[pick.id]} />
                               <StakeField
@@ -993,10 +1018,12 @@ export function SoccerBetslip({
                     {sgps.map((g) => {
                       const stakeText = sgpStakes[g.key] ?? DEFAULT_STAKE
                       const expanded = sgpOpen[g.key] ?? false
+                      const live = slipLiveMeta(g.legs[0]!)
                       return (
                         <div
                           key={g.key}
                           data-name="betslip-sgp"
+                          data-live={live ? '' : undefined}
                           className="mb-2 rounded-lg border border-border bg-card px-3 py-2.5"
                         >
                           <div className="flex items-start gap-2">
@@ -1016,9 +1043,23 @@ export function SoccerBetslip({
                                   stroke={2}
                                 />
                               </span>
-                              <span className="block truncate text-xs leading-4 text-muted-foreground">
-                                {g.eventLabel}
-                              </span>
+                              {live ? (
+                                <span className="flex min-w-0 items-center gap-1.5 text-xs leading-4">
+                                  <span className="shrink-0 font-medium tabular-nums text-destructive">
+                                    {live.clock}
+                                  </span>
+                                  <span className="shrink-0 font-semibold tabular-nums text-foreground">
+                                    {live.score}
+                                  </span>
+                                  <span className="min-w-0 truncate text-muted-foreground">
+                                    {g.eventLabel}
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="block truncate text-xs leading-4 text-muted-foreground">
+                                  {g.eventLabel}
+                                </span>
+                              )}
                             </button>
                             <OddsTag odds={g.odds} />
                             <StakeField
@@ -1173,6 +1214,11 @@ export function SoccerBetslip({
             <span className="tabular-nums text-sm font-semibold text-popover-foreground">
               {headerOdds}
             </span>
+            <IconChevronUp
+              aria-hidden
+              className="-mr-1 size-4 shrink-0 text-muted-foreground"
+              stroke={1.5}
+            />
           </span>
         </button>
       ) : null}

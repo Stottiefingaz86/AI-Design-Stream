@@ -44,3 +44,8 @@ Layout reference: PropShopX `321:152831` — **content only**. Shell already own
 - **Selected SGP legs show ticks** — filled primary node with a white check (My Bets won-node grammar), never a blank red dot.
 - **Every card that opens an event shows the banner preloader** (dim + spinner overlay on the whole card) before the route swaps — Popular, SGP plate, Odds Boost plate. Shared `useLaunch` + `LaunchOverlay` in `sports-home-page.tsx`.
 - **Status pills removed for now** (Starting Soon / Live / Not Started) — boards show all games.
+
+## Round 5 (Nov 2026)
+- **Rails never clip inside the gutter.** `HorizontalRail` bleeds to the page edge (`-mx-4 md:-mx-6` + matching padding / scroll-padding), same as `CasinoLobbyBannerRow`; arrows at `left-3` / `right-3`.
+- **Collapsed betslip dock** ("3 Selections +689") ends with an up chevron, far right.
+- V3 adds a Markets shelf under Popular. See `SPORTS_V3_MARKETS.md`.

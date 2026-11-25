@@ -36,11 +36,15 @@ import { revealShellDock } from '@/components/site/shell-scroll'
 import { CASINO_LOBBY_PROMO_BANNERS } from '@/lib/lumen/casino-lobby-promos'
 import { setSoccerSlip, useSoccerSlip, withOneLegPerMarket } from '@/lib/lumen/soccer-slip-store'
 import {
+  sportMegaParlays,
+  sportOddsBoosts,
+  sportSgpPacks,
   sportsHomeNflBoard,
   sportsHomeOddsBoosts,
   sportsHomePopular,
   sportsHomePremierLeague,
   sportsHomeSgpPacks,
+  type MegaParlay,
   type OddsBoost,
   type PopularCard,
   type SgpPack,
@@ -63,6 +67,201 @@ const CARD_TAP_TOUCH = { scale: 0.98 }
 const POPULAR = sportsHomePopular()
 const SGP_PACKS = sportsHomeSgpPacks()
 const BOOSTS = sportsHomeOddsBoosts()
+const MEGAS = sportMegaParlays('soccer').concat(sportMegaParlays('nfl'))
+
+function useAddSgpPack(selectedIds: Set<string>) {
+  return useCallback(
+    (pack: SgpPack, originEl?: HTMLElement | null) => {
+      const ids = new Set(pack.legs.map((l) => l.id))
+      if (pack.legs.every((l) => selectedIds.has(l.id))) {
+        setSoccerSlip((prev) => prev.filter((p) => !ids.has(p.id)))
+        return
+      }
+      const legs: SoccerSlipPick[] = pack.legs.map(({ display: _display, ...leg }) => leg)
+      const key = legs[0]?.eventId ?? pack.eventLabel
+      setSoccerSlip((prev) => [
+        ...legs,
+        ...prev.filter((p) => p.outright || (p.eventId ?? p.eventLabel) !== key),
+      ])
+      revealShellDock()
+      flyBetDotToSlip(originEl, pack.id)
+    },
+    [selectedIds],
+  )
+}
+
+/** Mega legs keep distinct eventIds → slip forms a Parlay (not an SGP). */
+function useAddMegaParlay(selectedIds: Set<string>) {
+  return useCallback(
+    (pack: MegaParlay, originEl?: HTMLElement | null) => {
+      const ids = new Set(pack.legs.map((l) => l.id))
+      if (pack.legs.every((l) => selectedIds.has(l.id))) {
+        setSoccerSlip((prev) => prev.filter((p) => !ids.has(p.id)))
+        return
+      }
+      const legs: SoccerSlipPick[] = pack.legs.map(({ display: _display, ...leg }) => leg)
+      const replace = new Set(legs.map((l) => l.id))
+      setSoccerSlip((prev) => [...legs, ...prev.filter((p) => !replace.has(p.id))])
+      revealShellDock()
+      flyBetDotToSlip(originEl, pack.id)
+    },
+    [selectedIds],
+  )
+}
+
+/** Mode-pill Odds Boosts view — never under Games boards. */
+export function SportBoostsShelf({
+  sport,
+  bleed = false,
+}: {
+  sport: 'soccer' | 'nfl'
+  bleed?: boolean
+}) {
+  const router = useRouter()
+  const { startNavigating } = useShell()
+  const slipPicks = useSoccerSlip()
+  const selectedIds = useMemo(() => new Set(slipPicks.map((p) => p.id)), [slipPicks])
+  const boosts = useMemo(() => sportOddsBoosts(sport), [sport])
+  const addPick = useCallback(
+    (next: SoccerSlipPick, originEl?: HTMLElement | null) => {
+      if (selectedIds.has(next.id)) {
+        setSoccerSlip((prev) => prev.filter((p) => p.id !== next.id))
+        return
+      }
+      setSoccerSlip((prev) => (next.outright ? [next, ...prev] : withOneLegPerMarket(prev, next)))
+      revealShellDock()
+      flyBetDotToSlip(originEl, next.id)
+    },
+    [selectedIds],
+  )
+  const go = (href: string) => {
+    startNavigating(href)
+    router.push(href)
+  }
+  const wrap = bleed ? '-mx-4 md:-mx-6' : undefined
+
+  if (!boosts.length) {
+    return (
+      <div className={cn(CARD, 'px-6 py-12 text-center')}>
+        <Typography as="p" shape="small" variant="muted">
+          No Odds Boosts right now.
+        </Typography>
+      </div>
+    )
+  }
+
+  return (
+    <section data-name="odds-boosts" className="mb-6">
+      <ShelfTitle icon="rocket" title="Odds Boosts" />
+      <div className={wrap}>
+        <HorizontalRail label="Odds Boosts">
+          {boosts.map((boost) => (
+            <OddsBoostCard
+              key={boost.id}
+              boost={boost}
+              selected={selectedIds.has(boost.id)}
+              onAdd={(el) => addPick(boost.pick, el)}
+              onOpen={() => go(boost.eventHref)}
+            />
+          ))}
+        </HorizontalRail>
+      </div>
+    </section>
+  )
+}
+
+/** Mode-pill Mega Parlays view — never under Games boards. */
+export function SportMegaShelf({
+  sport,
+  bleed = false,
+}: {
+  sport: 'soccer' | 'nfl'
+  bleed?: boolean
+}) {
+  const slipPicks = useSoccerSlip()
+  const selectedIds = useMemo(() => new Set(slipPicks.map((p) => p.id)), [slipPicks])
+  const megas = useMemo(() => sportMegaParlays(sport), [sport])
+  const addMega = useAddMegaParlay(selectedIds)
+  const wrap = bleed ? '-mx-4 md:-mx-6' : undefined
+
+  if (!megas.length) {
+    return (
+      <div className={cn(CARD, 'px-6 py-12 text-center')}>
+        <Typography as="p" shape="small" variant="muted">
+          No Mega Parlays right now.
+        </Typography>
+      </div>
+    )
+  }
+
+  return (
+    <section data-name="mega-parlays" className="mb-6">
+      <ShelfTitle icon="megaParlay" title="Mega Parlays" />
+      <div className={wrap}>
+        <HorizontalRail label="Mega Parlays">
+          {megas.map((pack) => (
+            <MegaParlayCard
+              key={pack.id}
+              pack={pack}
+              selected={pack.legs.every((l) => selectedIds.has(l.id))}
+              onAdd={(el) => addMega(pack, el)}
+            />
+          ))}
+        </HorizontalRail>
+      </div>
+    </section>
+  )
+}
+
+/** Mode-pill SGP view — all packs for that sport. */
+export function SportSgpShelf({
+  sport,
+  bleed = false,
+}: {
+  sport: 'soccer' | 'nfl'
+  bleed?: boolean
+}) {
+  const router = useRouter()
+  const { startNavigating } = useShell()
+  const slipPicks = useSoccerSlip()
+  const selectedIds = useMemo(() => new Set(slipPicks.map((p) => p.id)), [slipPicks])
+  const packs = useMemo(() => sportSgpPacks(sport), [sport])
+  const addSgpPack = useAddSgpPack(selectedIds)
+  const go = (href: string) => {
+    startNavigating(href)
+    router.push(href)
+  }
+  const wrap = bleed ? '-mx-4 md:-mx-6' : undefined
+
+  if (!packs.length) {
+    return (
+      <div className={cn(CARD, 'px-6 py-12 text-center')}>
+        <Typography as="p" shape="small" variant="muted">
+          No Same Game Parlays right now.
+        </Typography>
+      </div>
+    )
+  }
+
+  return (
+    <section data-name="sgp-packs" className="mb-6">
+      <ShelfTitle icon="sgp" title="Same Game Parlays" />
+      <div className={wrap}>
+        <HorizontalRail label="Same Game Parlay packs">
+          {packs.map((pack) => (
+            <SgpPackCard
+              key={pack.id}
+              pack={pack}
+              selected={pack.legs.every((l) => selectedIds.has(l.id))}
+              onAdd={(el) => addSgpPack(pack, el)}
+              onOpen={() => go(pack.eventHref)}
+            />
+          ))}
+        </HorizontalRail>
+      </div>
+    </section>
+  )
+}
 
 type SportFilter = 'all' | 'soccer' | 'nfl'
 const SPORT_FILTERS: { id: SportFilter; label: string; icon?: ShellIconName }[] = [
@@ -71,7 +270,7 @@ const SPORT_FILTERS: { id: SportFilter; label: string; icon?: ShellIconName }[] 
   { id: 'nfl', label: 'Football', icon: 'football' },
 ]
 
-function useFinePointer() {
+export function useFinePointer() {
   const [fine, setFine] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia(FINE_POINTER_MQ)
@@ -83,7 +282,7 @@ function useFinePointer() {
   return fine
 }
 
-function useCardMotion() {
+export function useCardMotion() {
   const fine = useFinePointer()
   return {
     whileHover: fine ? CARD_HOVER : undefined,
@@ -93,7 +292,7 @@ function useCardMotion() {
 }
 
 /** Lobby-banner launch beat — spinner paints on the card before the route swaps. */
-function useLaunch(onOpen: () => void) {
+export function useLaunch(onOpen: () => void) {
   const [loading, setLoading] = useState(false)
   const open = () => {
     if (loading) return
@@ -103,7 +302,7 @@ function useLaunch(onOpen: () => void) {
   return { loading, open }
 }
 
-function LaunchOverlay() {
+export function LaunchOverlay() {
   return (
     <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[10px] bg-background/55 backdrop-blur-[1px]">
       <IconLoader2 className="size-8 animate-spin text-foreground" stroke={2} aria-hidden />
@@ -111,7 +310,14 @@ function LaunchOverlay() {
   )
 }
 
-export function SportsHomePage({ className }: { className?: string }) {
+export function SportsHomePage({
+  className,
+  markets,
+}: {
+  className?: string
+  /** V3 prediction-market shelf, slotted under Popular. */
+  markets?: ReactNode
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const { startNavigating, setVipHubOpen, setCashierOpen } = useShell()
@@ -160,22 +366,8 @@ export function SportsHomePage({ className }: { className?: string }) {
     flyBetDotToSlip(originEl, next.id)
   }
 
-  /* Whole pack replaces any legs already on that game so the slip forms one SGP. */
-  const addSgpPack = (pack: SgpPack, originEl?: HTMLElement | null) => {
-    const ids = new Set(pack.legs.map((l) => l.id))
-    if (pack.legs.every((l) => selectedIds.has(l.id))) {
-      setSoccerSlip((prev) => prev.filter((p) => !ids.has(p.id)))
-      return
-    }
-    const legs: SoccerSlipPick[] = pack.legs.map(({ display: _display, ...leg }) => leg)
-    const key = legs[0]?.eventId ?? pack.eventLabel
-    setSoccerSlip((prev) => [
-      ...legs,
-      ...prev.filter((p) => p.outright || (p.eventId ?? p.eventLabel) !== key),
-    ])
-    revealShellDock()
-    flyBetDotToSlip(originEl, pack.id)
-  }
+  const addSgpPack = useAddSgpPack(selectedIds)
+  const addMega = useAddMegaParlay(selectedIds)
 
   return (
     <div
@@ -184,15 +376,19 @@ export function SportsHomePage({ className }: { className?: string }) {
     >
       <CasinoLobbyBannerRow promos={banners} />
 
-      <section data-name="popular" className="mt-8 px-4 md:px-6">
-        <ShelfTitle icon="popularSports" title="Popular" />
-        <SportChips active={popularSport} onChange={setPopularSport} />
+      <section data-name="popular" className="mt-8">
+        <div className="px-4 md:px-6">
+          <ShelfTitle icon="popularSports" title="Popular" />
+          <SportChips active={popularSport} onChange={setPopularSport} />
+        </div>
         <HorizontalRail label="Popular live games">
           {popular.map((card) => (
             <PopularGameCard key={card.id} card={card} onOpen={() => go(card.href)} />
           ))}
         </HorizontalRail>
       </section>
+
+      {markets}
 
       <div className="mt-8 px-4 md:px-6">
         {premier?.events.length ? (
@@ -203,37 +399,59 @@ export function SportsHomePage({ className }: { className?: string }) {
             onSeeAll={() => go('/sports/soccer')}
           />
         ) : null}
+      </div>
 
-        <section data-name="sgp-packs" className="mb-6">
+      <section data-name="sgp-packs" className="mb-6 mt-6">
+        <div className="px-4 md:px-6">
           <ShelfTitle icon="sgp" title="Same Game Parlays" />
-          <HorizontalRail label="Same Game Parlay packs">
-            {SGP_PACKS.map((pack) => (
-              <SgpPackCard
-                key={pack.id}
-                pack={pack}
-                selected={pack.legs.every((l) => selectedIds.has(l.id))}
-                onAdd={(el) => addSgpPack(pack, el)}
-                onOpen={() => go(pack.eventHref)}
-              />
-            ))}
-          </HorizontalRail>
-        </section>
+        </div>
+        <HorizontalRail label="Same Game Parlay packs">
+          {SGP_PACKS.map((pack) => (
+            <SgpPackCard
+              key={pack.id}
+              pack={pack}
+              selected={pack.legs.every((l) => selectedIds.has(l.id))}
+              onAdd={(el) => addSgpPack(pack, el)}
+              onOpen={() => go(pack.eventHref)}
+            />
+          ))}
+        </HorizontalRail>
+      </section>
 
-        <section data-name="odds-boosts" className="mb-6">
+      <section data-name="odds-boosts" className="mb-6">
+        <div className="px-4 md:px-6">
           <ShelfTitle icon="rocket" title="Odds Boosts" />
-          <HorizontalRail label="Odds Boosts">
-            {BOOSTS.map((boost) => (
-              <OddsBoostCard
-                key={boost.id}
-                boost={boost}
-                selected={selectedIds.has(boost.id)}
-                onAdd={(el) => addPick(boost.pick, el)}
-                onOpen={() => go(boost.eventHref)}
-              />
-            ))}
-          </HorizontalRail>
-        </section>
+        </div>
+        <HorizontalRail label="Odds Boosts">
+          {BOOSTS.map((boost) => (
+            <OddsBoostCard
+              key={boost.id}
+              boost={boost}
+              selected={selectedIds.has(boost.id)}
+              onAdd={(el) => addPick(boost.pick, el)}
+              onOpen={() => go(boost.eventHref)}
+            />
+          ))}
+        </HorizontalRail>
+      </section>
 
+      <section data-name="mega-parlays" className="mb-6">
+        <div className="px-4 md:px-6">
+          <ShelfTitle icon="megaParlay" title="Mega Parlays" />
+        </div>
+        <HorizontalRail label="Mega Parlays">
+          {MEGAS.map((pack) => (
+            <MegaParlayCard
+              key={pack.id}
+              pack={pack}
+              selected={pack.legs.every((l) => selectedIds.has(l.id))}
+              onAdd={(el) => addMega(pack, el)}
+            />
+          ))}
+        </HorizontalRail>
+      </section>
+
+      <div className="px-4 md:px-6">
         {nfl?.events.length ? (
           <NflLeagueBoard
             section={nfl}
@@ -260,7 +478,7 @@ export function SportsHomePage({ className }: { className?: string }) {
   )
 }
 
-function ShelfTitle({ icon, title }: { icon: ShellIconName; title: string }) {
+export function ShelfTitle({ icon, title }: { icon: ShellIconName; title: string }) {
   return (
     <div className="mb-3 flex h-7 items-center gap-2">
       <ShellIcon name={icon} tone="token" className="size-5 text-foreground" />
@@ -282,7 +500,7 @@ function SportChips({
     <div
       role="tablist"
       aria-label="Filter popular by sport"
-      className="scrollbar-hide -mx-4 mb-3 flex gap-1 overflow-x-auto px-4 md:mx-0 md:px-0"
+      className="scrollbar-hide mb-3 flex w-full min-w-0 max-w-full gap-1 overflow-x-auto overscroll-x-contain"
     >
       {SPORT_FILTERS.map((f) => {
         const on = f.id === active
@@ -294,7 +512,7 @@ function SportChips({
             aria-selected={on}
             onClick={() => onChange(f.id)}
             className={cn(
-              'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-sm transition-colors',
+              'inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-sm transition-colors',
               on
                 ? 'bg-secondary font-medium text-foreground'
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -309,8 +527,11 @@ function SportChips({
   )
 }
 
-/** Swipe on touch; glass arrows on fine pointers only. Padded so card lift isn't clipped. */
-function HorizontalRail({ label, children }: { label: string; children: ReactNode }) {
+/**
+ * Full-width horizontal shelf — same gutter recipe as casino banners.
+ * Swipe on touch; glass arrows on fine pointers. Snap so cards don’t rest half-clipped.
+ */
+export function HorizontalRail({ label, children }: { label: string; children: ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canBack, setCanBack] = useState(false)
   const [canMore, setCanMore] = useState(false)
@@ -335,16 +556,18 @@ function HorizontalRail({ label, children }: { label: string; children: ReactNod
   const scrollBy = (dir: -1 | 1) => {
     const el = scrollRef.current
     if (!el) return
-    el.scrollBy({ left: dir * Math.min(360, el.clientWidth * 0.8), behavior: 'smooth' })
+    const card = el.querySelector<HTMLElement>(':scope > *')
+    const step = card ? card.offsetWidth + 12 : Math.min(360, el.clientWidth * 0.8)
+    el.scrollBy({ left: dir * step, behavior: 'smooth' })
   }
 
   return (
-    <div className="relative -mx-4 md:-mx-2">
+    <div className="relative w-full">
       <div
         ref={scrollRef}
         data-name="sports-home-rail"
         aria-label={label}
-        className="scrollbar-hide -my-2 flex gap-3 overflow-x-auto overscroll-x-contain px-4 py-2 md:px-2"
+        className="scrollbar-hide -my-2 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-px-4 px-4 py-2 md:scroll-px-6 md:px-6 [&>*]:snap-start"
         onScroll={measure}
       >
         {children}
@@ -353,7 +576,7 @@ function HorizontalRail({ label, children }: { label: string; children: ReactNod
         <button
           type="button"
           aria-label={`Scroll ${label} back`}
-          className={cn(ODDS_EDGE_ARROW, 'left-1')}
+          className={cn(ODDS_EDGE_ARROW, 'left-3')}
           onClick={() => scrollBy(-1)}
         >
           <IconChevronLeft className="size-4" strokeWidth={2} />
@@ -363,7 +586,7 @@ function HorizontalRail({ label, children }: { label: string; children: ReactNod
         <button
           type="button"
           aria-label={`Scroll ${label} forward`}
-          className={cn(ODDS_EDGE_ARROW, 'right-1')}
+          className={cn(ODDS_EDGE_ARROW, 'right-3')}
           onClick={() => scrollBy(1)}
         >
           <IconChevronRight className="size-4" strokeWidth={2} />
@@ -373,7 +596,7 @@ function HorizontalRail({ label, children }: { label: string; children: ReactNod
   )
 }
 
-function LiveClock({ when, className }: { when: string; className?: string }) {
+export function LiveClock({ when, className }: { when: string; className?: string }) {
   return (
     <span
       className={cn(
@@ -514,7 +737,7 @@ function PopularGameCard({ card, onOpen }: { card: PopularCard; onOpen: () => vo
   )
 }
 
-function SgpPackCard({
+export function SgpPackCard({
   pack,
   selected,
   onAdd,
@@ -603,7 +826,7 @@ function SgpPackCard({
   )
 }
 
-function OddsBoostCard({
+export function OddsBoostCard({
   boost,
   selected,
   onAdd,
@@ -651,6 +874,81 @@ function OddsBoostCard({
         </div>
         <OddsButton
           pick={{ id: boost.id, label: 'Boosted', odds: boost.boosted }}
+          selected={selected}
+          onSelect={(_, el) => onAdd(el)}
+          className="h-12 w-full"
+        />
+      </div>
+    </motion.article>
+  )
+}
+
+export function MegaParlayCard({
+  pack,
+  selected,
+  onAdd,
+}: {
+  pack: MegaParlay
+  selected: boolean
+  onAdd: (el?: HTMLElement | null) => void
+}) {
+  const motionProps = useCardMotion()
+  return (
+    <motion.article
+      data-name="mega-parlay-card"
+      {...motionProps}
+      className={cn(
+        CARD,
+        'relative z-0 flex w-[min(320px,85vw)] shrink-0 flex-col overflow-hidden motion-reduce:!transform-none',
+      )}
+    >
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+        <ShellIcon name="megaParlay" tone="token" className="size-4 shrink-0 text-foreground" />
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{pack.title}</p>
+      </div>
+      <ol className="flex flex-col px-4 py-3">
+        {pack.legs.map((leg, i) => {
+          const last = i === pack.legs.length - 1
+          return (
+            <li key={leg.id} className={cn('relative flex gap-3', !last && 'pb-3')}>
+              {!last ? (
+                <span className="absolute bottom-0 left-[7.5px] top-5 w-px bg-border" aria-hidden />
+              ) : null}
+              <span
+                className={cn(
+                  'relative mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full transition-colors',
+                  selected ? 'bg-primary' : 'border-2 border-muted-foreground bg-card',
+                )}
+                aria-hidden
+              >
+                {selected ? (
+                  <IconCheck className="size-2.5 text-primary-foreground" stroke={3.5} />
+                ) : null}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium leading-5 text-foreground">
+                  {leg.display}
+                </div>
+                <div className="truncate text-xs leading-4 text-muted-foreground">
+                  {leg.eventLabel}
+                </div>
+              </div>
+              <span className="shrink-0 text-xs leading-5 tabular-nums text-muted-foreground">
+                {leg.odds}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+      <div className="mt-auto border-t border-border p-3">
+        <OddsButton
+          pick={{
+            id: pack.id,
+            label: selected
+              ? 'Added to Betslip'
+              : `${pack.legs.length} Leg Mega · Big win`,
+            odds: pack.odds,
+          }}
           selected={selected}
           onSelect={(_, el) => onAdd(el)}
           className="h-12 w-full"
