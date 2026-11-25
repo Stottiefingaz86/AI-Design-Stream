@@ -26,6 +26,7 @@ import {
   kickoffTime,
   leadOutcome,
   leagueLogo,
+  pickFor,
   teamOutcomes,
   teamRecord,
   v5Games,
@@ -73,6 +74,8 @@ export type KRow = {
   noPrice?: number
   /** Line stepper — each step is a full row (buy points). */
   steps?: { labels: string[]; index: number; rows: KRow[] }
+  /** Live score for this side. */
+  score?: number
 }
 
 export type KCard = {
@@ -81,7 +84,11 @@ export type KCard = {
   sub: string
   icon: string
   href?: string
-  sport: 'nfl' | 'soccer'
+  sport: 'nfl' | 'soccer' | 'topic'
+  /** Non-sports markets (Politics / Entertainment). */
+  category?: 'politics' | 'entertainment'
+  /** Icon tile for markets without a league logo (see TopicGlyph). */
+  glyph?: string
   league: string
   live: boolean
   volume: number
@@ -411,7 +418,7 @@ export function winTotalCards(sport: V5Sport): KCard[] {
 /** Futures — champions, MVP, league winners. */
 export function futureCards(sport: V5Sport): KCard[] {
   return marketFutures()
-    .filter((f) => sport === 'all' || f.sport === sport)
+    .filter((f) => (sport === 'all' || f.sport === sport) && !/mvp|boot|scorer|player|rookie|award/i.test(f.title))
     .map((f) =>
       finish({
         id: f.id,
@@ -465,4 +472,46 @@ export function gameSortable(game: SportsMarket): Sortable & { game: SportsMarke
     swing: Math.max(0, ...game.outcomes.map((o) => Math.abs(o.change))),
     balance: Math.abs(lead.chance - 50),
   }
+}
+
+/** Games as market cards — who wins, crest per side, live score. */
+export function gameCards(sport: V5Sport): KCard[] {
+  return v5Games(sport).map((game) => {
+    const teams = teamOutcomes(game)
+    return finish({
+      ...base(game, `${game.id}-ml`, game.title),
+      volume: game.volume,
+      rows: game.outcomes.map((o) => ({
+        id: o.id,
+        label: o.label,
+        crest: o.label === 'Draw' ? undefined : (o.team ?? o.label),
+        badge: o.label === 'Draw' ? 'X' : undefined,
+        chance: o.chance,
+        change: o.change,
+        yes: pickFor(game, o, 'yes'),
+        score: game.live && game.score && o.label !== 'Draw' ? game.score[teams.indexOf(o)] : undefined,
+      })),
+    })
+  })
+}
+
+export type BrowseWhen = 'all' | 'live' | 'upcoming' | 'season'
+export type BrowseType = 'all' | 'games' | 'props' | 'futures'
+
+/** Browse markets — every card type in one pool. */
+export function browseCards(sport: V5Sport): (KCard & { type: BrowseType })[] {
+  return [
+    ...gameCards(sport).map((c) => ({ ...c, type: 'games' as const })),
+    ...gamePropCards(sport).map((c) => ({ ...c, type: 'props' as const })),
+    ...ladderCards(sport, 'spread').map((c) => ({ ...c, type: 'games' as const })),
+    ...futureCards(sport).map((c) => ({ ...c, type: 'futures' as const })),
+    ...winTotalCards(sport).map((c) => ({ ...c, type: 'futures' as const })),
+  ]
+}
+
+export function matchesWhen(card: KCard, when: BrowseWhen): boolean {
+  if (when === 'all') return true
+  if (when === 'live') return card.live
+  const season = card.startsAt >= 9e15
+  return when === 'season' ? season : !card.live && !season
 }

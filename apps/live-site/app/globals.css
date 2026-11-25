@@ -3426,3 +3426,25 @@ html.dark [data-design-agent-app],
     animation: none;
   }
 }
+
+/* V5 · Combos — the Combo builder button breathes a soft brand glow. */
+@keyframes v5-combo-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 28%, transparent),
+      0 0 10px 0 color-mix(in srgb, var(--primary) 12%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 60%, transparent),
+      0 0 22px 2px color-mix(in srgb, var(--primary) 32%, transparent);
+  }
+}
+.v5-combo-glow {
+  position: relative;
+  animation: v5-combo-glow 2.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v5-combo-glow {
+    animation: none;
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent);
+  }
+}

@@ -303,7 +303,8 @@ type ShellContextValue = {
   launchGame: (
     game: CasinoLobbyGame,
     originEl?: HTMLElement | null,
-    opts?: { freeSpins?: boolean },
+    /** `skipFunds` — open even on an empty wallet (V5 mini player → full screen). */
+    opts?: { freeSpins?: boolean; skipFunds?: boolean },
   ) => void
   closeGameLauncher: () => void
   /** Settled wallet balance */
@@ -1167,7 +1168,7 @@ export function ShellProvider({
   const launchGame = useCallback((
     game: CasinoLobbyGame,
     originEl?: HTMLElement | null,
-    opts?: { freeSpins?: boolean },
+    opts?: { freeSpins?: boolean; skipFunds?: boolean },
   ) => {
     setCasinoSearchOpen(false)
     if (!loggedInRef.current) {
@@ -1176,7 +1177,7 @@ export function ShellProvider({
     }
     const asFreeSpins = Boolean(opts?.freeSpins)
     /* Empty wallet — open cashier instead of launching (free-spins sessions skip this). */
-    if (!asFreeSpins && balanceRef.current <= 0) {
+    if (!asFreeSpins && !opts?.skipFunds && balanceRef.current <= 0) {
       setChurnRescueOpen(false)
       setVipHubOpen(false)
       setDrawerOpen(false)

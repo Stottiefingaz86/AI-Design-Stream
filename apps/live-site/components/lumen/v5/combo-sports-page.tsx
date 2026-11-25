@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { IconChevronRight, IconSearch, IconUsers, IconX } from '@tabler/icons-react'
+import { IconChevronLeft, IconChevronRight, IconSearch, IconUsers, IconX } from '@tabler/icons-react'
 import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
 import { CasinoLobbyBannerRow } from '@/components/lumen/casino-lobby-banners'
 import { SoccerBetslip, type SoccerSlipPick } from '@/components/lumen/soccer-betslip'
@@ -34,6 +34,7 @@ import {
 import {
   SORT_MODES,
   futureCards,
+  gameCards,
   gamePropCards,
   gameSortable,
   ladderCards,
@@ -46,6 +47,7 @@ import {
 } from '@/lib/lumen/v5-markets'
 import { cn } from '@/lib/utils'
 import { BetStackPopup, showBetStack } from './bet-stack-popup'
+import { CasinoMiniPlayer } from './casino-mini-player'
 import { BuildOwnCard, ComboBuilderOverlay } from './combo-builder'
 import {
   Crest,
@@ -63,6 +65,21 @@ import {
 } from './combo-ui'
 import { KMarketCard, SortMenu } from './v5-market-cards'
 import {
+  AUTO_GRID,
+  BrowseMarkets,
+  FadeScroll,
+  MarketSection,
+  PopularLeagues,
+  RailCasino,
+  RailForecasts,
+  RailMovers,
+  RailPromos,
+  RailTopics,
+  TrendingHero,
+  UpcomingShelf,
+} from './v5-widgets'
+import { topicMix } from '@/lib/lumen/v5-topics'
+import {
   BoostsGrid,
   BoostsShelf,
   ComboPackCard,
@@ -70,11 +87,19 @@ import {
   MegaCombosShelf,
   PopularCarousel,
   SameGameCombosShelf,
+  ShelfBleed,
   megaCombos,
   sameGameCombos,
 } from './v5-shelves'
 
 const SPORT_LABEL: Record<V5Sport, string> = { all: 'Sports', nfl: 'Football', soccer: 'Soccer' }
+
+/** Sports with V5 content — more join as their boards land. */
+const HOME_SPORTS: { id: string; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'nfl', label: 'Football' },
+  { id: 'soccer', label: 'Soccer' },
+]
 
 const VIEW_LABEL: Record<V5View, string> = {
   games: 'Games',
@@ -90,6 +115,10 @@ const VIEW_LABEL: Record<V5View, string> = {
 }
 
 const shortLeague = (name: string) => (name === 'NCAA Football' ? 'NCAA' : name)
+
+/** Combo cards are tall — up to three a row, a lone card never strands. */
+const AUTO_GRID_3 =
+  'grid gap-3 grid-cols-[repeat(auto-fill,minmax(min(100%,300px),1fr))]'
 
 /**
  * V5 · Combos sport page — title + sort, league tabs, market sub-nav (Games default · Live ·
@@ -109,6 +138,7 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
   const picks = useSoccerSlip()
   const selected = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
   const onPick = useV5Pick()
+  const [pageRef, wide] = useWide(1120)
 
   const leagues = v5Leagues(sport)
   const inLeague = <T extends { league?: string; leagueName?: string }>(x: T) =>
@@ -127,6 +157,8 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
       winTotals: winTotalCards(sport),
       futures: futureCards(sport),
       combos: featuredCombos(sport),
+      footballCards: sport === 'all' ? sortItems(gameCards('nfl'), 'volume') : [],
+      soccerCards: sport === 'all' ? sortItems(gameCards('soccer'), 'volume') : [],
     }),
     [sport],
   )
@@ -162,6 +194,13 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
     if (!pills.some((p) => p.id === view)) setView('games')
   }, [pills, view])
 
+  /* Popular leagues deep link — /sports/soccer?league=Premier%20League */
+  useEffect(() => {
+    const want = new URLSearchParams(window.location.search).get('league')
+    if (want && leagues.some((l) => l.name === want)) setLeague(want)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sport])
+
   const banners = useMemo(
     () =>
       CASINO_LOBBY_PROMO_BANNERS.map((promo) => {
@@ -190,7 +229,7 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
 
   const grid = (cards: KCard[]) =>
     cards.length ? (
-      <div className="grid gap-3 xl:grid-cols-2">
+      <div className={AUTO_GRID}>
         {cards.map((c) => (
           <KMarketCard key={c.id} card={c} selected={selected} onPick={onPick} />
         ))}
@@ -200,154 +239,246 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
     )
 
   const title = league === 'all' ? SPORT_LABEL[sport] : shortLeague(league)
+  const home = sport === 'all'
+  const mixed = home || new Set(games.map((g) => g.sport)).size > 1
+  const canBack = view !== 'games' || league !== 'all' || !home
+  const back = () => {
+    if (view !== 'games') setView('games')
+    else if (league !== 'all') setLeague('all')
+    else go('/sports')
+  }
+
+  const dayGroup = (d: { label: string; games: SportsMarket[] }) =>
+    d.games.length ? (
+      <section key={d.label} className="mb-10">
+        <V5Heading>{d.label}</V5Heading>
+        <div className={AUTO_GRID}>
+          {d.games.map((g) => (
+            <GameCard key={g.id} game={g} padDraw={mixed} selected={selected} onPick={onPick} onOpen={() => go(g.href)} />
+          ))}
+        </div>
+      </section>
+    ) : null
+
+  /* Games view — curated widgets between the day groups, never three combo shelves in a row. */
+  const curated = view === 'games' && league === 'all' && !q
+  const toCombos = () => setView('combos')
+  const toBoosts = () => setView('boosts')
+  const gamesView = (() => {
+    if (!curated) return gameGroups.map(dayGroup)
+    if (home) {
+      const live = gameList.filter((g) => g.live)
+      return (
+        <>
+          <TrendingHero sport={sport} />
+          <PopularLeagues />
+          <PopularCarousel sport={sport} />
+          {live.length ? dayGroup({ label: 'Live now', games: live.slice(0, 4) }) : null}
+          <CombosShelf sport={sport} onSeeAll={toCombos} lead={<BuildOwnCard sport={sport} />} />
+          <MarketSection title="Football" cards={data.footballCards} onSeeAll={() => go('/sports/football')} />
+          <BoostsShelf sport={sport} onSeeAll={toBoosts} />
+          <UpcomingShelf sport={sport} />
+          <MarketSection title="Soccer" cards={data.soccerCards} onSeeAll={() => go('/sports/soccer')} />
+          <SameGameCombosShelf sport={sport} onSeeAll={toCombos} />
+          <MarketSection title="Politics & Entertainment" cards={topicMix()} />
+          <MegaCombosShelf sport={sport} onSeeAll={toCombos} />
+          <BrowseMarkets sport={sport} />
+        </>
+      )
+    }
+    const [g0, g1, g2, ...rest] = gameGroups
+    return (
+      <>
+        <TrendingHero sport={sport} />
+        {g0 ? dayGroup(g0) : null}
+        <CombosShelf sport={sport} onSeeAll={toCombos} lead={<BuildOwnCard sport={sport} />} />
+        {g1 ? dayGroup(g1) : null}
+        <BoostsShelf sport={sport} onSeeAll={toBoosts} />
+        <PopularCarousel sport={sport} />
+        {g2 ? dayGroup(g2) : null}
+        <SameGameCombosShelf sport={sport} onSeeAll={toCombos} />
+        {rest.map(dayGroup)}
+        <MegaCombosShelf sport={sport} onSeeAll={toCombos} />
+        <MarketSection title="Futures" cards={futures} onSeeAll={() => setView('futures')} />
+      </>
+    )
+  })()
+
+  const rail = (
+    <>
+      <RailPromos sport={sport} onBoosts={toBoosts} onLive={() => setView(liveCount ? 'live' : 'games')} />
+      <RailMovers sport={sport} />
+      <RailCasino />
+      <RailForecasts sport={sport} onMore={futures.length ? () => setView('futures') : undefined} />
+      {!home ? <RailTopics /> : null}
+    </>
+  )
 
   return (
-    <div data-name="v5-combo-sports" className="mx-auto w-full max-w-[1440px] px-4 pb-8 pt-4 md:px-6 md:pt-6">
-      {sport === 'all' ? (
+    <div ref={pageRef} data-name="v5-combo-sports" className="mx-auto w-full max-w-[1600px] px-4 pb-8 pt-4 md:px-6 md:pt-6">
+      {home && view === 'games' && league === 'all' ? (
         <div className="-mx-4 mb-8 md:-mx-6">
           <CasinoLobbyBannerRow promos={banners} />
         </div>
       ) : null}
 
-      {/* Title · view, sort, search */}
-      <header className="flex items-center gap-3">
-        <h1 className={cn(V5_TITLE, 'min-w-0 flex-1 truncate')}>
-          {title}
-          {view !== 'games' ? <span className="text-muted-foreground"> · {VIEW_LABEL[view]}</span> : null}
-        </h1>
-        {view !== 'combos' && view !== 'boosts' ? (
-          <SortMenu value={sort} reverse={reverse} onChange={setSort} onReverse={setReverse} />
-        ) : null}
-        <button
-          type="button"
-          aria-label={searching ? 'Close search' : 'Search'}
-          onClick={() => {
-            setSearching((v) => !v)
-            setQuery('')
-          }}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-accent"
-        >
-          {searching ? <IconX className="size-5" stroke={2} /> : <IconSearch className="size-5" stroke={2} />}
-        </button>
-      </header>
-      {searching ? (
-        <input
-          autoFocus
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search teams, players or leagues"
-          className="mt-4 h-12 w-full rounded-lg border border-input bg-secondary px-4 text-base font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground"
-        />
-      ) : null}
+      {/* Main column (title, sub-navs, content) + sticky Kalshi rail from the top once there is room for both. */}
+      <div className={cn(wide ? 'flex items-start gap-8' : 'flex flex-col')}>
+        <div className="min-w-0 flex-1">
+          {/* Back · title · view, sort, search */}
+          <header className="flex items-center gap-3">
+            {canBack ? (
+              <button
+                type="button"
+                aria-label="Back"
+                onClick={back}
+                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-accent"
+              >
+                <IconChevronLeft className="size-5" stroke={2} />
+              </button>
+            ) : null}
+            <h1 className={cn(V5_TITLE, 'min-w-0 flex-1 truncate')}>
+              {title}
+              {view !== 'games' ? <span className="text-muted-foreground"> · {VIEW_LABEL[view]}</span> : null}
+            </h1>
+            {view !== 'combos' && view !== 'boosts' ? (
+              <SortMenu value={sort} reverse={reverse} onChange={setSort} onReverse={setReverse} />
+            ) : null}
+            <button
+              type="button"
+              aria-label={searching ? 'Close search' : 'Search'}
+              onClick={() => {
+                setSearching((v) => !v)
+                setQuery('')
+              }}
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-accent"
+            >
+              {searching ? <IconX className="size-5" stroke={2} /> : <IconSearch className="size-5" stroke={2} />}
+            </button>
+          </header>
+          {searching ? (
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search teams, players or leagues"
+              className="mt-4 h-12 w-full rounded-lg border border-input bg-secondary px-4 text-base font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground"
+            />
+          ) : null}
 
-      {/* Leagues */}
-      <V5Tabs
-        className="mt-5"
-        tabs={[{ id: 'all', label: 'All' }, ...leagues.map((l) => ({ id: l.name, label: shortLeague(l.name) }))]}
-        active={league}
-        onChange={setLeague}
-      />
+          {/* Home: sports. Sport pages: that sport's leagues. */}
+          {home ? (
+            <V5Tabs
+              className="mt-5"
+              tabs={HOME_SPORTS}
+              active="all"
+              onChange={(id) => {
+                if (id !== 'all') go(id === 'nfl' ? '/sports/football' : '/sports/soccer')
+              }}
+            />
+          ) : (
+            <V5Tabs
+              className="mt-5"
+              tabs={[{ id: 'all', label: 'All' }, ...leagues.map((l) => ({ id: l.name, label: shortLeague(l.name) }))]}
+              active={league}
+              onChange={setLeague}
+            />
+          )}
 
-      {/* Markets sub-nav — V1 pill track */}
-      <ModePillTrack
-        active={view}
-        onChange={setView}
-        modes={pills.map((p) => ({ id: p.id, label: p.label }))}
-        ariaLabel="Markets"
-        className="mb-0 mt-4"
-      />
-
-      <div className="mt-8">
-        {view === 'combos' ? (
-          <>
-            <section className="mb-10">
-              <V5Heading>Popular Combos</V5Heading>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <BuildOwnCard sport={sport} />
-                {data.combos.map((c) => (
-                  <ComboPackCard key={c.id} combo={c} fluid />
-                ))}
-              </div>
-            </section>
-            {sameGameCombos(sport).length ? (
+          {/* Markets sub-nav — V1 pill track */}
+          <ModePillTrack
+            active={view}
+            onChange={setView}
+            modes={pills.map((p) => ({ id: p.id, label: p.label }))}
+            ariaLabel="Markets"
+            className="mb-0 mt-4"
+          />
+          <div className="mt-8">
+          <ShelfBleed.Provider value={!wide}>
+          {view === 'combos' ? (
+            <>
               <section className="mb-10">
-                <V5Heading>Same Game Combos</V5Heading>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {sameGameCombos(sport).map((c) => (
-                    <ComboPackCard key={c.id} combo={c} fluid kind="same game combo" />
+                <V5Heading>Popular Combos</V5Heading>
+                <div className={AUTO_GRID_3}>
+                  <BuildOwnCard sport={sport} />
+                  {data.combos.map((c) => (
+                    <ComboPackCard key={c.id} combo={c} fluid />
                   ))}
                 </div>
               </section>
-            ) : null}
-            {megaCombos(sport).length ? (
-              <section className="mb-10">
-                <V5Heading>Mega Combos</V5Heading>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {megaCombos(sport).map((c) => (
-                    <ComboPackCard key={c.id} combo={c} fluid kind="mega combo" />
-                  ))}
-                </div>
-              </section>
-            ) : null}
-          </>
-        ) : view === 'boosts' ? (
-          <BoostsGrid sport={sport} />
-        ) : view === 'spreads' ? (
-          grid(spreads)
-        ) : view === 'totals' ? (
-          grid(totals)
-        ) : view === 'game-props' ? (
-          grid(gameProps)
-        ) : view === 'player-props' ? (
-          <>
-            {propGroups.length > 1 ? (
-              <ModePillTrack
-                active={activeGroup}
-                onChange={setPropGroup}
-                modes={propGroups.map((g) => ({ id: g, label: g }))}
-                ariaLabel="Player props"
-                className="mb-5"
-              />
-            ) : null}
-            {grid(playerProps)}
-          </>
-        ) : view === 'win-totals' ? (
-          grid(winTotals)
-        ) : view === 'futures' ? (
-          grid(futures)
-        ) : (
-          <>
-            {view === 'games' && league === 'all' && !q ? (
-              <>
-                <PopularCarousel sport={sport} />
-                <BoostsShelf sport={sport} onSeeAll={() => setView('boosts')} />
-                <CombosShelf sport={sport} onSeeAll={() => setView('combos')} />
-                <SameGameCombosShelf sport={sport} onSeeAll={() => setView('combos')} />
-                <MegaCombosShelf sport={sport} onSeeAll={() => setView('combos')} />
-              </>
-            ) : null}
-            {gameGroups.map((d) =>
-              d.games.length ? (
-                <section key={d.label} className="mb-8">
-                  <V5Heading>{d.label}</V5Heading>
-                  <div className="grid gap-3 xl:grid-cols-2">
-                    {d.games.map((g) => (
-                      <GameCard key={g.id} game={g} selected={selected} onPick={onPick} onOpen={() => go(g.href)} />
+              {sameGameCombos(sport).length ? (
+                <section className="mb-10">
+                  <V5Heading>Same Game Combos</V5Heading>
+                  <div className={AUTO_GRID_3}>
+                    {sameGameCombos(sport).map((c) => (
+                      <ComboPackCard key={c.id} combo={c} fluid kind="same game combo" />
                     ))}
                   </div>
                 </section>
-              ) : null,
-            )}
-            {gameList.length === 0 ? (
-              <p className="py-16 text-center text-sm text-muted-foreground">
-                {q ? `No games match “${query}”.` : 'No games right now.'}
-              </p>
-            ) : null}
-          </>
-        )}
+              ) : null}
+              {megaCombos(sport).length ? (
+                <section className="mb-10">
+                  <V5Heading>Mega Combos</V5Heading>
+                  <div className={AUTO_GRID_3}>
+                    {megaCombos(sport).map((c) => (
+                      <ComboPackCard key={c.id} combo={c} fluid kind="mega combo" />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </>
+          ) : view === 'boosts' ? (
+            <BoostsGrid sport={sport} />
+          ) : view === 'spreads' ? (
+            grid(spreads)
+          ) : view === 'totals' ? (
+            grid(totals)
+          ) : view === 'game-props' ? (
+            grid(gameProps)
+          ) : view === 'player-props' ? (
+            <>
+              {propGroups.length > 1 ? (
+                <ModePillTrack
+                  active={activeGroup}
+                  onChange={setPropGroup}
+                  modes={propGroups.map((g) => ({ id: g, label: g }))}
+                  ariaLabel="Player props"
+                  className="mb-5"
+                />
+              ) : null}
+              {grid(playerProps)}
+            </>
+          ) : view === 'win-totals' ? (
+            grid(winTotals)
+          ) : view === 'futures' ? (
+            grid(futures)
+          ) : (
+            <>
+              {gamesView}
+              {gameList.length === 0 ? (
+                <p className="py-16 text-center text-sm text-muted-foreground">
+                  {q ? `No games match “${query}”.` : 'No games right now.'}
+                </p>
+              ) : null}
+            </>
+          )}
+          </ShelfBleed.Provider>
+          </div>
+        </div>
+        <FadeScroll
+          label="Movers and forecasts"
+          className={cn(
+            'flex min-w-0 flex-col gap-8',
+            wide
+              ? 'scrollbar-hide sticky top-[calc(var(--shell-chrome-h,140px)+16px)] max-h-[calc(100dvh-var(--shell-chrome-h,140px)-32px)] w-[320px] shrink-0 self-start overflow-y-auto pb-6'
+              : 'mt-10 w-full',
+          )}
+        >
+          <div className="flex flex-col gap-8">{rail}</div>
+        </FadeScroll>
       </div>
 
-      <div className="-mx-4 mt-6 md:-mx-6">
+      <div className="-mx-4 mt-10 md:-mx-6">
         <CasinoLiveWinsCarousel />
       </div>
 
@@ -362,18 +493,38 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
       />
       <ComboBuilderOverlay />
       <BetStackPopup />
+      <CasinoMiniPlayer />
     </div>
   )
+}
+
+/** Wide enough for main column + rail. */
+function useWide(min: number) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [wide, setWide] = useState(false)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = () => setWide(el.clientWidth >= min)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [min])
+  return [ref, wide] as const
 }
 
 /** Game card — league mark + title, team rows (chance bar · multiplier · % pill), buy points. */
 function GameCard({
   game,
+  padDraw = false,
   selected,
   onPick,
   onOpen,
 }: {
   game: SportsMarket
+  /** Mixed grids (home): keep the Draw row's space on 2-way games so cards line up. */
+  padDraw?: boolean
   selected: Set<string>
   onPick: (pick: SoccerSlipPick, el?: HTMLElement | null) => void
   onOpen: () => void
@@ -428,18 +579,19 @@ function GameCard({
                   <span className={cn('truncate text-base font-semibold', isDraw ? 'text-muted-foreground' : 'text-foreground')}>
                     {o.label}
                   </span>
-                  {record ? <span className="shrink-0 text-xs text-muted-foreground">{record}</span> : null}
+                  {record ? <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">{record}</span> : null}
                 </p>
                 {!isDraw ? <ProbBar value={o.chance} lead={o.id === lead.id} className="mt-1.5 max-w-[62%]" /> : null}
               </div>
               {score !== undefined ? <span className={cn('w-7 shrink-0 text-center text-lg', V5_NUM)}>{score}</span> : null}
-              <span className="w-12 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
+              <span className="hidden w-12 shrink-0 text-right text-sm tabular-nums text-muted-foreground sm:block">
                 {(100 / yesCents(o.chance)).toFixed(2)}x
               </span>
               <PctPill chance={o.chance} selected={selected.has(pick.id)} onClick={(el) => onPick(pick, el)} />
             </div>
           )
         })}
+        {padDraw && !draw ? <div aria-hidden className="h-11" /> : null}
       </div>
 
       {ladders.length ? (

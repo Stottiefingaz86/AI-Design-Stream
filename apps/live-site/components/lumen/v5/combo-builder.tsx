@@ -6,7 +6,9 @@ import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   IconArrowRight,
+  IconCheck,
   IconChevronLeft,
+  IconPlus,
   IconSearch,
   IconStack2,
   IconX,
@@ -199,7 +201,7 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
             <LeaguePills className="mt-6" items={pills} active={scope} onChange={setScope} />
 
             {combos.length && !query ? (
-              <V5Shelf title="Popular Combos" className="mt-8" bleedRight={false}>
+              <V5Shelf title="Popular Combos" className="mt-8" bleedRight={false} fill={3}>
                 {combos.map((c) => (
                   <ComboPackCard key={c.id} combo={c} />
                 ))}
@@ -262,12 +264,37 @@ export function BuildOwnCard({ sport }: { sport: V5Sport }) {
         'lm-shimmer flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-[14px] p-6 text-center',
       )}
     >
-      {/* Three legs fanned behind the mark — the combo, before you've built it. */}
-      <span className="relative mb-2 flex h-16 w-24 items-center justify-center" aria-hidden>
-        <span className="absolute h-12 w-16 -rotate-12 rounded-lg border border-border bg-secondary" />
-        <span className="absolute h-12 w-16 rotate-12 rounded-lg border border-border bg-secondary" />
-        <span className="relative inline-flex h-14 w-16 items-center justify-center rounded-lg border border-border bg-card">
-          <IconStack2 className="size-7 text-foreground" stroke={1.75} />
+      {/* A combo slip being built — two legs ticked, the third waiting, payout climbing. */}
+      <span className="mb-3 flex w-[200px] flex-col gap-1.5" aria-hidden>
+        {[
+          { on: true, w: 'w-[62%]', x: 'x2.10' },
+          { on: true, w: 'w-[48%]', x: 'x1.85' },
+          { on: false, w: 'w-[56%]', x: '' },
+        ].map((leg, i) => (
+          <span
+            key={i}
+            className={cn(
+              'flex h-9 items-center gap-2.5 rounded-lg border px-3',
+              leg.on ? 'border-border bg-secondary' : 'border-dashed border-border bg-transparent',
+            )}
+          >
+            <span
+              className={cn(
+                'inline-flex size-4 shrink-0 items-center justify-center rounded-full',
+                leg.on ? 'bg-primary text-primary-foreground' : 'border-2 border-muted-foreground',
+              )}
+            >
+              {leg.on ? <IconCheck className="size-2.5" stroke={3.5} /> : null}
+            </span>
+            <span className={cn('h-1.5 rounded-full bg-muted-foreground opacity-40', leg.w)} />
+            <span className="ml-auto text-[11px] font-bold tabular-nums text-muted-foreground">
+              {leg.on ? leg.x : <IconPlus className="size-3.5" stroke={2.5} />}
+            </span>
+          </span>
+        ))}
+        <span className="mt-1 flex items-center justify-between px-1 text-xs">
+          <span className="text-muted-foreground">2-leg combo</span>
+          <span className="font-bold tabular-nums text-foreground">$10 pays $38.85</span>
         </span>
       </span>
       <span className="text-xl font-bold leading-7 text-foreground">Build your own combo</span>

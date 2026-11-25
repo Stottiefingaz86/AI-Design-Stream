@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { IconChevronDown, IconChevronRight } from '@tabler/icons-react'
 import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
+import { AlternateLinePicker } from '@/components/lumen/soccer-sport-page'
 import { SORT_MODES, type KCard, type KRow, type SortMode } from '@/lib/lumen/v5-markets'
 import { cn } from '@/lib/utils'
-import { Crest, ProbBar, V5_CARD, V5_NUM, fmtPctRound, fmtVol } from './combo-ui'
+import { Crest, ProbBar, TopicGlyph, V5_CARD, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtVol } from './combo-ui'
 
 type OnPick = (pick: SoccerSlipPick, el?: HTMLElement | null) => void
 
@@ -21,8 +22,12 @@ export function KMarketCard({ card, selected, onPick }: { card: KCard; selected:
   const hidden = card.rows.length - PREVIEW
   const head = (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={card.icon} alt="" className="size-9 shrink-0 object-contain" />
+      {card.glyph ? (
+        <TopicGlyph name={card.glyph} />
+      ) : (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={card.icon} alt="" className="size-9 shrink-0 object-contain" />
+      )}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[17px] font-bold leading-6 tracking-tight text-foreground">{card.title}</span>
         <span className={cn('block truncate text-xs', card.live ? 'text-destructive' : 'text-muted-foreground')}>{card.sub}</span>
@@ -30,7 +35,7 @@ export function KMarketCard({ card, selected, onPick }: { card: KCard; selected:
     </>
   )
   return (
-    <article data-name="v5-market-card" className={cn(V5_CARD, 'flex flex-col overflow-hidden rounded-[14px]')}>
+    <article data-name="v5-market-card" className={cn(V5_CARD, V5_LIGHT_UP, 'flex flex-col overflow-hidden rounded-[14px]')}>
       {card.href ? (
         <Link href={card.href} className="flex items-center gap-3 px-4 pt-4 transition-opacity hover:opacity-80">
           {head}
@@ -70,6 +75,7 @@ function KRowView({ row: initial, selected, onPick }: { row: KRow; selected: Set
   const row = initial.steps ? initial.steps.rows[step] ?? initial : initial
   const yesOn = selected.has(row.yes.id)
   const noOn = row.no ? selected.has(row.no.id) : false
+  const stepped = initial.steps && initial.steps.rows.length > 1 && initial.steps.rows.every((r) => r.no) ? initial.steps : null
   return (
     <div className="flex items-center gap-3">
       {row.crest ? (
@@ -84,25 +90,40 @@ function KRowView({ row: initial, selected, onPick }: { row: KRow; selected: Set
         {row.sub ? <p className="truncate text-xs text-muted-foreground">{row.sub}</p> : null}
         <ProbBar value={row.chance} lead={row.chance >= 50} className="mt-1.5 max-w-[60%]" />
       </div>
-      {initial.steps ? (
-        <label className="relative inline-flex h-8 shrink-0 items-center rounded-full bg-secondary pl-3 pr-7 text-xs font-bold text-foreground">
-          <select
-            aria-label="Line"
-            value={step}
-            onChange={(e) => setStep(Number(e.target.value))}
-            className="absolute inset-0 cursor-pointer appearance-none opacity-0"
-          >
-            {initial.steps.labels.map((l, i) => (
-              <option key={l} value={i}>
-                {l}
-              </option>
-            ))}
-          </select>
-          {initial.steps.labels[step]}
-          <IconChevronDown className="pointer-events-none absolute right-2 size-3.5 text-muted-foreground" stroke={2} />
-        </label>
+      {row.score !== undefined ? (
+        <span className={cn('inline-flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md border border-border px-2 text-sm', V5_NUM)}>
+          {row.score}
+        </span>
       ) : null}
-      {row.no ? (
+      {row.no && stepped ? (
+        /* Yes / No chips, then the V1 ⇅ picker — its menu opens over the chips. */
+        <div className="flex shrink-0 items-stretch gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <div className="flex gap-2">
+            <SidePill label="Yes" pct={row.yesPrice ?? row.chance} on={yesOn} onClick={(el) => onPick(row.yes, el)} />
+            <SidePill label="No" pct={row.noPrice ?? 100 - row.chance} on={noOn} onClick={(el) => onPick(row.no!, el)} />
+          </div>
+          <AlternateLinePicker
+            family={/\b(over|under)\b/i.test(row.label) ? 'total' : 'spread'}
+            title="Alternate lines"
+            pairs={stepped.rows.map((r, i) => ({
+              line: Number.parseFloat(stepped.labels[i] ?? '') || i,
+              a: { id: r.yes.id, label: `Yes ${stepped.labels[i]}`, odds: `${Math.round(r.yesPrice ?? r.chance)}%` },
+              b: { id: r.no!.id, label: `No ${stepped.labels[i]}`, odds: `${Math.round(r.noPrice ?? 100 - r.chance)}%` },
+            }))}
+            selectedIds={selected}
+            mainLine={Number.parseFloat(stepped.labels[step] ?? '')}
+            columns={['Yes', 'No']}
+            onPick={(p) => {
+              const i = stepped.rows.findIndex((r) => r.yes.id === p.id || r.no?.id === p.id)
+              if (i < 0) return
+              setStep(i)
+              const r = stepped.rows[i]!
+              const pick = r.yes.id === p.id ? r.yes : r.no!
+              if (!selected.has(pick.id)) onPick(pick)
+            }}
+          />
+        </div>
+      ) : row.no ? (
         <>
           <SidePill label="Yes" pct={row.yesPrice ?? row.chance} on={yesOn} onClick={(el) => onPick(row.yes, el)} />
           <SidePill label="No" pct={row.noPrice ?? 100 - row.chance} on={noOn} onClick={(el) => onPick(row.no!, el)} />
@@ -244,6 +265,98 @@ export function SortMenu({
               />
             </span>
           </button>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** Pill-button dropdown with radio options and optional switches (Browse markets filters). */
+export function RadioMenu<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+  switches,
+  icon,
+}: {
+  label?: string
+  options?: { id: T; label: string }[]
+  value?: T
+  onChange?: (v: T) => void
+  switches?: { label: string; on: boolean; onToggle: (v: boolean) => void }[]
+  icon?: React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDoc = (e: PointerEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', onDoc)
+    return () => document.removeEventListener('pointerdown', onDoc)
+  }, [open])
+  const current = options?.find((o) => o.id === value)?.label
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={label ?? current}
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-bold text-foreground transition-colors hover:bg-accent"
+      >
+        {icon ?? (
+          <>
+            {current ?? label}
+            <IconChevronDown className={cn('size-4 transition-transform', open && 'rotate-180')} stroke={2.25} />
+          </>
+        )}
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-40 mt-2 w-60 rounded-[14px] border border-border bg-popover p-2 text-popover-foreground shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+          {switches?.map((sw) => (
+            <button
+              key={sw.label}
+              type="button"
+              role="switch"
+              aria-checked={sw.on}
+              onClick={() => sw.onToggle(!sw.on)}
+              className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-bold text-foreground hover:bg-accent"
+            >
+              {sw.label}
+              <span className={cn('relative inline-flex h-6 w-10 items-center rounded-full transition-colors', sw.on ? 'bg-primary' : 'bg-secondary')} aria-hidden>
+                <span className={cn('absolute size-5 rounded-full bg-foreground shadow transition-transform', sw.on ? 'translate-x-[18px]' : 'translate-x-0.5')} />
+              </span>
+            </button>
+          ))}
+          {switches?.length && options?.length ? <div className="my-1.5 h-px bg-border" /> : null}
+          {options?.map((o) => {
+            const on = o.id === value
+            return (
+              <button
+                key={o.id}
+                type="button"
+                role="option"
+                aria-selected={on}
+                onClick={() => {
+                  onChange?.(o.id)
+                  setOpen(false)
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+              >
+                <span
+                  className={cn('inline-flex size-5 shrink-0 items-center justify-center rounded-full border-2', on ? 'border-primary' : 'border-muted-foreground')}
+                  aria-hidden
+                >
+                  {on ? <span className="size-2.5 rounded-full bg-primary" /> : null}
+                </span>
+                {o.label}
+              </button>
+            )
+          })}
         </div>
       ) : null}
     </div>

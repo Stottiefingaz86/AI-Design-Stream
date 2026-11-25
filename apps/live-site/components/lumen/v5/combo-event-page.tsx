@@ -33,10 +33,16 @@ import { findSoccerEvent, soccerEventModel } from '@/lib/lumen/soccer-event'
 import type { SoccerOdds } from '@/lib/lumen/soccer-sport'
 import { setSoccerSlip, useSoccerSlip } from '@/lib/lumen/soccer-slip-store'
 import type {
+  EventColumnHead,
   EventMarket,
+  GridMarket,
+  LadderMarket,
+  LinesMarket,
+  ListMarket,
   PlayerLinesMarket,
   PlayersMarket,
   RowMarket,
+  ScoreMarket,
   SportsEventModel,
 } from '@/lib/lumen/sports-event'
 import { CHART_RANGES, marketEvent, marketSeries, type ChartRange, type MarketSport } from '@/lib/lumen/sports-markets'
@@ -56,11 +62,11 @@ import {
 } from '@/lib/lumen/v5-combos'
 import { cn } from '@/lib/utils'
 import { BetStackPopup, showBetStack } from './bet-stack-popup'
+import { CasinoMiniPlayer } from './casino-mini-player'
 import { ChartBetStream } from './chart-bet-stream'
 import { ComboBuilderOverlay } from './combo-builder'
 import { Crest, DrawMark, V5_CARD, V5_LIGHT_UP, YesNoButton, chanceFromAmerican, fmtPctRound, useV5Pick } from './combo-ui'
 
-type Tab = 'lines' | 'props' | 'players'
 type OnPick = (pick: SoccerSlipPick, el?: HTMLElement | null) => void
 
 /**
@@ -84,7 +90,7 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
   const picks = useSoccerSlip()
   const selected = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
   const onPick = useV5Pick()
-  const [tab, setTab] = useState<Tab>('lines')
+  const [tab, setTab] = useState('popular')
 
   const slip = (
     <SoccerBetslip
@@ -98,21 +104,17 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
     />
   )
 
-  const propMarkets = useMemo(
+  /* Every V1 market, in V1's own groups (Popular · Goals · Halves · Corners · Cards · Players …). */
+  const tabs = useMemo(
     () =>
-      (model?.markets ?? [])
-        .filter((m): m is RowMarket => m.kind === 'row')
-        .filter((m) => !m.tabs.includes('lines') && !/^(3-way regulation|moneyline)$/i.test(m.name))
-        .filter((m) => m.cells.length >= 2 && m.cells.length <= 4)
-        .slice(0, 10),
-    [model],
-  )
-  const playerMarkets = useMemo(
-    () =>
-      (model?.markets ?? []).filter(
-        (m): m is PlayersMarket | PlayerLinesMarket => m.kind === 'players' || m.kind === 'player-lines',
+      (model?.tabs ?? []).filter(
+        (t) => t.id === 'popular' || (model?.markets ?? []).some((m) => m.tabs.includes(t.id)),
       ),
     [model],
+  )
+  const activeTab = tabs.some((t) => t.id === tab) ? tab : (tabs[0]?.id ?? 'popular')
+  const tabMarkets = (model?.markets ?? []).filter(
+    (m) => m.tabs.includes(activeTab) && !(activeTab === 'popular' && MAIN_LINES.test(m.name)),
   )
 
   if (!ev || !model) {
@@ -123,12 +125,6 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
       </>
     )
   }
-
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'lines', label: 'Game Lines' },
-    ...(propMarkets.length ? [{ id: 'props' as const, label: 'Game Props' }] : []),
-    ...(playerMarkets.length ? [{ id: 'players' as const, label: 'Player Props' }] : []),
-  ]
 
   const goBack = () => {
     const href = sportsReturnHref(model.sportHref)
@@ -169,29 +165,17 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
           <ChanceChart game={ev.game} />
 
           {/* Market groups — V1 pill track */}
-          <ModePillTrack active={tab} onChange={setTab} modes={tabs} ariaLabel="Market groups" className="mb-4 mt-6" />
+          <ModePillTrack active={activeTab} onChange={setTab} modes={tabs} ariaLabel="Market groups" className="mb-4 mt-6" />
 
           <div className="flex flex-col gap-3">
-            {tab === 'lines' ? <GameLines game={ev.game} selected={selected} onPick={onPick} /> : null}
-            {tab === 'props' ? (
-              <>
-                <PropPairs markets={propMarkets.filter(isPair)} selected={selected} onPick={onPick} toPick={v1Pick} />
-                {propMarkets
-                  .filter((m) => !isPair(m))
-                  .map((m) => (
-                    <PropCard key={m.id} market={m} selected={selected} onPick={onPick} toPick={v1Pick} />
-                  ))}
-              </>
-            ) : null}
-            {tab === 'players'
-              ? playerMarkets.map((m) =>
-                  m.kind === 'players' ? (
-                    <PlayersCard key={m.id} market={m} selected={selected} onPick={onPick} toPick={v1Pick} />
-                  ) : (
-                    <PlayerLinesCard key={m.id} market={m} selected={selected} onPick={onPick} toPick={v1Pick} />
-                  ),
-                )
-              : null}
+            {activeTab === 'popular' ? <GameLines game={ev.game} selected={selected} onPick={onPick} /> : null}
+            <V1Markets
+              markets={tabMarkets}
+              teams={[model.event.home, model.event.away]}
+              selected={selected}
+              onPick={onPick}
+              toPick={v1Pick}
+            />
           </div>
 
           <MarketRules game={ev.game} />
@@ -232,6 +216,7 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
       {slip}
       <ComboBuilderOverlay />
       <BetStackPopup />
+      <CasinoMiniPlayer />
     </div>
   )
 }
@@ -489,7 +474,9 @@ function PropPairs({
   selected,
   onPick,
   toPick,
+  title = 'Yes or no',
 }: {
+  title?: string
   markets: RowMarket[]
   selected: Set<string>
   onPick: OnPick
@@ -497,7 +484,7 @@ function PropPairs({
 }) {
   if (!markets.length) return null
   return (
-    <MarketFrame title="Yes or no" aside={<span className="text-xs text-muted-foreground">Chance</span>}>
+    <MarketFrame title={title} aside={<span className="text-xs text-muted-foreground">Chance</span>}>
       {markets.map((m) => {
         const [a, b] = m.cells as [SoccerOdds, SoccerOdds]
         const pa = chanceFromAmerican(a.odds)
@@ -521,31 +508,26 @@ function PropPairs({
 /** Several outcomes → one row each, Yes only. */
 function PropCard({
   market,
+  teams,
   selected,
   onPick,
   toPick,
 }: {
   market: RowMarket
+  teams: string[]
   selected: Set<string>
   onPick: OnPick
   toPick: ToPick
 }) {
-  const ps = market.cells.map((c) => chanceFromAmerican(c.odds))
-  const sum = ps.reduce((s, p) => s + p, 0) || 1
   return (
-    <MarketFrame title={market.name} aside={<span className="text-xs text-muted-foreground">Chance</span>}>
-      {market.cells.map((c, i) => {
-        const pick = toPick(c, market)
-        return (
-          <MarketRow
-            key={c.id}
-            label={c.slipLabel ?? c.label}
-            chance={(100 * ps[i]!) / sum}
-            yes={{ value: Math.round(ps[i]!), selected: selected.has(pick.id), onClick: (el) => onPick(pick, el) }}
-          />
-        )
-      })}
-    </MarketFrame>
+    <OutcomesCard
+      title={market.name}
+      market={market}
+      items={market.cells.map((c) => ({ cell: countLabel(c, market.name), lead: leadFor(c.label, teams) }))}
+      selected={selected}
+      onPick={onPick}
+      toPick={toPick}
+    />
   )
 }
 
@@ -697,6 +679,314 @@ function PlayerLineRow({
       yes={{ value: Math.round(pa), selected: selected.has(yes.id), onClick: (el) => onPick(yes, el) }}
       no={{ value: Math.round(pb), selected: selected.has(no.id), onClick: (el) => onPick(no, el) }}
     />
+  )
+}
+
+// ─── Every V1 market as Kalshi rows ────────────────────────────
+
+/** The chance-chart Game Lines already cover these on Popular. */
+const MAIN_LINES = /^(3-way regulation|spread|total|game lines|alternate spread|alternate total|moneyline)$/i
+const PREVIEW = 6
+
+function leadFor(name: string | undefined, teams: string[]): ReactNode {
+  if (!name) return undefined
+  if (/^draw$/i.test(name)) return <DrawMark className="size-8" />
+  return teams.includes(name) ? <Crest name={name} className="size-8" /> : undefined
+}
+
+/** "2" → "2 goals", "5+" → "5+ goals" on count markets (Exact Total Goals, Total Touchdowns…). */
+function countLabel(cell: SoccerOdds, marketName: string): SoccerOdds {
+  if (cell.slipLabel || !/^\d+\+?$/.test(cell.label.trim())) return cell
+  const unit = marketName.match(/(goals|corners|cards|points|touchdowns)\b/i)?.[1]?.toLowerCase()
+  return unit ? { ...cell, label: `${cell.label} ${unit}` } : cell
+}
+
+/** "Over 2.5" / "Sevilla +1.5" — the slip label, or the column head + chip label. */
+function cellLabel(cell: SoccerOdds, head?: string): string {
+  if (cell.slipLabel) return cell.slipLabel
+  if (!head || /[a-z]/i.test(cell.label)) return cell.label
+  return `${head} ${cell.label}`
+}
+
+function V1Markets({
+  markets,
+  teams,
+  selected,
+  onPick,
+  toPick,
+}: {
+  markets: EventMarket[]
+  teams: string[]
+  selected: Set<string>
+  onPick: OnPick
+  toPick: ToPick
+}) {
+  const pairs = markets.filter((m): m is RowMarket => m.kind === 'row' && isPair(m))
+  const firstPair = markets.findIndex((m) => m.kind === 'row' && isPair(m))
+  return (
+    <>
+      {markets.map((m, i) => {
+        if (m.kind === 'row' && isPair(m)) {
+          return i === firstPair ? (
+            <PropPairs key="pairs" markets={pairs} selected={selected} onPick={onPick} toPick={toPick} />
+          ) : null
+        }
+        const common = { selected, onPick, toPick }
+        switch (m.kind) {
+          case 'row':
+            return <PropCard key={m.id} market={m} teams={teams} {...common} />
+          case 'ladder':
+            return <V1LadderCard key={m.id} market={m} {...common} />
+          case 'list':
+            return <ListCard key={m.id} market={m} teams={teams} {...common} />
+          case 'grid':
+            return <GridCard key={m.id} title={m.name} market={m} columns={m.columns} {...common} />
+          case 'score':
+            return <GridCard key={m.id} title={m.name} market={m} columns={m.grid} other={m.other} {...common} />
+          case 'lines':
+            return <LinesCard key={m.id} market={m} {...common} />
+          case 'players':
+            return <PlayersCard key={m.id} market={m} {...common} />
+          case 'player-lines':
+            return <PlayerLinesCard key={m.id} market={m} {...common} />
+          default:
+            return null
+        }
+      })}
+    </>
+  )
+}
+
+/** Multi-outcome market — one Yes row per outcome, chances normalised, top six then Show more. */
+function OutcomesCard({
+  title,
+  market,
+  items,
+  sort = false,
+  selected,
+  onPick,
+  toPick,
+}: {
+  title: string
+  market: EventMarket
+  items: { cell: SoccerOdds; sub?: string; lead?: ReactNode }[]
+  sort?: boolean
+  selected: Set<string>
+  onPick: OnPick
+  toPick: ToPick
+}) {
+  const [open, setOpen] = useState(false)
+  const ps = items.map((it) => chanceFromAmerican(it.cell.odds))
+  const sum = ps.reduce((s, p) => s + p, 0) || 1
+  const rows = items.map((it, i) => ({ ...it, chance: (100 * ps[i]!) / sum, price: ps[i]! }))
+  if (sort) rows.sort((x, y) => y.chance - x.chance)
+  const visible = open ? rows : rows.slice(0, PREVIEW)
+  return (
+    <MarketFrame title={title} aside={<span className="text-xs text-muted-foreground">Chance</span>}>
+      {visible.map((r) => {
+        const pick = toPick(r.cell, market)
+        return (
+          <MarketRow
+            key={r.cell.id}
+            lead={r.lead}
+            label={r.cell.slipLabel ?? r.cell.label}
+            sub={r.sub}
+            chance={r.chance}
+            yes={{ value: Math.round(r.price), selected: selected.has(pick.id), onClick: (el) => onPick(pick, el) }}
+          />
+        )
+      })}
+      <ShowMore hidden={rows.length - PREVIEW} open={open} onClick={() => setOpen((v) => !v)} />
+    </MarketFrame>
+  )
+}
+
+/** V1 line ladder (totals, corners, cards, alt spreads) — one Yes / No row with the line stepper. */
+function V1LadderCard({
+  market,
+  selected,
+  onPick,
+  toPick,
+}: {
+  market: LadderMarket
+  selected: Set<string>
+  onPick: OnPick
+  toPick: ToPick
+}) {
+  const main = Math.max(
+    0,
+    market.rows.findIndex((r) => r.line === market.mainLine),
+  )
+  const [index, setIndex] = useState(main)
+  const row = market.rows[index] ?? market.rows[0]
+  if (!row) return null
+  const [ca] = market.columns
+  const pa = chanceFromAmerican(row.a.odds)
+  const pb = chanceFromAmerican(row.b.odds)
+  const yes = toPick(row.a, market)
+  const no = toPick(row.b, market)
+  return (
+    <MarketFrame title={market.name} aside={<span className="text-xs text-muted-foreground">Chance</span>}>
+      <MarketRow
+        lead={ca.team ? <Crest name={ca.team} className="size-8" /> : undefined}
+        label={cellLabel(row.a, ca.label)}
+        chance={(100 * pa) / (pa + pb)}
+        stepper={
+          market.rows.length > 1 ? (
+            <LineStepper labels={market.rows.map((r) => String(r.line))} index={index} onChange={setIndex} />
+          ) : undefined
+        }
+        yes={{ value: Math.round(pa), selected: selected.has(yes.id), onClick: (el) => onPick(yes, el) }}
+        no={{ value: Math.round(pb), selected: selected.has(no.id), onClick: (el) => onPick(no, el) }}
+      />
+    </MarketFrame>
+  )
+}
+
+/** Every line at once (Asian handicap, team totals, 3-way spreads) — two columns → Yes / No rows. */
+function ListCard({
+  market,
+  teams,
+  selected,
+  onPick,
+  toPick,
+}: {
+  market: ListMarket
+  teams: string[]
+  selected: Set<string>
+  onPick: OnPick
+  toPick: ToPick
+}) {
+  const [open, setOpen] = useState(false)
+  type Item = { key: string; a: SoccerOdds; b?: SoccerOdds; label: string; sub?: string; lead?: ReactNode; chance: number }
+  const head = (cols: EventColumnHead[], i: number) => cols[i]?.label
+  const items: Item[] = market.groups.flatMap((g, gi) =>
+    g.rows.flatMap((cells, ri): Item[] => {
+      const sub = g.title ?? g.team
+      const live = cells.filter((c): c is SoccerOdds => !!c)
+      const rowSum = live.reduce((s, c) => s + chanceFromAmerican(c.odds), 0) || 1
+      const [a, b] = cells
+      if (g.columns.length === 2 && a && b) {
+        const pa = chanceFromAmerican(a.odds)
+        return [
+          {
+            key: `${gi}-${ri}`,
+            a,
+            b,
+            label: cellLabel(a, head(g.columns, 0)),
+            sub,
+            lead: leadFor(g.team ?? g.columns[0]?.team, teams),
+            chance: (100 * pa) / rowSum,
+          },
+        ]
+      }
+      return cells.flatMap((c, ci): Item[] =>
+        c
+          ? [
+              {
+                key: `${gi}-${ri}-${ci}`,
+                a: c,
+                label: cellLabel(c, head(g.columns, ci)),
+                sub,
+                lead: leadFor(g.columns[ci]?.team ?? g.columns[ci]?.label, teams),
+                chance: (100 * chanceFromAmerican(c.odds)) / rowSum,
+              },
+            ]
+          : [],
+      )
+    }),
+  )
+  const preview = Math.max(PREVIEW, market.preview ?? 0)
+  const visible = open ? items : items.slice(0, preview)
+  return (
+    <MarketFrame title={market.name} aside={<span className="text-xs text-muted-foreground">Chance</span>}>
+      {visible.map((it) => {
+        const yes = toPick(it.a, market)
+        const no = it.b ? toPick(it.b, market) : null
+        return (
+          <MarketRow
+            key={it.key}
+            lead={it.lead}
+            label={it.label}
+            sub={it.sub}
+            chance={it.chance}
+            yes={{ value: Math.round(chanceFromAmerican(it.a.odds)), selected: selected.has(yes.id), onClick: (el) => onPick(yes, el) }}
+            no={
+              no && it.b
+                ? { value: Math.round(chanceFromAmerican(it.b.odds)), selected: selected.has(no.id), onClick: (el) => onPick(no, el) }
+                : undefined
+            }
+          />
+        )
+      })}
+      <ShowMore hidden={items.length - preview} open={open} onClick={() => setOpen((v) => !v)} />
+    </MarketFrame>
+  )
+}
+
+/** Correct score, HT / FT, winning margin — most likely first. */
+function GridCard({
+  title,
+  market,
+  columns,
+  other,
+  selected,
+  onPick,
+  toPick,
+}: {
+  title: string
+  market: GridMarket | ScoreMarket
+  columns: GridMarket['columns']
+  other?: SoccerOdds
+  selected: Set<string>
+  onPick: OnPick
+  toPick: ToPick
+}) {
+  const items = [
+    ...columns.flatMap((c) => c.cells.map((cell) => ({ cell, sub: c.label, lead: c.team ? <Crest name={c.team} className="size-8" /> : undefined }))),
+    ...(other ? [{ cell: other }] : []),
+  ]
+  return <OutcomesCard title={title} market={market} items={items} sort selected={selected} onPick={onPick} toPick={toPick} />
+}
+
+/** US game lines (halves, quarters) — Spread · Total · Moneyline as Yes / No rows. */
+function LinesCard({
+  market,
+  selected,
+  onPick,
+  toPick,
+}: {
+  market: LinesMarket
+  selected: Set<string>
+  onPick: OnPick
+  toPick: ToPick
+}) {
+  const [r0, r1] = market.rows
+  if (!r0 || !r1) return null
+  return (
+    <MarketFrame title={market.name} aside={<span className="text-xs text-muted-foreground">Chance</span>}>
+      {market.columns.map((col, ci) => {
+        const a = r0.cells[ci]
+        const b = r1.cells[ci]
+        if (!a || !b) return null
+        const m: LinesMarket = { ...market, slipMarket: col.slipMarket }
+        const pa = chanceFromAmerican(a.odds)
+        const pb = chanceFromAmerican(b.odds)
+        const yes = toPick(a, m)
+        const no = toPick(b, m)
+        return (
+          <MarketRow
+            key={col.label}
+            lead={/total/i.test(col.label) ? undefined : <Crest name={r0.team} className="size-8" />}
+            label={cellLabel(a, /total/i.test(col.label) ? undefined : r0.team)}
+            sub={col.label}
+            chance={(100 * pa) / (pa + pb)}
+            yes={{ value: Math.round(pa), selected: selected.has(yes.id), onClick: (el) => onPick(yes, el) }}
+            no={{ value: Math.round(pb), selected: selected.has(no.id), onClick: (el) => onPick(no, el) }}
+          />
+        )
+      })}
+    </MarketFrame>
   )
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Children, createContext, isValidElement, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { IconCheck, IconChevronLeft, IconChevronRight, IconRocket } from '@tabler/icons-react'
@@ -39,7 +39,10 @@ import { Crest, LiveDot, V5_CARD, V5_HEADING, V5_LIGHT_UP, V5_NUM, fmtPctRound, 
 
 // ─── Shelf — casino shelf header (title · See All box · arrow boxes) + snap rail ───
 
-const SHELF_BOX =
+/** Whether shelves bleed past the column's right edge — off when a rail sits beside them. */
+export const ShelfBleed = createContext(true)
+
+export const SHELF_BOX =
   'inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-border bg-secondary transition-colors hover:bg-muted disabled:opacity-45'
 
 export function V5Shelf({
@@ -48,65 +51,111 @@ export function V5Shelf({
   label,
   children,
   className,
-  bleedRight = true,
+  bleedRight: bleedProp,
+  fill,
+  minCard = 280,
 }: {
   title: string
   onSeeAll?: () => void
   label?: string
-  children: React.ReactNode
+  children: ReactNode
   className?: string
   /** Off when something sits to the right (builder slip) — the rail stops at the column edge. */
   bleedRight?: boolean
+  /**
+   * Cards per row on a wide column. Cards size to the column so the row always ends flush —
+   * fewer items than slots just get wider cards, and the arrows only show when there is more.
+   */
+  fill?: number
+  /** Smallest card width before a shelf drops a column. */
+  minCard?: number
 }) {
+  const bleedCtx = useContext(ShelfBleed)
+  const bleedRight = bleedProp ?? bleedCtx
+  const sectionRef = useRef<HTMLElement>(null)
   const ref = useRef<HTMLDivElement>(null)
   const [edge, setEdge] = useState({ back: false, more: false })
+  const [colW, setColW] = useState(0)
   const measure = useCallback(() => {
     const el = ref.current
     if (!el) return
     setEdge({ back: el.scrollLeft > 4, more: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 })
+    if (sectionRef.current) setColW(sectionRef.current.clientWidth)
   }, [])
   useLayoutEffect(() => {
     measure()
     const el = ref.current
-    if (!el) return
+    const sec = sectionRef.current
+    if (!el || !sec) return
     const ro = new ResizeObserver(measure)
     ro.observe(el)
+    ro.observe(sec)
     return () => ro.disconnect()
   }, [measure, children])
+  const items = Children.toArray(children)
+  let n = 0
+  if (fill && colW) {
+    const fit = Math.max(1, Math.min(fill, Math.floor((colW + 12) / (minCard + 12))))
+    n = fit === 1 && items.length > 1 ? 1.15 : Math.min(fit, items.length)
+  }
+  const cardW = n ? (colW - 12 * (Math.ceil(n) - 1)) / n : undefined
   const by = (d: 1 | -1) => {
     const el = ref.current
     if (!el) return
     const card = el.querySelector<HTMLElement>(':scope > *')
     el.scrollBy({ left: d * (card ? card.offsetWidth + 12 : el.clientWidth * 0.8), behavior: 'smooth' })
   }
+  const scrolls = edge.back || edge.more
+  /* Column-edge shelves fade out instead of clipping a card in half. */
+  const fade = `linear-gradient(to right, ${edge.back ? 'transparent 0, black 56px' : 'black 0'}, ${
+    edge.more ? 'black calc(100% - 88px), transparent 100%' : 'black 100%'
+  })`
   return (
-    <section className={cn('mb-8', className)}>
+    <section ref={sectionRef} className={cn('mb-10', className)}>
       <header className="mb-3 flex h-9 items-center justify-between gap-4">
         <h2 className={cn(V5_HEADING, 'min-w-0 truncate')}>{title}</h2>
-        <div className="flex shrink-0 items-center gap-4">
+        <div className="flex shrink-0 items-center gap-2">
           {onSeeAll ? (
             <button type="button" onClick={onSeeAll} className={cn(SHELF_BOX, 'px-3 text-xs font-medium text-muted-foreground hover:text-foreground')}>
               See All
             </button>
           ) : null}
-          <div className="hidden items-center gap-2 md:flex">
-            <button type="button" aria-label={`Scroll ${title} back`} disabled={!edge.back} onClick={() => by(-1)} className={cn(SHELF_BOX, 'size-9 p-0 text-foreground')}>
-              <IconChevronLeft className="size-4" stroke={2} />
-            </button>
-            <button type="button" aria-label={`Scroll ${title} forward`} disabled={!edge.more} onClick={() => by(1)} className={cn(SHELF_BOX, 'size-9 p-0 text-foreground')}>
-              <IconChevronRight className="size-4" stroke={2} />
-            </button>
-          </div>
+          {scrolls ? (
+            <div className="hidden items-center gap-2 md:flex">
+              <button type="button" aria-label={`Scroll ${title} back`} disabled={!edge.back} onClick={() => by(-1)} className={cn(SHELF_BOX, 'size-9 p-0 text-foreground')}>
+                <IconChevronLeft className="size-4" stroke={2} />
+              </button>
+              <button type="button" aria-label={`Scroll ${title} forward`} disabled={!edge.more} onClick={() => by(1)} className={cn(SHELF_BOX, 'size-9 p-0 text-foreground')}>
+                <IconChevronRight className="size-4" stroke={2} />
+              </button>
+            </div>
+          ) : null}
         </div>
       </header>
-      <div className={bleedRight ? '-mx-4 md:-mx-6' : '-ml-4 overflow-hidden md:-ml-6'}>
+      <div
+        className={bleedRight ? '-mx-4 md:-mx-6' : '-ml-4 overflow-hidden md:-ml-6'}
+        style={bleedRight || !scrolls ? undefined : { maskImage: fade, WebkitMaskImage: fade }}
+      >
         <div
           ref={ref}
           onScroll={measure}
           aria-label={label ?? title}
-          className="scrollbar-hide -my-2 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-px-4 px-4 py-2 md:scroll-px-6 md:px-6 [&>*]:snap-start"
+          className={cn(
+            'scrollbar-hide -my-2 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-px-4 px-4 py-2 md:scroll-px-6 md:px-6 [&>*]:snap-start',
+            !bleedRight && 'pr-0 md:pr-0',
+          )}
         >
-          {children}
+          {fill
+            ? items.map((child, i) => (
+                <div
+                  key={isValidElement(child) && child.key != null ? child.key : i}
+                  className="flex shrink-0 [&>*]:!w-full [&>*]:min-w-0"
+                  style={cardW ? { width: cardW } : undefined}
+                >
+                  {child}
+                </div>
+              ))
+            : children}
         </div>
       </div>
     </section>
@@ -201,16 +250,18 @@ export function BoostsShelf({
   sport,
   title = 'Odds Boosts',
   onSeeAll,
+  fill = 3,
 }: {
   sport: V5Sport
   title?: string
   onSeeAll?: () => void
+  fill?: number
 }) {
   const boosts = useMemo<OddsBoost[]>(() => (sport === 'all' ? sportsHomeOddsBoosts() : sportOddsBoosts(sport)), [sport])
   const cards = useBoostCards(boosts)
   if (!boosts.length) return null
   return (
-    <V5Shelf title={title} onSeeAll={onSeeAll}>
+    <V5Shelf title={title} onSeeAll={onSeeAll} fill={fill}>
       {cards}
     </V5Shelf>
   )
@@ -391,11 +442,25 @@ export function ComboPackCard({
   )
 }
 
-export function CombosShelf({ sport, onSeeAll }: { sport: V5Sport; onSeeAll?: () => void }) {
+export function CombosShelf({
+  sport,
+  onSeeAll,
+  lead,
+  bleedRight,
+  fill = 3,
+}: {
+  sport: V5Sport
+  onSeeAll?: () => void
+  /** First card — Build your own. */
+  lead?: ReactNode
+  bleedRight?: boolean
+  fill?: number
+}) {
   const combos = featuredCombos(sport)
   if (!combos.length) return null
   return (
-    <V5Shelf title="Popular Combos" onSeeAll={onSeeAll}>
+    <V5Shelf title="Popular Combos" onSeeAll={onSeeAll} fill={fill} bleedRight={bleedRight}>
+      {lead}
       {combos.map((c) => (
         <ComboPackCard key={c.id} combo={c} />
       ))}
@@ -448,7 +513,7 @@ export function SameGameCombosShelf({ sport, onSeeAll }: { sport: V5Sport; onSee
   const combos = sameGameCombos(sport)
   if (!combos.length) return null
   return (
-    <V5Shelf title="Same Game Combos" onSeeAll={onSeeAll}>
+    <V5Shelf title="Same Game Combos" onSeeAll={onSeeAll} fill={3}>
       {combos.map((c) => (
         <ComboPackCard key={c.id} combo={c} kind="same game combo" />
       ))}
@@ -460,7 +525,7 @@ export function MegaCombosShelf({ sport, onSeeAll }: { sport: V5Sport; onSeeAll?
   const combos = megaCombos(sport)
   if (!combos.length) return null
   return (
-    <V5Shelf title="Mega Combos" onSeeAll={onSeeAll}>
+    <V5Shelf title="Mega Combos" onSeeAll={onSeeAll} fill={3}>
       {combos.map((c) => (
         <ComboPackCard key={c.id} combo={c} kind="mega combo" />
       ))}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useMotionValue, useTransform } from 'framer-motion'
 import { IconCheck, IconChevronRight, IconStack2, IconX } from '@tabler/icons-react'
 import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import { useShell } from '@/components/site/shell-context'
@@ -161,19 +161,29 @@ export function BetStackPopup() {
   )
 }
 
+const SWIPE_PX = 110
+const SWIPE_V = 600
+
+/**
+ * Tinder-style deck — the top card drags on x (swipe away on phones), flies off and the next
+ * card rises; cards behind sit scaled down. The 20s clock flicks the top card on its own.
+ */
 function Deck({ bet, onClose }: { bet: SportsBet; onClose: () => void }) {
   const cards = useMemo(() => buildStack(bet), [bet])
-  const [index, setIndex] = useState(0)
+  /* Absolute position in an endless deck — keys stay unique as cards cycle. */
+  const [n, setN] = useState(0)
+  const [dir, setDir] = useState<1 | -1>(-1)
   const [elapsed, setElapsed] = useState(0)
   const elapsedRef = useRef(0)
   const { launchGame } = useShell()
   const picks = useSoccerSlip()
 
-  const next = useCallback(() => {
+  const fling = useCallback((d: 1 | -1) => {
     elapsedRef.current = 0
     setElapsed(0)
-    setIndex((i) => (i + 1) % Math.max(1, cards.length))
-  }, [cards.length])
+    setDir(d)
+    setN((i) => i + 1)
+  }, [])
 
   /* 20s per card — keeps running, hover or not. */
   useEffect(() => {
@@ -181,22 +191,24 @@ function Deck({ bet, onClose }: { bet: SportsBet; onClose: () => void }) {
     const base = Date.now() - elapsedRef.current
     const id = setInterval(() => {
       const e = Date.now() - base
-      if (e >= CARD_MS) next()
+      if (e >= CARD_MS) fling(-1)
       else {
         elapsedRef.current = e
         setElapsed(e)
       }
     }, 100)
     return () => clearInterval(id)
-  }, [index, cards.length, next])
+  }, [n, cards.length, fling])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight') fling(1)
+      if (e.key === 'ArrowLeft') fling(-1)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, fling])
 
   /* Add straight into Selections — the deck stays up, the slip stays closed. */
   const addCombo = (legs: SoccerSlipPick[], el?: HTMLElement | null) => {
@@ -205,11 +217,13 @@ function Deck({ bet, onClose }: { bet: SportsBet; onClose: () => void }) {
     if (legs[0]) flyBetDotToSlip(el ?? null, legs[0].id)
   }
 
-  const card = cards[index]
-  if (!card) return null
+  if (!cards.length) return null
   const left = Math.max(0, Math.ceil((CARD_MS - elapsed) / 1000))
   const progress = Math.min(1, elapsed / CARD_MS)
   const legs = bet.legs.length
+  const depth = Math.min(3, cards.length)
+  const visible = Array.from({ length: depth }, (_, d) => ({ k: n + d, d, card: cards[(n + d) % cards.length]! }))
+  const active = n % cards.length
 
   return (
     <motion.div
@@ -217,59 +231,43 @@ function Deck({ bet, onClose }: { bet: SportsBet; onClose: () => void }) {
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 24, opacity: 0 }}
       transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-      className="pointer-events-auto absolute inset-x-0 bottom-24 mx-auto w-[min(375px,calc(100vw-24px))] lg:bottom-[92px]"
+      className="pointer-events-auto absolute inset-x-0 bottom-24 mx-auto flex w-[min(420px,calc(100vw-24px))] flex-col gap-3 lg:bottom-[92px]"
     >
-      {/* Deck edges — the next cards waiting underneath. */}
-      <span aria-hidden className="dark absolute inset-x-6 -bottom-3 h-10 rounded-[14px] border border-border bg-popover opacity-40" />
-      <span aria-hidden className="dark absolute inset-x-3 -bottom-1.5 h-10 rounded-[14px] border border-border bg-popover opacity-70" />
-
-      <div
-        className={cn(
-          'dark relative overflow-hidden rounded-[14px] border border-border bg-popover text-popover-foreground',
-          'shadow-[0_12px_48px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.06)]',
-        )}
-      >
-        {/* Bet placed + countdown */}
-        <div className="flex items-center gap-3 px-4 pb-3 pt-4">
-          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
-            <IconCheck className="size-4" stroke={3} aria-hidden />
+      {/* Receipt bar — what just went on, the clock, close. */}
+      <div className="dark flex items-center gap-3 rounded-[14px] border border-border bg-popover py-2.5 pl-3 pr-2 text-popover-foreground shadow-[0_12px_40px_rgba(0,0,0,0.55)]">
+        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
+          <IconCheck className="size-4" stroke={3} aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-bold leading-5 tracking-tight text-foreground">
+            {legs > 1 ? `${legs}-leg combo placed` : 'Bet placed'}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-base font-bold tracking-tight text-foreground">
-              {legs > 1 ? `${legs}-leg combo placed` : 'Bet placed'}
-            </span>
-            <span className="block truncate text-xs tabular-nums text-muted-foreground">
-              {fmtUsd(bet.stake)} to win {fmtUsd(bet.toWin)}
-            </span>
+          <span className="block truncate text-xs tabular-nums text-muted-foreground">
+            {fmtUsd(bet.stake)} to win {fmtUsd(bet.toWin)}
           </span>
-          <Countdown seconds={left} progress={progress} />
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="-mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <IconX className="size-4" stroke={1.5} />
-          </button>
-        </div>
+        </span>
+        {cards.length > 1 ? <Countdown seconds={left} progress={progress} /> : null}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <IconX className="size-4" stroke={2} />
+        </button>
+      </div>
 
-        <div className="mx-4 h-px bg-border" />
-
-        <div className="relative min-h-[176px]">
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.div
-              key={card.id}
-              initial={{ x: 56, opacity: 0, rotate: 2 }}
-              animate={{ x: 0, opacity: 1, rotate: 0 }}
-              exit={{ x: -56, opacity: 0, rotate: -2 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            >
+      {/* The deck */}
+      <div className="relative grid pb-5">
+        <AnimatePresence initial={false} custom={dir}>
+          {[...visible].reverse().map(({ k, d, card }) => (
+            <SwipeCard key={k} depth={d} custom={dir} onSwipe={fling}>
               {card.kind === 'casino' ? (
                 <CasinoCard
                   game={card.game}
                   onPlay={(el) => {
                     onClose()
-                    launchGame(card.game, el)
+                    launchGame(card.game, el, { skipFunds: true })
                   }}
                 />
               ) : (
@@ -279,35 +277,78 @@ function Deck({ bet, onClose }: { bet: SportsBet; onClose: () => void }) {
                   onAdd={(el) => addCombo(card.legs, el)}
                 />
               )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-border px-4 py-2">
-          <div className="flex gap-1">
-            {cards.map((c, i) => (
-              <button
-                key={c.id}
-                type="button"
-                aria-label={`Card ${i + 1}`}
-                onClick={() => {
-                  elapsedRef.current = 0
-                  setElapsed(0)
-                  setIndex(i)
-                }}
-                className={cn('h-1.5 rounded-full outline-none transition-all', i === index ? 'w-5 bg-foreground' : 'w-1.5 bg-muted-foreground hover:bg-foreground')}
-              />
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={next}
-            className="inline-flex h-8 items-center gap-0.5 rounded-lg px-2 text-xs font-bold text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            Next <IconChevronRight className="size-3.5" stroke={2} />
-          </button>
-        </div>
+            </SwipeCard>
+          ))}
+        </AnimatePresence>
       </div>
+
+      {/* Dots · hint · next */}
+      <div className="dark -mt-2 flex items-center justify-between px-1">
+        <div className="flex gap-1.5">
+          {cards.map((c, i) => (
+            <span
+              key={c.id}
+              aria-hidden
+              className={cn('h-1.5 rounded-full transition-all', i === active ? 'w-5 bg-foreground' : 'w-1.5 bg-muted-foreground opacity-60')}
+            />
+          ))}
+        </div>
+        <span className="text-[11px] text-muted-foreground lg:hidden">Swipe for more</span>
+        <button
+          type="button"
+          onClick={() => fling(-1)}
+          className="hidden h-8 items-center gap-0.5 rounded-lg px-2 text-xs font-bold text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring lg:inline-flex"
+        >
+          Next <IconChevronRight className="size-3.5" stroke={2} />
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
+const FLY = {
+  enter: { opacity: 0, scale: 0.9, y: 24 },
+  exit: (d: 1 | -1) => ({ x: d * 520, rotate: d * 22, opacity: 0, transition: { duration: 0.32, ease: [0.32, 0.72, 0, 1] } }),
+}
+
+/** One card in the deck. Depth 0 drags; behind cards wait scaled down and dimmed. */
+function SwipeCard({
+  depth,
+  custom,
+  onSwipe,
+  children,
+}: {
+  depth: number
+  custom: 1 | -1
+  onSwipe: (d: 1 | -1) => void
+  children: React.ReactNode
+}) {
+  const x = useMotionValue(0)
+  const rotate = useTransform(x, [-260, 0, 260], [-14, 0, 14])
+  const top = depth === 0
+  return (
+    <motion.div
+      custom={custom}
+      variants={FLY}
+      initial="enter"
+      exit="exit"
+      animate={{ scale: 1 - depth * 0.05, y: depth * 14, opacity: depth > 1 ? 0.55 : depth === 1 ? 0.8 : 1 }}
+      transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+      style={{ x: top ? x : 0, rotate: top ? rotate : 0, zIndex: 10 - depth, gridArea: '1 / 1' }}
+      drag={top ? 'x' : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={0.9}
+      onDragEnd={(_, info) => {
+        if (Math.abs(info.offset.x) > SWIPE_PX || Math.abs(info.velocity.x) > SWIPE_V) onSwipe(info.offset.x > 0 ? 1 : -1)
+      }}
+      className={cn(
+        'dark origin-bottom overflow-hidden rounded-[16px] border border-border bg-popover text-popover-foreground',
+        'shadow-[0_16px_48px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.05)]',
+        top ? 'cursor-grab touch-pan-y active:cursor-grabbing' : 'pointer-events-none',
+      )}
+      aria-hidden={!top}
+    >
+      <div className={cn(!top && 'invisible')}>{children}</div>
     </motion.div>
   )
 }
@@ -317,7 +358,7 @@ function Countdown({ seconds, progress }: { seconds: number; progress: number })
   const r = 15
   const c = 2 * Math.PI * r
   return (
-    <span className="relative inline-flex size-10 shrink-0 items-center justify-center" aria-label={`Next card in ${seconds} seconds`}>
+    <span className="relative inline-flex size-9 shrink-0 items-center justify-center" aria-label={`Next card in ${seconds} seconds`}>
       <svg viewBox="0 0 36 36" className="absolute inset-0 size-full -rotate-90" aria-hidden>
         <circle cx="18" cy="18" r={r} fill="none" stroke="var(--border)" strokeWidth="3" />
         <circle
@@ -333,18 +374,7 @@ function Countdown({ seconds, progress }: { seconds: number; progress: number })
           className="transition-[stroke-dashoffset] duration-100 ease-linear"
         />
       </svg>
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span
-          key={seconds}
-          initial={{ y: 6, opacity: 0, scale: 0.8 }}
-          animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: -6, opacity: 0, scale: 0.8 }}
-          transition={{ duration: 0.18 }}
-          className={cn('relative text-sm font-bold tabular-nums', 'text-foreground')}
-        >
-          {seconds}
-        </motion.span>
-      </AnimatePresence>
+      <span className="relative text-xs font-bold tabular-nums text-foreground">{seconds}</span>
     </span>
   )
 }
@@ -361,17 +391,17 @@ function ComboCard({
   const decimal = comboDecimal(card.legs)
   const shown = card.legs.slice(0, 3)
   return (
-    <div className="px-4 pb-4 pt-3">
+    <div className="p-5">
       <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
         <IconStack2 className="size-3.5" stroke={2} aria-hidden /> {card.note}
       </p>
-      <p className="mt-1 truncate text-lg font-bold leading-6 tracking-tight text-foreground">{card.title}</p>
+      <p className="mt-1.5 truncate text-xl font-bold leading-7 tracking-tight text-foreground">{card.title}</p>
       {/* Leg timeline — same as the SGP cards */}
-      <ol className="mt-3 flex flex-col">
+      <ol className="mt-4 flex flex-col">
         {shown.map((l, i) => {
           const last = i === shown.length - 1 && card.legs.length <= shown.length
           return (
-            <li key={l.id} className={cn('relative flex gap-2.5', !last && 'pb-2.5')}>
+            <li key={l.id} className={cn('relative flex gap-3', !last && 'pb-3.5')}>
               {!last ? <span className="absolute bottom-0 left-[7.5px] top-5 w-px bg-border" aria-hidden /> : null}
               <span
                 className={cn(
@@ -391,45 +421,47 @@ function ComboCard({
           <li className="pl-[26px] text-xs text-muted-foreground">+{card.legs.length - shown.length} more</li>
         ) : null}
       </ol>
-      <div className="mt-4 flex items-end gap-3">
-        <span className="min-w-0 flex-1">
+      <div className="mt-5 flex items-end justify-between gap-3">
+        <span className="min-w-0">
           <span className="block text-xs text-muted-foreground">
             {card.legs.length}-leg combo · {fmtX(decimal)}
           </span>
-          <span className="block text-2xl font-bold leading-7 tabular-nums tracking-tight text-foreground">
+          <span className="block text-2xl font-bold leading-8 tabular-nums tracking-tight text-foreground">
             $10 pays {fmtUsd(10 * decimal)}
           </span>
         </span>
-        <button
-          type="button"
-          onClick={(e) => (added ? undefined : onAdd(e.currentTarget))}
-          aria-pressed={added}
-          className={cn(
-            'inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg px-4 text-sm font-bold transition-colors',
-            added ? 'bg-secondary text-foreground' : 'bg-primary text-primary-foreground hover:opacity-90',
-          )}
-        >
-          {added ? (
-            <>
-              <IconCheck className="size-4" stroke={3} aria-hidden /> In Selections
-            </>
-          ) : (
-            'Add to Selections'
-          )}
-        </button>
       </div>
+      <button
+        type="button"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => (added ? undefined : onAdd(e.currentTarget))}
+        aria-pressed={added}
+        className={cn(
+          'mt-4 inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-xl text-[15px] font-bold transition-colors',
+          added ? 'bg-secondary text-foreground' : 'bg-primary text-primary-foreground hover:opacity-90',
+        )}
+      >
+        {added ? (
+          <>
+            <IconCheck className="size-4" stroke={3} aria-hidden /> In Selections
+          </>
+        ) : (
+          'Add to Selections'
+        )}
+      </button>
     </div>
   )
 }
 
 function CasinoCard({ game, onPlay }: { game: CasinoLobbyGame; onPlay: (el: HTMLElement) => void }) {
   return (
-    <div className="px-4 pb-4 pt-3">
+    <div className="p-5">
       <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Play while you wait</p>
       <button
         type="button"
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => onPlay(e.currentTarget)}
-        className="group relative mt-2 flex h-[148px] w-full items-center gap-4 overflow-hidden rounded-[12px] border border-border p-3 text-left"
+        className="group relative mt-3 flex h-[196px] w-full items-center gap-4 overflow-hidden rounded-[12px] border border-border p-3 text-left"
       >
         {/* Blurred art fills the card; the real tile sits on top. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -439,7 +471,7 @@ function CasinoCard({ game, onPlay }: { game: CasinoLobbyGame; onPlay: (el: HTML
           className="absolute inset-0"
           style={{ background: 'linear-gradient(90deg, transparent 0%, var(--popover) 85%)' }}
         />
-        <span className="relative h-[124px] w-[92px] shrink-0 overflow-hidden rounded-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition-transform duration-300 group-hover:-translate-y-0.5">
+        <span className="relative h-[168px] w-[124px] shrink-0 overflow-hidden rounded-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition-transform duration-300 group-hover:-translate-y-0.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={game.imageSrc} alt="" className="absolute inset-0 size-full object-cover object-top" />
         </span>

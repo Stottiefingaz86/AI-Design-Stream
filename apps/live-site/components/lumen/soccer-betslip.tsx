@@ -1571,7 +1571,7 @@ export function SoccerBetslip({
               type="button"
               onClick={comboAction.onClick}
               className={cn(
-                'flex shrink-0 items-center gap-1.5 rounded-lg text-sm font-semibold text-popover-foreground transition-colors',
+                'v5-combo-glow flex shrink-0 items-center gap-1.5 rounded-lg text-sm font-semibold text-popover-foreground transition-colors',
                 hasPicks ? 'h-9 bg-secondary px-3 hover:bg-accent' : 'h-9 flex-1 px-2.5 hover:bg-accent',
               )}
             >

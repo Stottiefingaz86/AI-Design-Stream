@@ -2,6 +2,17 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import {
+  IconBuildingBank,
+  IconBuildingMonument,
+  IconChartLine,
+  IconDeviceTv,
+  IconLock,
+  IconMovie,
+  IconMusic,
+  IconTicket,
+  type Icon,
+} from '@tabler/icons-react'
 import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import { revealShellDock } from '@/components/site/shell-scroll'
 import { setSoccerSlip } from '@/lib/lumen/soccer-slip-store'
@@ -379,5 +390,26 @@ export function PctPill({
     >
       {fmtPctRound(chance)}
     </button>
+  )
+}
+
+const GLYPHS: Record<string, Icon> = {
+  bank: IconBuildingBank,
+  monument: IconBuildingMonument,
+  lock: IconLock,
+  chart: IconChartLine,
+  movie: IconMovie,
+  music: IconMusic,
+  ticket: IconTicket,
+  tv: IconDeviceTv,
+}
+
+/** Neutral icon tile for Politics / Entertainment markets — Lumen surface, foreground glyph, never a colour. */
+export function TopicGlyph({ name, className }: { name: string; className?: string }) {
+  const G = GLYPHS[name] ?? IconChartLine
+  return (
+    <span className={cn('inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground', className)} aria-hidden>
+      <G className="size-[55%]" stroke={1.75} />
+    </span>
   )
 }
