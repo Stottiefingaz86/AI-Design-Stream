@@ -10,3 +10,4 @@
 - **Versions stack:** V3 includes everything in V2 (`versionAtLeast(version, 'v2')`).
 - **V3 (Nov 2026) = Markets:** traditional sports **plus** prediction-market content (Markets shelf, event "Who wins?" card, My Bets titled Portfolio with an account-value hero). Never a replacement for traditional sports. See `SPORTS_V3_MARKETS.md`. Route pages read the cookie server-side (`serverSiteVersion()`) and pass it to `V3Switch` so there's no V1 flash.
 - Add a version = add a row to `SITE_VERSIONS` in `lib/lumen/site-versions.ts`; branch UI with `useSiteVersion()`. `?v=2` links open that version.
+- **V5 (Nov 2026) = Combos:** prediction-exchange style sportsbook with the combo builder front and centre, a combo slip that lights up at 2+ legs, Yes/No event view with line steppers and a live bets feed. Owns the sports routes only when picked — V1–V3 untouched. See `SPORTS_V5_COMBOS.md`. (No V4 yet.)
