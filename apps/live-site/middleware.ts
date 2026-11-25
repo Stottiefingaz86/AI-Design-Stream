@@ -15,7 +15,8 @@ export function middleware(request: NextRequest) {
   const isV2 =
     cookieVersion === 'v2' ||
     cookieVersion === 'v3' ||
-    ['v2', '2', 'v3', '3'].includes(versionParam ?? '')
+    cookieVersion === 'v5' ||
+    ['v2', '2', 'v3', '3', 'v5', '5'].includes(versionParam ?? '')
 
   /* Local :3000 only — hosted Vercel serves prototypes on the same origin. */
   if (
