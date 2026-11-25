@@ -2,35 +2,25 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  IconBallAmericanFootball,
-  IconBallFootball,
-  IconChevronLeft,
-  IconChevronRight,
-  IconStack2,
-  IconTrophy,
-  IconUsers,
-} from '@tabler/icons-react'
-import { Typography } from '@/components/ui/typography'
+import { IconChevronRight, IconSearch, IconUsers, IconX } from '@tabler/icons-react'
 import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
-import { ShelfSeeMore } from '@/components/lumen/shelf-see-more'
+import { CasinoLobbyBannerRow } from '@/components/lumen/casino-lobby-banners'
 import { SoccerBetslip, type SoccerSlipPick } from '@/components/lumen/soccer-betslip'
-import { HorizontalRail, LiveClock } from '@/components/lumen/sports-home-page'
-import {
-  BreadcrumbMenu,
-  LeagueQuickLinks,
-  LIVE_ROW_STYLE,
-  ModePillTrack,
-} from '@/components/lumen/soccer-sport-page'
+import { LiveClock } from '@/components/lumen/sports-home-page'
+import { AlternateLinePicker, LIVE_ROW_STYLE, ModePillTrack, OddsButton } from '@/components/lumen/soccer-sport-page'
 import { useShell } from '@/components/site/shell-context'
-import type { SoccerQuickLink } from '@/lib/lumen/soccer-sport'
+import { CASINO_LOBBY_PROMO_BANNERS } from '@/lib/lumen/casino-lobby-promos'
 import { setSoccerSlip, useSoccerSlip } from '@/lib/lumen/soccer-slip-store'
+import type { SoccerLinePair, SoccerOdds } from '@/lib/lumen/soccer-sport'
 import type { SportsMarket } from '@/lib/lumen/sports-markets'
 import {
   bettorsNow,
+  eventLadders,
   featuredCombos,
+  groupByDay,
   kickoffTime,
   leadOutcome,
+  leagueLogo,
   openComboBuilder,
   pickFor,
   teamOutcomes,
@@ -38,174 +28,324 @@ import {
   v5Games,
   v5Leagues,
   yesCents,
+  type Ladder,
   type V5Sport,
 } from '@/lib/lumen/v5-combos'
+import {
+  SORT_MODES,
+  futureCards,
+  gamePropCards,
+  gameSortable,
+  ladderCards,
+  playerPropCards,
+  sortItems,
+  winTotalCards,
+  type KCard,
+  type SortMode,
+  type V5View,
+} from '@/lib/lumen/v5-markets'
 import { cn } from '@/lib/utils'
 import { BetStackPopup, showBetStack } from './bet-stack-popup'
-import { BuildOwnCard, ComboBuilderOverlay, FeaturedComboCard } from './combo-builder'
-import { ChancePill, Crest, DrawMark, ProbBar, V5_CARD, V5_LIGHT_UP, fmtVol, useV5Pick } from './combo-ui'
-
-type Mode = 'games' | 'live' | 'combos'
+import { BuildOwnCard, ComboBuilderOverlay } from './combo-builder'
+import {
+  Crest,
+  DrawMark,
+  PctPill,
+  ProbBar,
+  V5Heading,
+  V5Tabs,
+  V5_CARD,
+  V5_LIGHT_UP,
+  V5_NUM,
+  V5_TITLE,
+  fmtVol,
+  useV5Pick,
+} from './combo-ui'
+import { KMarketCard, SortMenu } from './v5-market-cards'
+import {
+  BoostsGrid,
+  BoostsShelf,
+  ComboPackCard,
+  CombosShelf,
+  MegaCombosShelf,
+  PopularCarousel,
+  SameGameCombosShelf,
+  megaCombos,
+  sameGameCombos,
+} from './v5-shelves'
 
 const SPORT_LABEL: Record<V5Sport, string> = { all: 'Sports', nfl: 'Football', soccer: 'Soccer' }
-const ALL_LABEL: Record<V5Sport, string> = { all: 'All Sports', nfl: 'All Football', soccer: 'All Soccer' }
 
-function SportIcon({ sport, className }: { sport: V5Sport; className?: string }) {
-  if (sport === 'nfl') return <IconBallAmericanFootball className={className} stroke={1.5} />
-  if (sport === 'soccer') return <IconBallFootball className={className} stroke={1.5} />
-  return <IconTrophy className={className} stroke={1.5} />
+const VIEW_LABEL: Record<V5View, string> = {
+  games: 'Games',
+  live: 'Live',
+  spreads: 'Spreads',
+  totals: 'Totals',
+  'game-props': 'Game props',
+  'player-props': 'Player props',
+  'win-totals': 'Win totals',
+  futures: 'Futures',
+  combos: 'Combos',
+  boosts: 'Odds Boosts',
 }
 
 const shortLeague = (name: string) => (name === 'NCAA Football' ? 'NCAA' : name)
 
 /**
- * V5 · Combos sport page — V1 sportsbook layout (breadcrumb, league tiles, mode pills,
- * league boards) with prediction-market cards: chance bar, multiplier, % chip.
- * The combo builder lives in the Selections bar.
+ * V5 · Combos sport page — title + sort, league tabs, market sub-nav (Games default · Live ·
+ * Spreads · Totals · Game props · Player props · Win totals · Futures · Combos · Odds Boosts),
+ * casino-style shelves on Games, uniform market cards everywhere else. Home gets the banners.
  */
 export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
   const router = useRouter()
-  const { startNavigating } = useShell()
+  const { startNavigating, setCashierOpen, setVipHubOpen } = useShell()
   const [league, setLeague] = useState<string>('all')
-  const [mode, setMode] = useState<Mode>('games')
+  const [view, setView] = useState<V5View>('games')
+  const [sort, setSort] = useState<SortMode>('trending')
+  const [reverse, setReverse] = useState(false)
+  const [query, setQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [propGroup, setPropGroup] = useState('')
   const picks = useSoccerSlip()
   const selected = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
   const onPick = useV5Pick()
 
-  const allGames = v5Games(sport)
   const leagues = v5Leagues(sport)
-  const liveCount = allGames.filter((g) => g.live).length
-  const combos = featuredCombos(sport)
+  const inLeague = <T extends { league?: string; leagueName?: string }>(x: T) =>
+    league === 'all' || (x.league ?? x.leagueName) === league
+  const q = query.trim().toLowerCase()
+  const matches = (text: string) => !q || text.toLowerCase().includes(q)
+
+  /* All market views, built once per sport. */
+  const data = useMemo(
+    () => ({
+      games: v5Games(sport),
+      spreads: ladderCards(sport, 'spread'),
+      totals: ladderCards(sport, 'total'),
+      gameProps: gamePropCards(sport),
+      playerProps: playerPropCards(sport),
+      winTotals: winTotalCards(sport),
+      futures: futureCards(sport),
+      combos: featuredCombos(sport),
+    }),
+    [sport],
+  )
+
+  const games = data.games.filter((g) => inLeague(g) && matches(`${g.title} ${g.leagueName}`))
+  const cardsFor = (cards: KCard[]) => sortItems(cards.filter((c) => inLeague(c) && matches(`${c.title} ${c.league}`)), sort, reverse)
+  const spreads = cardsFor(data.spreads)
+  const totals = cardsFor(data.totals)
+  const gameProps = cardsFor(data.gameProps)
+  const playerAll = cardsFor(data.playerProps)
+  const winTotals = cardsFor(data.winTotals)
+  const futures = cardsFor(data.futures)
+  const liveCount = games.filter((g) => g.live).length
+
+  const propGroups = useMemo(() => [...new Set(playerAll.map((c) => c.group ?? ''))].filter(Boolean), [playerAll])
+  const activeGroup = propGroups.includes(propGroup) ? propGroup : (propGroups[0] ?? '')
+  const playerProps = playerAll.filter((c) => !activeGroup || c.group === activeGroup)
+
+  const pills: { id: V5View; label: string; count?: number }[] = [
+    { id: 'games', label: 'Games', count: games.length },
+    ...(liveCount ? [{ id: 'live' as const, label: 'Live', count: liveCount }] : []),
+    ...(spreads.length ? [{ id: 'spreads' as const, label: 'Spreads', count: spreads.length }] : []),
+    ...(totals.length ? [{ id: 'totals' as const, label: 'Totals', count: totals.length }] : []),
+    ...(gameProps.length ? [{ id: 'game-props' as const, label: 'Game props', count: gameProps.length }] : []),
+    ...(playerAll.length ? [{ id: 'player-props' as const, label: 'Player props', count: playerAll.length }] : []),
+    ...(winTotals.length ? [{ id: 'win-totals' as const, label: 'Win totals', count: winTotals.length }] : []),
+    ...(futures.length ? [{ id: 'futures' as const, label: 'Futures', count: futures.length }] : []),
+    { id: 'combos', label: 'Combos', count: data.combos.length + sameGameCombos(sport).length + megaCombos(sport).length },
+    { id: 'boosts', label: 'Odds Boosts' },
+  ]
 
   useEffect(() => {
-    if (mode === 'live' && liveCount === 0) setMode('games')
-  }, [mode, liveCount])
+    if (!pills.some((p) => p.id === view)) setView('games')
+  }, [pills, view])
 
-  const sections = useMemo(() => {
-    const scoped = allGames.filter(
-      (g) => (league === 'all' || g.leagueName === league) && (mode !== 'live' || g.live),
-    )
-    return leagues
-      .map((l) => ({
-        league: l,
-        games: scoped
-          .filter((g) => g.leagueName === l.name)
-          .sort((a, b) => Number(b.live) - Number(a.live)),
-      }))
-      .filter((s) => s.games.length > 0)
-  }, [allGames, leagues, league, mode])
-
-  const links: SoccerQuickLink[] = [
-    { id: 'all', label: ALL_LABEL[sport], icon: '' },
-    ...leagues.map((l) => ({ id: l.name, label: shortLeague(l.name), icon: l.logo })),
-  ]
-
-  const modes: { id: Mode; label: string }[] = [
-    { id: 'games', label: 'Games' },
-    ...(liveCount ? [{ id: 'live' as const, label: `Live · ${liveCount}` }] : []),
-    { id: 'combos', label: 'Popular Combos' },
-  ]
+  const banners = useMemo(
+    () =>
+      CASINO_LOBBY_PROMO_BANNERS.map((promo) => {
+        if (promo.id === '100-free-spins') return { ...promo, onAction: () => setCashierOpen(true) }
+        if (promo.id === 'casino-rakeback') return { ...promo, onAction: () => setVipHubOpen(true) }
+        return promo
+      }),
+    [setCashierOpen, setVipHubOpen],
+  )
 
   const go = (href: string) => {
     startNavigating(href)
     router.push(href)
   }
 
-  return (
-    <div data-name="v5-combo-sports" className="mx-auto w-full max-w-[1440px] px-4 py-4 md:px-6 md:py-6">
-      {/* Breadcrumbs — V1 */}
-      <div data-name="breadcrumbs" className="mb-4 flex items-center gap-2 sm:gap-3">
-        {sport !== 'all' ? (
-          <button
-            type="button"
-            onClick={() => (league !== 'all' ? setLeague('all') : go('/sports'))}
-            aria-label={league !== 'all' ? `Back to ${SPORT_LABEL[sport].toLowerCase()}` : 'Back to sports home'}
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary transition-colors hover:bg-accent"
-          >
-            <IconChevronLeft className="size-4" stroke={1.5} />
-          </button>
-        ) : null}
-        <div className="flex items-center gap-1.5 whitespace-nowrap text-sm leading-none">
-          <span className="inline-flex h-7 shrink-0 items-center gap-1.5 font-medium text-foreground">
-            <SportIcon sport={sport} className="size-4 shrink-0" />
-            {SPORT_LABEL[sport]}
-          </span>
-          <span className="inline-flex h-7 items-center text-muted-foreground/70" aria-hidden>
-            /
-          </span>
-          <BreadcrumbMenu
-            label={league === 'all' ? 'Select League' : league}
-            options={[{ id: 'all', label: ALL_LABEL[sport] }, ...leagues.map((l) => ({ id: l.name, label: l.name }))]}
-            active={league}
-            onPick={setLeague}
-            emphasize={league !== 'all'}
-          />
-        </div>
-      </div>
+  /* Games / Live — day groups for Trending + Start time, one sorted list for the rest. */
+  const gameList = sortItems(
+    games.filter((g) => view !== 'live' || g.live).map(gameSortable),
+    sort,
+    reverse,
+  ).map((x) => x.game)
+  const grouped = sort === 'trending' || sort === 'start'
+  const gameGroups = grouped
+    ? groupByDay(gameList)
+    : [{ label: SORT_MODES.find((m) => m.id === sort)?.label ?? 'Games', games: gameList }]
 
-      <LeagueQuickLinks
-        links={links}
-        activeId={league}
-        onPick={setLeague}
-        allIcon={<SportIcon sport={sport} className="size-6" />}
+  const grid = (cards: KCard[]) =>
+    cards.length ? (
+      <div className="grid gap-3 xl:grid-cols-2">
+        {cards.map((c) => (
+          <KMarketCard key={c.id} card={c} selected={selected} onPick={onPick} />
+        ))}
+      </div>
+    ) : (
+      <p className="py-16 text-center text-sm text-muted-foreground">Nothing here right now.</p>
+    )
+
+  const title = league === 'all' ? SPORT_LABEL[sport] : shortLeague(league)
+
+  return (
+    <div data-name="v5-combo-sports" className="mx-auto w-full max-w-[1440px] px-4 pb-8 pt-4 md:px-6 md:pt-6">
+      {sport === 'all' ? (
+        <div className="-mx-4 mb-8 md:-mx-6">
+          <CasinoLobbyBannerRow promos={banners} />
+        </div>
+      ) : null}
+
+      {/* Title · view, sort, search */}
+      <header className="flex items-center gap-3">
+        <h1 className={cn(V5_TITLE, 'min-w-0 flex-1 truncate')}>
+          {title}
+          {view !== 'games' ? <span className="text-muted-foreground"> · {VIEW_LABEL[view]}</span> : null}
+        </h1>
+        {view !== 'combos' && view !== 'boosts' ? (
+          <SortMenu value={sort} reverse={reverse} onChange={setSort} onReverse={setReverse} />
+        ) : null}
+        <button
+          type="button"
+          aria-label={searching ? 'Close search' : 'Search'}
+          onClick={() => {
+            setSearching((v) => !v)
+            setQuery('')
+          }}
+          className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-accent"
+        >
+          {searching ? <IconX className="size-5" stroke={2} /> : <IconSearch className="size-5" stroke={2} />}
+        </button>
+      </header>
+      {searching ? (
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search teams, players or leagues"
+          className="mt-4 h-12 w-full rounded-lg border border-input bg-secondary px-4 text-base font-semibold text-foreground outline-none placeholder:font-normal placeholder:text-muted-foreground"
+        />
+      ) : null}
+
+      {/* Leagues */}
+      <V5Tabs
+        className="mt-5"
+        tabs={[{ id: 'all', label: 'All' }, ...leagues.map((l) => ({ id: l.name, label: shortLeague(l.name) }))]}
+        active={league}
+        onChange={setLeague}
       />
 
-      <ModePillTrack active={mode} onChange={setMode} modes={modes} ariaLabel="Sports views" />
+      {/* Markets sub-nav — V1 pill track */}
+      <ModePillTrack
+        active={view}
+        onChange={setView}
+        modes={pills.map((p) => ({ id: p.id, label: p.label }))}
+        ariaLabel="Markets"
+        className="mb-0 mt-4"
+      />
 
-      {mode === 'combos' ? (
-        <section data-name="v5-combos-grid" className="mb-6">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <BuildOwnCard sport={sport} />
-            {combos.map((c) => (
-              <FeaturedComboCard key={c.id} combo={c} fluid />
-            ))}
-          </div>
-        </section>
-      ) : (
-        <>
-          {mode === 'games' && league === 'all' && combos.length ? (
-            <section data-name="v5-popular-combos" className="mb-6">
-              <div className="mb-3 flex h-9 items-center gap-2 px-0.5">
-                <IconStack2 className="size-[18px] text-primary" stroke={1.75} aria-hidden />
-                <Typography as="h2" shape="small" weight="semibold" className="min-w-0 flex-1 truncate">
-                  Popular Combos
-                </Typography>
-                <ShelfSeeMore label="See All" onClick={() => setMode('combos')} />
-              </div>
-              <div className="-mx-4 md:-mx-6">
-                <HorizontalRail label="Popular combos">
-                  {combos.map((c) => (
-                    <FeaturedComboCard key={c.id} combo={c} />
-                  ))}
-                </HorizontalRail>
-              </div>
-            </section>
-          ) : null}
-
-          {sections.map(({ league: l, games }) => (
-            <section key={l.name} data-name="league-section" className="mb-6">
-              <div className="mb-3 flex h-9 items-center gap-2 px-0.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={l.logo} alt="" width={18} height={18} className="size-[18px] object-contain" />
-                <Typography as="h2" shape="small" weight="semibold" className="min-w-0 flex-1 truncate">
-                  {l.name}
-                </Typography>
-                {league === 'all' && sections.length > 1 ? (
-                  <ShelfSeeMore label="See All" onClick={() => setLeague(l.name)} />
-                ) : null}
-              </div>
-              <div className="grid gap-3 lg:grid-cols-2">
-                {games.map((g) => (
-                  <GameCard key={g.id} game={g} selected={selected} onPick={onPick} onOpen={() => go(g.href)} />
+      <div className="mt-8">
+        {view === 'combos' ? (
+          <>
+            <section className="mb-10">
+              <V5Heading>Popular Combos</V5Heading>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <BuildOwnCard sport={sport} />
+                {data.combos.map((c) => (
+                  <ComboPackCard key={c.id} combo={c} fluid />
                 ))}
               </div>
             </section>
-          ))}
-          {sections.length === 0 ? (
-            <p className="py-16 text-center text-sm text-muted-foreground">No games right now.</p>
-          ) : null}
-        </>
-      )}
+            {sameGameCombos(sport).length ? (
+              <section className="mb-10">
+                <V5Heading>Same Game Combos</V5Heading>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {sameGameCombos(sport).map((c) => (
+                    <ComboPackCard key={c.id} combo={c} fluid kind="same game combo" />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+            {megaCombos(sport).length ? (
+              <section className="mb-10">
+                <V5Heading>Mega Combos</V5Heading>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {megaCombos(sport).map((c) => (
+                    <ComboPackCard key={c.id} combo={c} fluid kind="mega combo" />
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </>
+        ) : view === 'boosts' ? (
+          <BoostsGrid sport={sport} />
+        ) : view === 'spreads' ? (
+          grid(spreads)
+        ) : view === 'totals' ? (
+          grid(totals)
+        ) : view === 'game-props' ? (
+          grid(gameProps)
+        ) : view === 'player-props' ? (
+          <>
+            {propGroups.length > 1 ? (
+              <ModePillTrack
+                active={activeGroup}
+                onChange={setPropGroup}
+                modes={propGroups.map((g) => ({ id: g, label: g }))}
+                ariaLabel="Player props"
+                className="mb-5"
+              />
+            ) : null}
+            {grid(playerProps)}
+          </>
+        ) : view === 'win-totals' ? (
+          grid(winTotals)
+        ) : view === 'futures' ? (
+          grid(futures)
+        ) : (
+          <>
+            {view === 'games' && league === 'all' && !q ? (
+              <>
+                <PopularCarousel sport={sport} />
+                <BoostsShelf sport={sport} onSeeAll={() => setView('boosts')} />
+                <CombosShelf sport={sport} onSeeAll={() => setView('combos')} />
+                <SameGameCombosShelf sport={sport} onSeeAll={() => setView('combos')} />
+                <MegaCombosShelf sport={sport} onSeeAll={() => setView('combos')} />
+              </>
+            ) : null}
+            {gameGroups.map((d) =>
+              d.games.length ? (
+                <section key={d.label} className="mb-8">
+                  <V5Heading>{d.label}</V5Heading>
+                  <div className="grid gap-3 xl:grid-cols-2">
+                    {d.games.map((g) => (
+                      <GameCard key={g.id} game={g} selected={selected} onPick={onPick} onOpen={() => go(g.href)} />
+                    ))}
+                  </div>
+                </section>
+              ) : null,
+            )}
+            {gameList.length === 0 ? (
+              <p className="py-16 text-center text-sm text-muted-foreground">
+                {q ? `No games match “${query}”.` : 'No games right now.'}
+              </p>
+            ) : null}
+          </>
+        )}
+      </div>
 
       <div className="-mx-4 mt-6 md:-mx-6">
         <CasinoLiveWinsCarousel />
@@ -226,7 +366,7 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
   )
 }
 
-/** Game card — V1 card meta strip, team rows with chance bar, multiplier + % chip. */
+/** Game card — league mark + title, team rows (chance bar · multiplier · % pill), buy points. */
 function GameCard({
   game,
   selected,
@@ -242,6 +382,7 @@ function GameCard({
   const teams = teamOutcomes(game)
   const draw = game.outcomes.find((o) => o.label === 'Draw')
   const rows = [...teams, ...(draw ? [draw] : [])]
+  const ladders = eventLadders(game)
   return (
     <div
       role="link"
@@ -252,22 +393,28 @@ function GameCard({
         if (e.key === 'Enter') onOpen()
       }}
       style={game.live ? LIVE_ROW_STYLE : undefined}
-      className={cn(V5_CARD, V5_LIGHT_UP, 'group cursor-pointer overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-ring')}
+      className={cn(V5_CARD, V5_LIGHT_UP, 'cursor-pointer overflow-hidden rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring')}
     >
-      <div className="flex h-[34px] items-center gap-2 border-b border-border px-3">
+      <div className="flex items-center gap-3 px-4 pt-4">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={game.leagueIcon} alt="" className="size-4 object-contain" />
-        <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{game.leagueName}</span>
-        {game.live ? (
-          <LiveClock when={game.when} />
-        ) : (
-          <span className="text-xs text-muted-foreground">
-            {game.when.split(',')[0]} · {kickoffTime(game)}
-          </span>
-        )}
+        <img src={leagueLogo(game.leagueName, game.leagueIcon)} alt="" className="size-9 shrink-0 object-contain" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-base font-bold leading-6 text-foreground">{game.title}</p>
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {game.live ? (
+              <LiveClock when={game.when} />
+            ) : (
+              <span>
+                {game.when.split(',')[0]} · {kickoffTime(game)}
+              </span>
+            )}
+            <span aria-hidden>·</span>
+            <span className="truncate">{game.leagueName}</span>
+          </p>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-2.5 px-3 py-3">
+      <div className="flex flex-col gap-3 px-4 py-4">
         {rows.map((o) => {
           const isDraw = o.label === 'Draw'
           const pick = pickFor(game, o, 'yes')
@@ -275,44 +422,108 @@ function GameCard({
           const score = game.live && game.score && !isDraw ? game.score[teams.indexOf(o)] : undefined
           return (
             <div key={o.id} className="flex items-center gap-3">
-              {isDraw ? <DrawMark /> : <Crest name={o.team ?? o.label} />}
+              {isDraw ? <DrawMark className="size-8" /> : <Crest name={o.team ?? o.label} className="size-8" />}
               <div className="min-w-0 flex-1">
                 <p className="flex min-w-0 items-baseline gap-1.5">
-                  <Typography
-                    as="span"
-                    shape="small"
-                    weight="medium"
-                    className={cn('truncate', isDraw && 'text-muted-foreground')}
-                  >
+                  <span className={cn('truncate text-base font-semibold', isDraw ? 'text-muted-foreground' : 'text-foreground')}>
                     {o.label}
-                  </Typography>
+                  </span>
                   {record ? <span className="shrink-0 text-xs text-muted-foreground">{record}</span> : null}
                 </p>
-                {!isDraw ? <ProbBar value={o.chance} lead={o.id === lead.id} className="mt-1.5 max-w-[200px]" /> : null}
+                {!isDraw ? <ProbBar value={o.chance} lead={o.id === lead.id} className="mt-1.5 max-w-[62%]" /> : null}
               </div>
-              {score !== undefined ? (
-                <span className="w-6 shrink-0 text-center text-sm font-semibold tabular-nums text-foreground">{score}</span>
-              ) : null}
-              <ChancePill
-                chance={o.chance}
-                label={`${(100 / yesCents(o.chance)).toFixed(2)}x`}
-                selected={selected.has(pick.id)}
-                onClick={(el) => onPick(pick, el)}
-              />
+              {score !== undefined ? <span className={cn('w-7 shrink-0 text-center text-lg', V5_NUM)}>{score}</span> : null}
+              <span className="w-12 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
+                {(100 / yesCents(o.chance)).toFixed(2)}x
+              </span>
+              <PctPill chance={o.chance} selected={selected.has(pick.id)} onClick={(el) => onPick(pick, el)} />
             </div>
           )
         })}
       </div>
 
-      <div className="flex h-9 items-center gap-3 border-t border-border px-3 text-xs text-muted-foreground">
+      {ladders.length ? (
+        <div className="grid gap-3 border-t border-border px-4 py-3 sm:grid-cols-2">
+          {ladders.map((l) => (
+            <BuyPoints key={l.kind} ladder={l} selected={selected} onPick={onPick} />
+          ))}
+        </div>
+      ) : null}
+
+      <div className="flex h-10 items-center gap-3 border-t border-border px-4 text-xs text-muted-foreground">
         <span>{fmtVol(game.volume)}</span>
         <span className="flex items-center gap-1">
           <IconUsers className="size-3.5" stroke={1.5} aria-hidden />
           {bettorsNow(game)} betting
         </span>
-        <span className="ml-auto inline-flex items-center gap-0.5 font-medium text-foreground">
-          All markets <IconChevronRight className="size-3.5" stroke={1.5} />
+        <span className="ml-auto inline-flex items-center gap-0.5 font-bold text-foreground">
+          All markets <IconChevronRight className="size-3.5" stroke={2} />
         </span>
+      </div>
+    </div>
+  )
+}
+
+const shortLine = (label: string) => label.replace(/^Over /, 'O ').replace(/^Under /, 'U ').replace(/ (points|goals)$/i, '')
+
+/**
+ * Buy points — the V1 board chips (both sides of the line) plus the ⇅ alternate-line menu.
+ * Pick a line in the menu → that pair moves onto the card and the tapped side goes on the slip.
+ */
+function BuyPoints({
+  ladder,
+  selected,
+  onPick,
+}: {
+  ladder: Ladder
+  selected: Set<string>
+  onPick: (pick: SoccerSlipPick, el?: HTMLElement | null) => void
+}) {
+  const main = ladder.rungs[ladder.defaultIndex]!
+  const [line, setLine] = useState(main.line)
+  const rung = ladder.rungs.find((r) => r.line === line) ?? main
+  const spread = ladder.kind === 'spread'
+  const asOdds = (p: SoccerSlipPick, chance: number): SoccerOdds => ({
+    id: p.id,
+    label: shortLine(p.label),
+    odds: `${Math.round(chance)}%`,
+  })
+  const pairs: SoccerLinePair[] = ladder.rungs.map((r) => ({ line: r.line, a: asOdds(r.yes, r.chance), b: asOdds(r.no, 100 - r.chance) }))
+  const byId = new Map(ladder.rungs.flatMap((r) => [[r.yes.id, { pick: r.yes, line: r.line }] as const, [r.no.id, { pick: r.no, line: r.line }] as const]))
+  const columns: [string, string] = spread
+    ? [main.yes.label.replace(/ [+-][\d.]+$/, ''), main.no.label.replace(/ [+-][\d.]+$/, '')]
+    : ['Over', 'Under']
+  return (
+    <div onClick={(e) => e.stopPropagation()} className="min-w-0">
+      <p className="mb-1 text-xs text-muted-foreground">{spread ? 'Spread' : 'Total'}</p>
+      <div className="flex items-stretch gap-1">
+        <div className="flex min-w-0 flex-1 gap-1">
+          <OddsButton
+            pick={asOdds(rung.yes, rung.chance)}
+            selected={selected.has(rung.yes.id)}
+            onSelect={(_, el) => onPick(rung.yes, el)}
+            className="min-w-0 flex-1"
+          />
+          <OddsButton
+            pick={asOdds(rung.no, 100 - rung.chance)}
+            selected={selected.has(rung.no.id)}
+            onSelect={(_, el) => onPick(rung.no, el)}
+            className="min-w-0 flex-1"
+          />
+        </div>
+        <AlternateLinePicker
+          family={spread ? 'spread' : 'total'}
+          pairs={pairs}
+          selectedIds={selected}
+          mainLine={main.line}
+          columns={columns}
+          onPick={(p) => {
+            const hit = byId.get(p.id)
+            if (!hit) return
+            setLine(hit.line)
+            if (!selected.has(hit.pick.id)) onPick(hit.pick)
+          }}
+        />
       </div>
     </div>
   )

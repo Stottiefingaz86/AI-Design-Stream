@@ -1,14 +1,22 @@
 'use client'
 
 import { useMemo, useState, type ReactNode } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import NumberFlow from '@number-flow/react'
-import { IconChevronDown, IconChevronLeft, IconChevronRight, IconUsers } from '@tabler/icons-react'
-import { Typography } from '@/components/ui/typography'
+import {
+  IconBan,
+  IconCalendarEvent,
+  IconChevronDown,
+  IconChevronLeft,
+  IconChevronRight,
+  IconCircleCheckFilled,
+  IconUsers,
+} from '@tabler/icons-react'
 import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
+import { ModePillTrack } from '@/components/lumen/soccer-sport-page'
 import { ChangeChip, LineChart, RangeTabs, outcomeColor, outcomeDash } from '@/components/lumen/markets/market-ui'
 import { SoccerBetslip, type SoccerSlipPick } from '@/components/lumen/soccer-betslip'
-import { ModePillTrack } from '@/components/lumen/soccer-sport-page'
 import {
   EventBreadcrumbs,
   EventHeader,
@@ -37,10 +45,12 @@ import {
   bettorsNow,
   eventLadders,
   leadOutcome,
+  leagueLogo,
   noCents,
   openComboBuilder,
   pickFor,
   teamRecord,
+  v5Games,
   yesCents,
   type Ladder,
 } from '@/lib/lumen/v5-combos'
@@ -48,7 +58,7 @@ import { cn } from '@/lib/utils'
 import { BetStackPopup, showBetStack } from './bet-stack-popup'
 import { ChartBetStream } from './chart-bet-stream'
 import { ComboBuilderOverlay } from './combo-builder'
-import { Crest, DrawMark, V5_CARD, YesNoButton, chanceFromAmerican, fmtPctRound, useV5Pick } from './combo-ui'
+import { Crest, DrawMark, V5_CARD, V5_LIGHT_UP, YesNoButton, chanceFromAmerican, fmtPctRound, useV5Pick } from './combo-ui'
 
 type Tab = 'lines' | 'props' | 'players'
 type OnPick = (pick: SoccerSlipPick, el?: HTMLElement | null) => void
@@ -158,7 +168,8 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
 
           <ChanceChart game={ev.game} />
 
-          <ModePillTrack active={tab} onChange={setTab} modes={tabs} ariaLabel="Market groups" className="mb-4 mt-5" />
+          {/* Market groups — V1 pill track */}
+          <ModePillTrack active={tab} onChange={setTab} modes={tabs} ariaLabel="Market groups" className="mb-4 mt-6" />
 
           <div className="flex flex-col gap-3">
             {tab === 'lines' ? <GameLines game={ev.game} selected={selected} onPick={onPick} /> : null}
@@ -182,6 +193,9 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
                 )
               : null}
           </div>
+
+          <MarketRules game={ev.game} />
+          <AlsoBetting game={ev.game} sport={sport} />
 
           <div className="mt-6 flex flex-col gap-4 lg:hidden">
             {model.live ? <LiveStatsCard model={model} /> : <PreMatchCards model={model} />}
@@ -252,7 +266,7 @@ function ChanceChart({ game }: { game: NonNullable<ReturnType<typeof marketEvent
             <p className="mt-0.5 flex items-baseline gap-1.5">
               <span
                 className={cn(
-                  'text-2xl font-semibold tabular-nums',
+                  'text-3xl font-bold leading-none tabular-nums tracking-tight',
                   o.id === lead.id ? 'text-foreground' : 'text-muted-foreground',
                 )}
               >
@@ -288,10 +302,8 @@ function ChanceChart({ game }: { game: NonNullable<ReturnType<typeof marketEvent
 function MarketFrame({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }) {
   return (
     <section data-name="v5-market" className={cn(V5_CARD, 'overflow-hidden')}>
-      <div className="flex h-11 items-center gap-2 border-b border-border px-4">
-        <Typography as="h3" shape="small" weight="semibold" className="min-w-0 flex-1 truncate">
-          {title}
-        </Typography>
+      <div className="flex h-12 items-center gap-2 border-b border-border px-4">
+        <h3 className="min-w-0 flex-1 truncate text-lg font-bold tracking-tight text-foreground">{title}</h3>
         {aside}
       </div>
       <div className="divide-y divide-border">{children}</div>
@@ -324,15 +336,13 @@ function MarketRow({
       <div className="flex min-w-0 items-center gap-3">
         {lead}
         <div className="min-w-0">
-          <Typography as="p" shape="small" weight="medium" className="truncate">
-            {label}
-          </Typography>
+          <p className="truncate text-base font-bold tracking-tight text-foreground">{label}</p>
           {sub ? <p className="truncate text-xs text-muted-foreground">{sub}</p> : null}
           {stepper ? <div className="mt-2">{stepper}</div> : null}
         </div>
       </div>
       <span className="flex items-center justify-end gap-1 md:justify-start">
-        <span className="text-lg font-semibold tabular-nums text-foreground">{fmtPctRound(chance)}</span>
+        <span className="text-2xl font-bold tabular-nums tracking-tight text-foreground">{fmtPctRound(chance)}</span>
         {change !== undefined ? <ChangeChip value={change} /> : null}
       </span>
       <span className="col-span-2 flex gap-2 md:col-span-1">
@@ -448,7 +458,7 @@ function LadderCard({ ladder, selected, onPick }: { ladder: Ladder; selected: Se
       <MarketRow
         label={
           <>
-            {ladder.lead} <span className="text-primary">{rung.line}</span> {ladder.unit}
+            {ladder.lead} <span className="font-bold">{rung.line}</span> {ladder.unit}
           </>
         }
         chance={rung.chance}
@@ -674,7 +684,7 @@ function PlayerLineRow({
     <MarketRow
       label={
         <>
-          {player.name} <span className="text-muted-foreground">over</span> <span className="text-primary">{row.line}</span>
+          {player.name} <span className="text-muted-foreground">over</span> <span className="font-bold">{row.line}</span>
         </>
       }
       sub={[abbr, player.pos].filter(Boolean).join(' · ')}
@@ -687,5 +697,148 @@ function PlayerLineRow({
       yes={{ value: Math.round(pa), selected: selected.has(yes.id), onClick: (el) => onPick(yes, el) }}
       no={{ value: Math.round(pb), selected: selected.has(no.id), onClick: (el) => onPick(no, el) }}
     />
+  )
+}
+
+// ─── Market rules + People are also betting ─────────────────────
+
+function MarketRules({ game }: { game: NonNullable<ReturnType<typeof marketEvent>>['game'] }) {
+  const [open, setOpen] = useState(true)
+  const [section, setSection] = useState<'timeline' | 'integrity' | null>('timeline')
+  const sportWord = game.sport === 'nfl' ? 'final play' : 'final whistle'
+  const series = `${game.sport === 'nfl' ? 'FB' : 'SC'}-${game.leagueName.replace(/[^A-Za-z]/g, '').slice(0, 6).toUpperCase()}`
+  const steps = [
+    {
+      id: 'open',
+      title: 'Market open',
+      sub: game.live ? 'Live now · in-play betting is on' : `Open now · kicks off ${game.when}`,
+      done: true,
+    },
+    { id: 'close', title: 'Market closes', sub: 'When the result is in', done: false },
+    { id: 'payout', title: 'Projected payout', sub: `Within 1 minute of the ${sportWord}`, done: false },
+  ]
+  return (
+    <section data-name="v5-market-rules" className="mt-12">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between text-left">
+        <h2 className="text-2xl font-bold leading-tight tracking-tight text-foreground">Market rules</h2>
+        <IconChevronDown className={cn('size-6 text-muted-foreground transition-transform', open && 'rotate-180')} stroke={2} />
+      </button>
+      {open ? (
+        <div className="mt-4">
+          <div className={cn(V5_CARD, 'overflow-hidden')}>
+            <button
+              type="button"
+              onClick={() => setSection((v) => (v === 'timeline' ? null : 'timeline'))}
+              className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-accent"
+            >
+              <IconCalendarEvent className="size-6 shrink-0 text-foreground" stroke={1.75} />
+              <span className="flex-1 text-base font-bold tracking-tight text-foreground">Timeline and payout</span>
+              <IconChevronDown
+                className={cn('size-5 text-muted-foreground transition-transform', section === 'timeline' && 'rotate-180')}
+                stroke={2}
+              />
+            </button>
+            {section === 'timeline' ? (
+              <div className="border-t border-border px-4 pb-5 pt-4">
+                <ol className="flex flex-col">
+                  {steps.map((st, i) => {
+                    const last = i === steps.length - 1
+                    return (
+                      <li key={st.id} className={cn('relative flex gap-4', !last && 'pb-6')}>
+                        {!last ? (
+                          <span
+                            className={cn('absolute bottom-0 left-[11px] top-7 w-0.5', st.done ? 'bg-success' : 'bg-border')}
+                            aria-hidden
+                          />
+                        ) : null}
+                        {st.done ? (
+                          <IconCircleCheckFilled className="relative size-6 shrink-0 text-success" aria-hidden />
+                        ) : (
+                          <span className="relative flex size-6 shrink-0 items-center justify-center" aria-hidden>
+                            <span className="size-3 rounded-full bg-muted-foreground/60" />
+                          </span>
+                        )}
+                        <span className="min-w-0">
+                          <span className="block text-base font-bold text-foreground">{st.title}</span>
+                          <span className="block text-sm text-muted-foreground">{st.sub}</span>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ol>
+                <p className="mt-5 text-sm leading-6 text-muted-foreground">{game.rules}</p>
+                <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span>
+                    Series <span className="font-bold text-foreground">{series}</span>
+                  </span>
+                  <span>
+                    Event <span className="font-bold text-foreground">{(game.eventId ?? game.id).toUpperCase()}</span>
+                  </span>
+                  <span>
+                    Market <span className="font-bold text-foreground">{game.id.toUpperCase()}</span>
+                  </span>
+                </p>
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setSection((v) => (v === 'integrity' ? null : 'integrity'))}
+              className="flex w-full items-center gap-3 border-t border-border px-4 py-4 text-left transition-colors hover:bg-accent"
+            >
+              <IconBan className="size-6 shrink-0 text-foreground" stroke={1.75} />
+              <span className="flex-1 text-base font-bold tracking-tight text-foreground">Insider betting is prohibited</span>
+              <IconChevronDown
+                className={cn('size-5 text-muted-foreground transition-transform', section === 'integrity' && 'rotate-180')}
+                stroke={2}
+              />
+            </button>
+            {section === 'integrity' ? (
+              <p className="border-t border-border px-4 pb-5 pt-4 text-sm leading-6 text-muted-foreground">
+                Players, coaches, officials and anyone with inside information about this game can&apos;t bet on it.
+                Bets placed with inside information are void and the account may be closed.
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function AlsoBetting({ game, sport }: { game: NonNullable<ReturnType<typeof marketEvent>>['game']; sport: MarketSport }) {
+  const others = v5Games(sport)
+    .filter((g) => g.id !== game.id)
+    .sort((a, b) => Number(b.live) - Number(a.live) || b.volume - a.volume)
+    .slice(0, 5)
+  if (!others.length) return null
+  return (
+    <section data-name="v5-also-betting" className="mt-12">
+      <h2 className="mb-4 text-2xl font-bold leading-tight tracking-tight text-foreground">People are also betting</h2>
+      <div className="flex flex-col gap-2">
+        {others.map((g) => {
+          const lead = leadOutcome(g)
+          return (
+            <Link
+              key={g.id}
+              href={g.href}
+              className={cn(V5_CARD, V5_LIGHT_UP, 'flex items-center gap-4 px-4 py-3.5')}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={leagueLogo(g.leagueName, g.leagueIcon)} alt="" className="size-10 shrink-0 object-contain" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[17px] font-bold tracking-tight text-foreground">{g.title}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  {g.live ? `Live · ${g.when}` : g.when} · {g.leagueName}
+                </span>
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block text-xs text-muted-foreground">{lead.short || lead.label}</span>
+                <span className="block text-xl font-bold tabular-nums tracking-tight text-foreground">{fmtPctRound(lead.chance)}</span>
+              </span>
+            </Link>
+          )
+        })}
+      </div>
+    </section>
   )
 }

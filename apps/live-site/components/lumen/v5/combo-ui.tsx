@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils'
 export const V5_CARD = 'rounded-[10px] border border-border bg-card shadow-[0_0_16px_rgba(0,0,0,0.06)]'
 
 /** Light-up on hover — surface brightens, no stroke. */
-export const V5_LIGHT_UP = 'transition-colors duration-150 hover:bg-surface-muted-2'
+export const V5_LIGHT_UP = 'transition-colors duration-200 hover:bg-accent'
 
 /** Live marker — steady, never pulsing. */
 export function LiveDot({ className }: { className?: string }) {
@@ -245,4 +245,139 @@ export function useV5Pick() {
       flyBetDotToSlip(el ?? null, pick.id)
     }
   }
+}
+
+// ─── V5 type scale — bold display (Figtree 800/900, tight tracking) ───
+
+/** Page title — "Football", "NFL". */
+export const V5_TITLE = 'text-3xl font-bold leading-9 tracking-tight text-foreground'
+/** Section heading — "Popular", "Later today". */
+export const V5_HEADING = 'text-xl font-bold leading-7 text-foreground'
+/** Big numbers — chances, payouts. */
+export const V5_NUM = 'font-bold tabular-nums'
+
+/** Section heading row with an optional action on the right. */
+export function V5Heading({
+  children,
+  action,
+  className,
+}: {
+  children: React.ReactNode
+  action?: React.ReactNode
+  className?: string
+}) {
+  return (
+    <div className={cn('mb-3 flex items-end justify-between gap-3', className)}>
+      <h2 className={V5_HEADING}>{children}</h2>
+      {action}
+    </div>
+  )
+}
+
+/** Text tabs — uppercase, bold, tracked. Active = foreground. */
+export function V5Tabs<T extends string>({
+  tabs,
+  active,
+  onChange,
+  className,
+}: {
+  tabs: { id: T; label: string }[]
+  active: T
+  onChange: (id: T) => void
+  className?: string
+}) {
+  return (
+    <div role="tablist" className={cn('scrollbar-hide flex gap-7 overflow-x-auto', className)}>
+      {tabs.map((t) => (
+        <button
+          key={t.id}
+          type="button"
+          role="tab"
+          aria-selected={active === t.id}
+          onClick={() => onChange(t.id)}
+          className={cn(
+            'shrink-0 py-1 text-[13px] font-bold uppercase tracking-[0.14em] transition-colors',
+            active === t.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** League filter pills — logo + short name; active fills, hover lights up. */
+export function LeaguePills({
+  items,
+  active,
+  onChange,
+  className,
+}: {
+  items: { id: string; label: string; logo?: string; icon?: React.ReactNode }[]
+  active: string
+  onChange: (id: string) => void
+  className?: string
+}) {
+  return (
+    <div className={cn('scrollbar-hide -mx-4 flex gap-2.5 overflow-x-auto px-4 md:-mx-6 md:px-6', className)}>
+      {items.map((it) => {
+        const on = it.id === active
+        return (
+          <button
+            key={it.id}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(it.id)}
+            className={cn(
+              'inline-flex h-12 shrink-0 items-center gap-2.5 rounded-full border px-5 text-[15px] font-bold tracking-tight transition-colors',
+              on
+                ? 'border-foreground bg-foreground text-background'
+                : 'border-border bg-card text-foreground hover:bg-accent',
+            )}
+          >
+            {it.logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={it.logo} alt="" className="size-6 object-contain" />
+            ) : (
+              it.icon
+            )}
+            {it.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Big % pill — rounded, bold. Neutral idle, primary when picked. */
+export function PctPill({
+  chance,
+  selected,
+  onClick,
+  className,
+}: {
+  chance: number
+  selected: boolean
+  onClick: (el: HTMLElement) => void
+  className?: string
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={(e) => {
+        stop(e)
+        onClick(e.currentTarget)
+      }}
+      className={cn(
+        'inline-flex h-11 min-w-[78px] shrink-0 items-center justify-center rounded-full border px-3 text-base tabular-nums transition-colors',
+        V5_NUM,
+        selected ? CHIP_ON : CHIP_IDLE,
+        className,
+      )}
+    >
+      {fmtPctRound(chance)}
+    </button>
+  )
 }

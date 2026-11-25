@@ -1,0 +1,469 @@
+'use client'
+
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
+import { IconCheck, IconChevronLeft, IconChevronRight, IconRocket } from '@tabler/icons-react'
+import { LiveClock, useCardMotion } from '@/components/lumen/sports-home-page'
+import { BoardTeamBadge, LIVE_ROW_STYLE, OddsButton } from '@/components/lumen/soccer-sport-page'
+import { useShell } from '@/components/site/shell-context'
+import { revealShellDock } from '@/components/site/shell-scroll'
+import { setSoccerSlip, useSoccerSlip, withOneLegPerMarket } from '@/lib/lumen/soccer-slip-store'
+import {
+  sportMegaParlays,
+  sportOddsBoosts,
+  sportSgpPacks,
+  sportsHomeMegaParlays,
+  sportsHomeOddsBoosts,
+  sportsHomeSgpPacks,
+  type OddsBoost,
+} from '@/lib/lumen/sports-home'
+import type { SportsMarket } from '@/lib/lumen/sports-markets'
+import {
+  decimalToAmerican,
+  featuredCombos,
+  fmtX,
+  decimalOf,
+  kickoffTime,
+  leagueLogo,
+  teamOutcomes,
+  toggleLeg,
+  v5Games,
+  type FeaturedCombo,
+  type V5Sport,
+} from '@/lib/lumen/v5-combos'
+import { flyBetDotToSlip } from '@/lib/lumen/vip-celebrate'
+import { cn } from '@/lib/utils'
+import { Crest, LiveDot, V5_CARD, V5_HEADING, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtUsd } from './combo-ui'
+
+
+// ─── Shelf — casino shelf header (title · See All box · arrow boxes) + snap rail ───
+
+const SHELF_BOX =
+  'inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-border bg-secondary transition-colors hover:bg-muted disabled:opacity-45'
+
+export function V5Shelf({
+  title,
+  onSeeAll,
+  label,
+  children,
+  className,
+  bleedRight = true,
+}: {
+  title: string
+  onSeeAll?: () => void
+  label?: string
+  children: React.ReactNode
+  className?: string
+  /** Off when something sits to the right (builder slip) — the rail stops at the column edge. */
+  bleedRight?: boolean
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [edge, setEdge] = useState({ back: false, more: false })
+  const measure = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    setEdge({ back: el.scrollLeft > 4, more: el.scrollLeft + el.clientWidth < el.scrollWidth - 4 })
+  }, [])
+  useLayoutEffect(() => {
+    measure()
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [measure, children])
+  const by = (d: 1 | -1) => {
+    const el = ref.current
+    if (!el) return
+    const card = el.querySelector<HTMLElement>(':scope > *')
+    el.scrollBy({ left: d * (card ? card.offsetWidth + 12 : el.clientWidth * 0.8), behavior: 'smooth' })
+  }
+  return (
+    <section className={cn('mb-8', className)}>
+      <header className="mb-3 flex h-9 items-center justify-between gap-4">
+        <h2 className={cn(V5_HEADING, 'min-w-0 truncate')}>{title}</h2>
+        <div className="flex shrink-0 items-center gap-4">
+          {onSeeAll ? (
+            <button type="button" onClick={onSeeAll} className={cn(SHELF_BOX, 'px-3 text-xs font-medium text-muted-foreground hover:text-foreground')}>
+              See All
+            </button>
+          ) : null}
+          <div className="hidden items-center gap-2 md:flex">
+            <button type="button" aria-label={`Scroll ${title} back`} disabled={!edge.back} onClick={() => by(-1)} className={cn(SHELF_BOX, 'size-9 p-0 text-foreground')}>
+              <IconChevronLeft className="size-4" stroke={2} />
+            </button>
+            <button type="button" aria-label={`Scroll ${title} forward`} disabled={!edge.more} onClick={() => by(1)} className={cn(SHELF_BOX, 'size-9 p-0 text-foreground')}>
+              <IconChevronRight className="size-4" stroke={2} />
+            </button>
+          </div>
+        </div>
+      </header>
+      <div className={bleedRight ? '-mx-4 md:-mx-6' : '-ml-4 overflow-hidden md:-ml-6'}>
+        <div
+          ref={ref}
+          onScroll={measure}
+          aria-label={label ?? title}
+          className="scrollbar-hide -my-2 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-px-4 px-4 py-2 md:scroll-px-6 md:px-6 [&>*]:snap-start"
+        >
+          {children}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Popular — live and big games, grouped by league ───────────
+
+/** Popular carousel — league groups ("NFL · 3 of 8"), live cards show the score, the rest show chances. */
+export function PopularCarousel({ sport, title = 'Popular' }: { sport: V5Sport; title?: string }) {
+  const router = useRouter()
+  const { startNavigating } = useShell()
+  const groups = useMemo(() => {
+    const all = v5Games(sport)
+    const map = new Map<string, SportsMarket[]>()
+    for (const g of all) map.set(g.leagueName, [...(map.get(g.leagueName) ?? []), g])
+    return [...map.entries()]
+      .map(([league, games]) => ({
+        league,
+        total: games.length,
+        games: [...games].sort((a, b) => Number(b.live) - Number(a.live) || b.volume - a.volume).slice(0, 3),
+        live: games.some((g) => g.live),
+      }))
+      .sort((a, b) => Number(b.live) - Number(a.live))
+  }, [sport])
+  if (!groups.length) return null
+  const go = (href: string) => {
+    startNavigating(href)
+    router.push(href)
+  }
+  return (
+    <V5Shelf title={title}>
+          {groups.map((grp) => (
+            <div key={grp.league} className="flex shrink-0 flex-col">
+              <p className="mb-2 flex items-baseline gap-2 px-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                <span className="text-foreground">{grp.league}</span>
+                <span>
+                  {grp.games.length} of {grp.total}
+                </span>
+              </p>
+              <div className="flex gap-3">
+                {grp.games.map((g) => (
+                  <PopularCard key={g.id} game={g} onOpen={() => go(g.href)} />
+                ))}
+              </div>
+            </div>
+          ))}
+    </V5Shelf>
+  )
+}
+
+function PopularCard({ game, onOpen }: { game: SportsMarket; onOpen: () => void }) {
+  const teams = teamOutcomes(game)
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      style={game.live ? LIVE_ROW_STYLE : undefined}
+      className={cn(V5_CARD, V5_LIGHT_UP, 'flex h-[132px] w-[264px] shrink-0 flex-col gap-2.5 p-4 text-left')}
+    >
+      {game.live ? (
+        <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-foreground">
+          <LiveDot /> Live <span className="font-semibold normal-case tracking-normal text-muted-foreground">· {game.when}</span>
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground">
+          {game.when.split(',')[0]} · {kickoffTime(game)}
+        </span>
+      )}
+      {teams.map((o, i) => (
+        <span key={o.id} className="flex items-center gap-2.5">
+          <Crest name={o.team ?? o.label} />
+          <span className="min-w-0 flex-1 truncate text-[15px] font-bold tracking-tight text-foreground">
+            {o.label}
+          </span>
+          {game.live && game.score ? (
+            <span className={cn('inline-flex h-8 min-w-8 items-center justify-center rounded-md border border-border px-2 text-sm', V5_NUM)}>
+              {game.score[i]}
+            </span>
+          ) : (
+            <span className={cn('text-[15px]', V5_NUM)}>{fmtPctRound(o.chance)}</span>
+          )}
+        </span>
+      ))}
+    </button>
+  )
+}
+
+// ─── Odds Boosts — V1 boost cards ──────────────────────────────
+
+export function BoostsShelf({
+  sport,
+  title = 'Odds Boosts',
+  onSeeAll,
+}: {
+  sport: V5Sport
+  title?: string
+  onSeeAll?: () => void
+}) {
+  const boosts = useMemo<OddsBoost[]>(() => (sport === 'all' ? sportsHomeOddsBoosts() : sportOddsBoosts(sport)), [sport])
+  const cards = useBoostCards(boosts)
+  if (!boosts.length) return null
+  return (
+    <V5Shelf title={title} onSeeAll={onSeeAll}>
+      {cards}
+    </V5Shelf>
+  )
+}
+
+export function BoostsGrid({ sport }: { sport: V5Sport }) {
+  const boosts = useMemo<OddsBoost[]>(() => (sport === 'all' ? sportsHomeOddsBoosts() : sportOddsBoosts(sport)), [sport])
+  const cards = useBoostCards(boosts)
+  if (!boosts.length) return <p className="py-16 text-center text-sm text-muted-foreground">No Odds Boosts right now.</p>
+  return <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 [&>*]:!w-full">{cards}</div>
+}
+
+function useBoostCards(boosts: OddsBoost[]) {
+  const router = useRouter()
+  const { startNavigating } = useShell()
+  const picks = useSoccerSlip()
+  const selected = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
+  return boosts.map((boost) => (
+    <V5BoostCard
+      key={boost.id}
+      boost={boost}
+      selected={selected.has(boost.pick.id)}
+      onAdd={(el) => {
+        if (selected.has(boost.pick.id)) {
+          setSoccerSlip((prev) => prev.filter((p) => p.id !== boost.pick.id))
+          return
+        }
+        /* Boosts stay straight — same rule as V1. */
+        setSoccerSlip((prev) => (boost.pick.outright ? [boost.pick, ...prev] : withOneLegPerMarket(prev, boost.pick)))
+        revealShellDock()
+        flyBetDotToSlip(el ?? null, boost.pick.id)
+      }}
+      onOpen={() => {
+        startNavigating(boost.eventHref)
+        router.push(boost.eventHref)
+      }}
+    />
+  ))
+}
+
+/** V1 boost card layout — neutral rocket (no red icons), was → boosted. */
+function V5BoostCard({
+  boost,
+  selected,
+  onAdd,
+  onOpen,
+}: {
+  boost: OddsBoost
+  selected: boolean
+  onAdd: (el?: HTMLElement | null) => void
+  onOpen: () => void
+}) {
+  const motionProps = useCardMotion()
+  return (
+    <motion.article
+      data-name="v5-boost-card"
+      {...motionProps}
+      style={boost.live ? LIVE_ROW_STYLE : undefined}
+      className={cn(V5_CARD, 'relative z-0 flex w-[min(320px,85vw)] shrink-0 flex-col overflow-hidden motion-reduce:!transform-none')}
+    >
+      <div className="flex flex-col gap-2.5 p-3">
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={leagueLogo(boost.leagueName, boost.leagueIcon)} alt="" className="size-4 object-contain" />
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{boost.leagueName}</span>
+          {boost.live ? <LiveClock when={boost.when} /> : <span className="text-xs text-muted-foreground">{boost.when}</span>}
+        </div>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="flex w-full items-center gap-2 rounded-lg border border-border bg-secondary px-3 py-2.5 text-left transition-colors hover:bg-accent"
+        >
+          <span className="flex min-w-0 flex-1 flex-col gap-1">
+            {boost.teams.map((t) => (
+              <span key={t} className="flex min-w-0 items-center gap-2">
+                <BoardTeamBadge name={t} />
+                <span className="truncate text-sm font-semibold text-foreground">{t}</span>
+              </span>
+            ))}
+          </span>
+          <IconChevronRight className="size-4 shrink-0 text-muted-foreground" stroke={1.75} />
+        </button>
+      </div>
+      <div className="flex flex-1 items-start gap-2 px-4 pb-4 pt-1">
+        <IconRocket className="mt-0.5 size-4 shrink-0 text-foreground" stroke={1.75} aria-hidden />
+        <p className="text-sm font-semibold leading-5 text-foreground">{boost.title}</p>
+      </div>
+      <div className="mt-auto grid grid-cols-2 gap-2 border-t border-border p-3">
+        <div className="flex h-12 flex-col items-center justify-center gap-0.5 rounded-lg border border-border px-2 text-center">
+          <span className="text-[10px] font-medium leading-3.5 text-muted-foreground">Was</span>
+          <span className="text-sm font-semibold tabular-nums leading-5 text-muted-foreground line-through">{boost.was}</span>
+        </div>
+        <OddsButton
+          pick={{ id: boost.id, label: 'Boosted', odds: boost.boosted }}
+          selected={selected}
+          onSelect={(_, el) => onAdd(el)}
+          className="h-12 w-full"
+        />
+      </div>
+    </motion.article>
+  )
+}
+
+// ─── Popular combos — SGP-style cards ──────────────────────────
+
+/** Ready-made combo in the V1 SGP card style — leg timeline, one chip adds every leg. */
+export function ComboPackCard({
+  combo,
+  fluid = false,
+  kind = 'combo',
+}: {
+  combo: FeaturedCombo
+  fluid?: boolean
+  /** Chip copy — "5-leg combo", "3-leg same game combo", "6-leg mega combo". */
+  kind?: 'combo' | 'same game combo' | 'mega combo'
+}) {
+  const motionProps = useCardMotion()
+  const picks = useSoccerSlip()
+  const selected = combo.legs.every((l) => picks.some((p) => p.id === l.id))
+  const add = () =>
+    setSoccerSlip((prev) => {
+      if (selected) return prev.filter((p) => !combo.legs.some((l) => l.id === p.id))
+      return combo.legs.reduce((acc, leg) => (acc.some((p) => p.id === leg.id) ? acc : toggleLeg(acc, leg)), prev)
+    })
+  return (
+    <motion.article
+      data-name="v5-combo-pack"
+      {...motionProps}
+      className={cn(
+        V5_CARD,
+        'relative z-0 flex shrink-0 flex-col overflow-hidden motion-reduce:!transform-none',
+        fluid ? 'w-full' : 'w-[min(320px,85vw)]',
+      )}
+    >
+      <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={combo.leagueLogo} alt="" className="size-5 shrink-0 object-contain" />
+        <p className="min-w-0 flex-1 truncate text-base font-bold tracking-tight text-foreground">{combo.title}</p>
+        <span className="shrink-0 text-xs text-muted-foreground">{combo.bettors.toLocaleString('en-US')} on this</span>
+      </div>
+      <ol className="flex flex-col px-4 py-3">
+        {combo.legs.map((leg, i) => {
+          const last = i === combo.legs.length - 1
+          return (
+            <li key={leg.id} className={cn('relative flex gap-3', !last && 'pb-3')}>
+              {!last ? <span className="absolute bottom-0 left-[7.5px] top-5 w-px bg-border" aria-hidden /> : null}
+              <span
+                className={cn(
+                  'relative mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full transition-colors',
+                  selected ? 'bg-primary' : 'border-2 border-muted-foreground bg-card',
+                )}
+                aria-hidden
+              >
+                {selected ? <IconCheck className="size-2.5 text-primary-foreground" stroke={3.5} /> : null}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-bold leading-5 text-foreground">{'display' in leg ? String((leg as { display: string }).display) : leg.label}</div>
+                <div className="truncate text-xs leading-4 text-muted-foreground">{leg.eventLabel}</div>
+              </div>
+              <span className="shrink-0 text-xs leading-5 tabular-nums text-muted-foreground">{fmtX(decimalOf(leg.odds))}</span>
+            </li>
+          )
+        })}
+      </ol>
+      <div className="mt-auto border-t border-border p-3">
+        <OddsButton
+          pick={{
+            id: combo.id,
+            label: selected ? 'Added to Betslip' : `${combo.legs.length}-leg ${kind} · $10 pays ${fmtUsd(10 * combo.decimal, 0)}`,
+            odds: decimalToAmerican(combo.decimal),
+          }}
+          selected={selected}
+          onSelect={() => add()}
+          className="h-12 w-full"
+        />
+      </div>
+    </motion.article>
+  )
+}
+
+export function CombosShelf({ sport, onSeeAll }: { sport: V5Sport; onSeeAll?: () => void }) {
+  const combos = featuredCombos(sport)
+  if (!combos.length) return null
+  return (
+    <V5Shelf title="Popular Combos" onSeeAll={onSeeAll}>
+      {combos.map((c) => (
+        <ComboPackCard key={c.id} combo={c} />
+      ))}
+    </V5Shelf>
+  )
+}
+
+// ─── Same Game Combos + Mega Combos (V1 SGP packs / mega parlays, V5 names) ───
+
+function pseudo(id: string, lo: number, hi: number): number {
+  let h = 2166136261
+  for (let i = 0; i < id.length; i++) {
+    h ^= id.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return Math.round(lo + (((h >>> 0) % 1000) / 1000) * (hi - lo))
+}
+
+/** Same-game packs as combos — every leg on one game. */
+export function sameGameCombos(sport: V5Sport): FeaturedCombo[] {
+  const packs = sport === 'all' ? sportsHomeSgpPacks() : sportSgpPacks(sport)
+  return packs.map((p) => ({
+    id: p.id,
+    title: p.eventLabel,
+    league: p.leagueName,
+    leagueLogo: leagueLogo(p.leagueName, p.leagueIcon),
+    legs: p.legs,
+    decimal: decimalOf(p.odds),
+    volume: pseudo(p.id, 120_000, 900_000),
+    bettors: pseudo(`${p.id}-b`, 140, 1_800),
+  }))
+}
+
+/** Mega combos — big multi-game tickets. */
+export function megaCombos(sport: V5Sport): FeaturedCombo[] {
+  const megas = sport === 'all' ? sportsHomeMegaParlays() : sportMegaParlays(sport)
+  return megas.map((m) => ({
+    id: m.id,
+    title: m.title,
+    league: m.sport === 'nfl' ? 'NFL' : 'Premier League',
+    leagueLogo: leagueLogo(m.sport === 'nfl' ? 'NFL' : 'Premier League'),
+    legs: m.legs,
+    decimal: decimalOf(m.odds),
+    volume: pseudo(m.id, 300_000, 2_400_000),
+    bettors: pseudo(`${m.id}-b`, 400, 4_200),
+  }))
+}
+
+export function SameGameCombosShelf({ sport, onSeeAll }: { sport: V5Sport; onSeeAll?: () => void }) {
+  const combos = sameGameCombos(sport)
+  if (!combos.length) return null
+  return (
+    <V5Shelf title="Same Game Combos" onSeeAll={onSeeAll}>
+      {combos.map((c) => (
+        <ComboPackCard key={c.id} combo={c} kind="same game combo" />
+      ))}
+    </V5Shelf>
+  )
+}
+
+export function MegaCombosShelf({ sport, onSeeAll }: { sport: V5Sport; onSeeAll?: () => void }) {
+  const combos = megaCombos(sport)
+  if (!combos.length) return null
+  return (
+    <V5Shelf title="Mega Combos" onSeeAll={onSeeAll}>
+      {combos.map((c) => (
+        <ComboPackCard key={c.id} combo={c} kind="mega combo" />
+      ))}
+    </V5Shelf>
+  )
+}

@@ -250,6 +250,7 @@ export function SoccerBetslip({
   comboAction,
   variant,
   onClosedAfterPlace,
+  inline = false,
 }: {
   picks: SoccerSlipPick[]
   onRemove: (id: string) => void
@@ -261,10 +262,12 @@ export function SoccerBetslip({
    * the desktop dock (the dock also shows when the slip is empty). Other versions omit it.
    */
   comboAction?: { label: string; onClick: () => void }
-  /** V5 only — refreshed slip: legs as cards, SGP + combo cards pinned at the bottom. */
+  /** V5 only — bold slip: selections timeline, singles tucked away, SGP + combo at the bottom. */
   variant?: 'v5'
-  /** V5 only — the player closed the slip on a receipt (follow-up stack opens then). */
+  /** V5 only — the player left the receipt (slip closed, or placed from an inline slip). */
   onClosedAfterPlace?: (placed: SportsBet[]) => void
+  /** V5 combo builder — the same slip rendered in place (no drawer, no dock, no shell sync). */
+  inline?: boolean
 }) {
   const router = useRouter()
   const v5 = variant === 'v5'
@@ -296,6 +299,8 @@ export function SoccerBetslip({
   /** Bet key → reason; rejected bets stay in the slip. */
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [receipt, setReceipt] = useState<Receipt | null>(null)
+  /** V5 — per-leg single stakes live behind "Bet as singles". */
+  const [singlesOpen, setSinglesOpen] = useState(false)
   const [crossSellCanPrev, setCrossSellCanPrev] = useState(false)
   const [crossSellCanNext, setCrossSellCanNext] = useState(false)
   const crossSellRef = useRef<HTMLDivElement>(null)
@@ -350,14 +355,16 @@ export function SoccerBetslip({
   }, [])
 
   useEffect(() => {
+    if (inline) return
     setSportsBetslipOpen(open)
     return () => setSportsBetslipOpen(false)
-  }, [open, setSportsBetslipOpen])
+  }, [open, setSportsBetslipOpen, inline])
 
   useEffect(() => {
+    if (inline) return
     setSportsBetCount(picks.length)
     return () => setSportsBetCount(0)
-  }, [picks.length, setSportsBetCount])
+  }, [picks.length, setSportsBetCount, inline])
 
   /* Same market on the same game: the newer pick replaced a leg — say so. */
   useEffect(() => {
@@ -394,6 +401,13 @@ export function SoccerBetslip({
   receiptRef.current = receipt
 
   useEffect(() => {
+    if (!inline || !receipt?.placed.length) return
+    const placed = receipt.placed
+    const t = window.setTimeout(() => onClosedAfterPlaceRef.current?.(placed), 1200)
+    return () => window.clearTimeout(t)
+  }, [inline, receipt])
+
+  useEffect(() => {
     if (picks.length > 0) return
     /* Removing the last leg closes the slip — no empty state flash. Receipts stay up. */
     if (prevCountRef.current > 0 && !receiptRef.current) setOpen(false)
@@ -416,6 +430,8 @@ export function SoccerBetslip({
     }
     if (addTick === addTickSeenRef.current) return
     addTickSeenRef.current = addTick
+    /* V5: picks build up in the Selections bar — the slip never pops open on its own. */
+    if (inline || v5) return
     if (prevCountRef.current > 0 || picks.length === 0) return
     setShowDesktopDock(false)
     setReceipt(null)
@@ -432,6 +448,7 @@ export function SoccerBetslip({
   useEffect(() => {
     if (sportsBetslipOpenTick === openTickSeenRef.current) return
     openTickSeenRef.current = sportsBetslipOpenTick
+    if (inline) return
     dismissedRef.current = false
     setShowDesktopDock(false)
     setOpen(true)
@@ -679,63 +696,284 @@ export function SoccerBetslip({
         ? 'Accept odds & place'
         : `Place ${money(placeStake)}`
 
-  const sheet =
-    mounted && portalReady
-      ? createPortal(
+  /* ─── V5 slip body — selections timeline, singles tucked away, SGP + combo at the bottom ─── */
+  const singlesTotal = picks.reduce((sum, p) => sum + parseStake(straightStakes[p.id] ?? ''), 0)
+  const onlyPick = picks.length === 1 ? picks[0]! : null
+  const comboHint =
+    units.length >= 2
+      ? null
+      : picks.length === 1
+        ? 'Pick 1 more market to make a combo'
+        : 'Add a pick from another game to make a combo'
+
+  const v5Body = (
+    <>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 scrollbar-hide">
+        <ol data-name="betslip-v5-legs" className="flex flex-col pt-3">
+          <AnimatePresence initial={false} mode="popLayout">
+            {picks.map((pick, i) => {
+              const live = slipLiveMeta(pick)
+              const last = i === picks.length - 1
+              return (
+                <motion.li
+                  key={pick.id}
+                  layout
+                  data-name="betslip-leg"
+                  data-betslip-leg={pick.id}
+                  data-live={live ? '' : undefined}
+                  initial={{ opacity: 0, y: -12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                  transition={{ duration: 0.22, ease: LEG_EASE, layout: { duration: 0.22, ease: LEG_EASE } }}
+                  className={cn('relative flex gap-3', !last && 'pb-4')}
+                >
+                  {!last ? <span className="absolute bottom-0 left-[7.5px] top-5 w-px bg-border" aria-hidden /> : null}
+                  <span className="relative mt-[3px] flex size-4 shrink-0 items-center justify-center rounded-full bg-primary" aria-hidden>
+                    <IconCheck className="size-2.5 text-primary-foreground" stroke={3.5} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-bold leading-5 tracking-tight text-foreground">{pick.label}</p>
+                    <p className="truncate text-xs leading-4 text-muted-foreground">
+                      {live ? (
+                        <span className="font-semibold text-destructive">
+                          {live.clock} {live.score}
+                          {' · '}
+                        </span>
+                      ) : null}
+                      {pick.market} · {pick.eventLabel}
+                    </p>
+                    <RejectNote reason={errors[pick.id]} />
+                  </div>
+                  <span className="flex shrink-0 flex-col items-end leading-5">
+                    <span
+                      className={cn(
+                        'text-base font-bold tabular-nums tracking-tight',
+                        drifts[pick.id] ? 'text-warning' : 'text-foreground',
+                      )}
+                    >
+                      {pick.odds}
+                    </span>
+                    <span className="text-[11px] leading-4 tabular-nums text-muted-foreground">
+                      {drifts[pick.id] ? (
+                        <span className="line-through">{drifts[pick.id]}</span>
+                      ) : (
+                        `${decimalOf(pick.odds).toFixed(2)}x`
+                      )}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Remove ${pick.label}`}
+                    onClick={() => onRemove(pick.id)}
+                    className="-mr-1.5 inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    <IconX className="size-4" stroke={1.5} />
+                  </button>
+                </motion.li>
+              )
+            })}
+          </AnimatePresence>
+        </ol>
+
+        {comboHint ? (
           <div
-            data-soccer-betslip-root=""
-            data-name="soccer-betslip-root"
-            className={cn(
-              'fixed inset-0 z-[120] lg:pointer-events-none lg:inset-x-0 lg:bottom-0 lg:top-auto',
-              shown ? 'pointer-events-auto' : 'pointer-events-none',
-            )}
+            data-name="betslip-v5-combo-hint"
+            className="mt-4 flex items-center gap-2.5 rounded-lg bg-secondary px-3 py-2.5"
           >
-            {/* Mobile: catch off-handle swipes so the page doesn’t pull-to-refresh. */}
+            <IconStack2 className="size-4 shrink-0 text-foreground" stroke={1.75} aria-hidden />
+            <span className="min-w-0 flex-1 text-xs font-semibold leading-4 text-foreground">{comboHint}</span>
+            {comboAction ? (
+              <button
+                type="button"
+                onClick={() => {
+                  closeDrawer()
+                  comboAction.onClick()
+                }}
+                className="shrink-0 text-xs font-bold text-foreground underline-offset-2 hover:underline"
+              >
+                {comboAction.label}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {onlyPick ? (
+          <V5StakeBox
+            value={straightStakes[onlyPick.id] ?? DEFAULT_STAKE}
+            onChange={(next) => setStraightStakes((st) => ({ ...st, [onlyPick.id]: next }))}
+            toWin={winForOdds(onlyPick.odds, parseStake(straightStakes[onlyPick.id] ?? ''))}
+            ariaLabel={`Stake for ${onlyPick.label}`}
+            error={!!errors[onlyPick.id]}
+            chance={100 / decimalOf(onlyPick.odds)}
+            note="If it wins"
+          />
+        ) : (
+          <div data-name="betslip-v5-singles" className="mt-4 rounded-lg border border-border">
             <button
               type="button"
-              aria-label="Close betslip"
-              data-soccer-betslip-backdrop=""
-              data-state={shown ? 'open' : 'closed'}
-              onClick={closeDrawer}
-              className="absolute inset-0 border-0 bg-black/60 lg:hidden"
-              style={
-                dragging
-                  ? { opacity: backdropOpacity, transition: 'none' }
-                  : { opacity: shown ? 1 : 0 }
-              }
-            />
-            <aside
-              ref={sheetRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Betslip"
-              data-name="soccer-betslip"
-              data-brand="betonline"
-              data-state={shown ? 'open' : 'closed'}
-              data-dragging={dragging ? 'true' : undefined}
-              {...bind}
-              className={cn(
-                /* Mobile: flush bottom drawer. Desktop: 375 card. */
-                'dark pointer-events-auto absolute inset-x-0 bottom-0 flex w-full flex-col',
-                'mx-auto max-w-none lg:max-w-[375px]',
-                'max-h-[min(85dvh,680px)] overflow-hidden rounded-t-[10px]',
-                'border border-border border-b-0 bg-popover text-popover-foreground',
-                'shadow-[0_8px_40px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.06)]',
-              )}
-              style={
-                offset > 0
-                  ? { transform: `translateY(${offset}px)`, transition: 'none' }
-                  : undefined
-              }
+              aria-expanded={singlesOpen}
+              onClick={() => setSinglesOpen((v) => !v)}
+              className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
             >
-              <div
-                data-drag-handle=""
-                className="flex w-full shrink-0 cursor-grab touch-none items-center justify-center px-4 pb-2 pt-3 active:cursor-grabbing"
-                aria-label="Drag down to close"
-              >
-                <span />
+              <span className="min-w-0 flex-1 text-sm font-bold text-foreground">Bet as singles</span>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {singlesTotal > 0 ? money(singlesTotal) : `${picks.length} picks`}
+              </span>
+              <IconChevronDown
+                className={cn('size-4 text-muted-foreground transition-transform duration-200', singlesOpen && 'rotate-180')}
+                stroke={1.5}
+              />
+            </button>
+            {singlesOpen ? (
+              <div className="flex flex-col gap-2 border-t border-border px-3 py-2.5">
+                {picks.map((pick) => {
+                  const stakeText = straightStakes[pick.id] ?? DEFAULT_STAKE
+                  return (
+                    <div key={pick.id} className="flex items-start gap-2">
+                      <span className="min-w-0 flex-1 pt-2">
+                        <span className="block truncate text-xs font-bold text-foreground">{pick.label}</span>
+                        <span className="block text-[11px] tabular-nums text-muted-foreground">{pick.odds}</span>
+                      </span>
+                      <StakeField
+                        value={stakeText}
+                        onChange={(next) => setStraightStakes((st) => ({ ...st, [pick.id]: next }))}
+                        toWin={winForOdds(pick.odds, parseStake(stakeText))}
+                        ariaLabel={`Stake for ${pick.label}`}
+                        error={!!errors[pick.id]}
+                      />
+                    </div>
+                  )
+                })}
               </div>
+            ) : null}
+          </div>
+        )}
 
+        {/* Same Game Parlays — V1 SGP block, bolder */}
+        {sgps.map((g) => {
+          const stakeText = sgpStakes[g.key] ?? DEFAULT_STAKE
+          const expanded = sgpOpen[g.key] ?? true
+          const live = slipLiveMeta(g.legs[0]!)
+          return (
+            <div
+              key={g.key}
+              data-name="betslip-sgp"
+              data-live={live ? '' : undefined}
+              className="mt-3 rounded-lg border border-border bg-card px-3 py-2.5"
+            >
+              <div className="flex items-start gap-2">
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  onClick={() => setSgpOpen((st) => ({ ...st, [g.key]: !expanded }))}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <span className="flex items-center gap-1 text-[15px] font-bold leading-5 tracking-tight text-foreground">
+                    {g.legs.length}-leg SGP
+                    <IconChevronDown
+                      className={cn('size-3.5 text-muted-foreground transition-transform duration-200', expanded && 'rotate-180')}
+                      stroke={2}
+                    />
+                  </span>
+                  <span className="block truncate text-xs leading-4 text-muted-foreground">
+                    {live ? <span className="font-semibold text-destructive">{live.clock} </span> : null}
+                    {g.eventLabel} · {decimalOf(g.odds).toFixed(2)}x
+                  </span>
+                </button>
+                <OddsTag odds={g.odds} />
+                <StakeField
+                  value={stakeText}
+                  onChange={(next) => setSgpStakes((st) => ({ ...st, [g.key]: next }))}
+                  toWin={winForOdds(g.odds, parseStake(stakeText))}
+                  ariaLabel={`Stake for ${g.eventLabel} Same Game Parlay`}
+                  error={!!errors[g.key]}
+                />
+              </div>
+              <RejectNote reason={errors[g.key]} />
+              {expanded ? (
+                <LegRail legs={g.legs.map((l) => ({ id: l.id, label: l.label, sub: l.market, odds: l.odds }))} />
+              ) : null}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Combo — pinned at the bottom (2+ units; an SGP counts as one) */}
+      {showParlay ? (
+        <div data-name="betslip-parlay" className="shrink-0 border-t border-border px-4 pt-3">
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-[15px] font-bold leading-5 tracking-tight text-foreground">
+                <IconStack2 className="size-4 shrink-0 text-foreground" stroke={1.75} aria-hidden />
+                {units.length}-leg combo
+              </p>
+              <p className="mt-0.5 text-xs leading-4 text-muted-foreground">
+                {sgpCount > 0 ? `Includes ${sgpCount} SGP${sgpCount > 1 ? 's' : ''} · ` : 'Every leg multiplies · '}
+                <span className="font-semibold tabular-nums text-foreground">{decimalOf(parlayOdds).toFixed(2)}x</span>
+              </p>
+            </div>
+            <span className="text-xl font-bold leading-6 tabular-nums tracking-tight text-foreground">{parlayOdds}</span>
+          </div>
+          <V5StakeBox
+            value={parlayStake}
+            onChange={setParlayStake}
+            toWin={winForOdds(parlayOdds, parseStake(parlayStake))}
+            ariaLabel="Combo stake"
+            error={!!errors.parlay}
+            chance={100 / decimalOf(parlayOdds)}
+            note={`If all ${units.length} legs win`}
+          />
+          <RejectNote reason={errors.parlay} />
+        </div>
+      ) : null}
+
+      {driftCount > 0 ? (
+        <div className="mx-4 mt-2 flex shrink-0 items-center gap-2 rounded-lg bg-[color-mix(in_srgb,var(--warning)_14%,transparent)] px-3 py-2 text-xs text-foreground">
+          <IconAlertTriangle className="size-4 shrink-0 text-warning" stroke={1.75} />
+          <span className="min-w-0 flex-1">
+            Odds changed on {driftCount} selection{driftCount > 1 ? 's' : ''}.
+          </span>
+        </div>
+      ) : null}
+
+      <div className="shrink-0 px-4 pb-3 pt-3">
+        <Button
+          type="button"
+          disabled={loggedIn && placeStake <= 0}
+          onClick={onPlaceBet}
+          className={cn(
+            'flex h-14 w-full flex-col items-center justify-center gap-0.5 rounded-xl px-4',
+            'border border-border disabled:opacity-45',
+            needsDeposit
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+              : ['bg-success text-success-foreground', 'hover:bg-[color-mix(in_srgb,var(--success)_88%,transparent)]'],
+          )}
+        >
+          <span className="text-base font-bold leading-5 tracking-tight">{placeLabel}</span>
+          {loggedIn ? (
+            <span className="text-xs font-medium leading-4 opacity-90">
+              {needsDeposit
+                ? `${money(placeStake)} · Balance ${money(balance)}`
+                : `${driftCount > 0 ? `${money(placeStake)} · ` : ''}To win ${money(placeWin)}`}
+            </span>
+          ) : null}
+        </Button>
+      </div>
+    </>
+  )
+
+  const v5Empty = (
+    <div className="flex min-h-[200px] flex-1 flex-col items-center justify-center gap-1.5 px-6 py-10 text-center">
+      <span className="mb-2 inline-flex size-10 items-center justify-center rounded-full bg-secondary">
+        <IconStack2 className="size-5 text-foreground" stroke={1.75} aria-hidden />
+      </span>
+      <p className="text-lg font-bold tracking-tight text-foreground">Pick 2 markets</p>
+      <p className="text-xs text-muted-foreground">Every leg you add multiplies the payout.</p>
+    </div>
+  )
+
+  const panel = (
+            <>
               {/* Header — trash when picks; minimize desktop-only */}
               <div className="flex shrink-0 items-center gap-1 px-4 pb-2">
                 {receipt ? null : (
@@ -752,6 +990,7 @@ export function SoccerBetslip({
                   weight="semibold"
                   className={cn(
                     'min-w-0 flex-1 truncate',
+                    v5 && !receipt && 'text-base font-bold',
                     receipt && 'tabular-nums text-muted-foreground',
                   )}
                 >
@@ -773,9 +1012,9 @@ export function SoccerBetslip({
                       closeDrawer()
                       comboAction.onClick()
                     }}
-                    className="shell-chrome-btn ml-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-secondary px-2.5 text-xs font-medium text-foreground transition-colors duration-200 ease-in-out hover:bg-accent"
+                    className="shell-chrome-btn ml-1 inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-secondary px-2.5 text-xs font-semibold text-foreground transition-colors duration-200 ease-in-out hover:bg-accent"
                   >
-                    <IconStack2 className="size-3.5 text-primary" stroke={1.75} aria-hidden />
+                    <IconStack2 className="size-3.5" stroke={1.75} aria-hidden />
                     {comboAction.label}
                   </button>
                 ) : null}
@@ -793,7 +1032,10 @@ export function SoccerBetslip({
                   type="button"
                   aria-label="Minimize betslip"
                   onClick={closeDrawer}
-                  className="shell-chrome-btn hidden size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 ease-in-out hover:bg-accent hover:text-foreground lg:inline-flex"
+                  className={cn(
+                    'shell-chrome-btn hidden size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors duration-200 ease-in-out hover:bg-accent hover:text-foreground',
+                    !inline && 'lg:inline-flex',
+                  )}
                 >
                   <IconChevronDown className="size-4" stroke={1.5} />
                 </button>
@@ -958,6 +1200,8 @@ export function SoccerBetslip({
                     </button>
                   </div>
                 </div>
+              ) : hasPicks && v5 ? (
+                v5Body
               ) : hasPicks ? (
                 <>
                   <div className="min-h-0 flex-1 overflow-y-auto px-3 scrollbar-hide">
@@ -982,60 +1226,8 @@ export function SoccerBetslip({
                               ease: LEG_EASE,
                               layout: { duration: 0.25, ease: LEG_EASE },
                             }}
-                            className={
-                              v5
-                                ? 'mb-2 rounded-lg border border-border bg-card px-2 py-2.5'
-                                : cn('py-3', i > 0 && 'border-t border-border')
-                            }
+                            className={cn('py-3', i > 0 && 'border-t border-border')}
                           >
-                            {v5 ? (
-                              <>
-                                <div className="flex items-start gap-2">
-                                  <button
-                                    type="button"
-                                    aria-label={`Remove ${pick.label}`}
-                                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                                    onClick={() => onRemove(pick.id)}
-                                  >
-                                    <IconX className="size-4" stroke={1.5} />
-                                  </button>
-                                  <span className="line-clamp-2 min-w-0 flex-1 pt-1 text-sm font-semibold leading-5 text-foreground">
-                                    {pick.live ? (
-                                      <span className="mr-1.5 inline-block size-1.5 rounded-full bg-destructive align-middle" aria-label="Live" />
-                                    ) : null}
-                                    {pick.label}
-                                  </span>
-                                  <OddsTag odds={pick.odds} was={drifts[pick.id]} />
-                                </div>
-                                <div className="mt-1 flex items-start gap-2 pl-9">
-                                  <div className="min-w-0 flex-1 pt-0.5 text-xs leading-4">
-                                    <div className="truncate text-foreground">
-                                      {pick.market}
-                                      <span className="text-muted-foreground">
-                                        {' · '}
-                                        {decimalOf(pick.odds).toFixed(2)}x
-                                      </span>
-                                    </div>
-                                    {live ? (
-                                      <div className="flex min-w-0 items-center gap-1.5">
-                                        <span className="shrink-0 font-medium tabular-nums text-destructive">{live.clock}</span>
-                                        <span className="shrink-0 font-semibold tabular-nums text-foreground">{live.score}</span>
-                                        <span className="min-w-0 truncate text-muted-foreground">{pick.eventLabel}</span>
-                                      </div>
-                                    ) : (
-                                      <div className="truncate text-muted-foreground">{pick.eventLabel}</div>
-                                    )}
-                                  </div>
-                                  <StakeField
-                                    value={stakeText}
-                                    onChange={(next) => setStraightStakes((s) => ({ ...s, [pick.id]: next }))}
-                                    toWin={toWin}
-                                    ariaLabel={`Stake for ${pick.label}`}
-                                    error={!!errors[pick.id]}
-                                  />
-                                </div>
-                              </>
-                            ) : (
                             <div className="flex items-start gap-2">
                               <button
                                 type="button"
@@ -1089,7 +1281,6 @@ export function SoccerBetslip({
                                 error={!!errors[pick.id]}
                               />
                             </div>
-                            )}
                             <div className="pl-9">
                               <RejectNote reason={errors[pick.id]} />
                             </div>
@@ -1098,10 +1289,10 @@ export function SoccerBetslip({
                       })}
                     </AnimatePresence>
 
-                    {!v5 && sgps.length > 0 ? (
+                    {sgps.length > 0 ? (
                       <SlipHeading>Same Game Parlay{sgps.length > 1 ? 's' : ''}</SlipHeading>
                     ) : null}
-                    {(v5 ? [] : sgps).map((g) => {
+                    {sgps.map((g) => {
                       const stakeText = sgpStakes[g.key] ?? DEFAULT_STAKE
                       const expanded = sgpOpen[g.key] ?? false
                       const live = slipLiveMeta(g.legs[0]!)
@@ -1176,114 +1367,8 @@ export function SoccerBetslip({
                     })}
                   </div>
 
-                  {/* V5 — SGP and combo cards pinned at the bottom of the slip. */}
-                  {v5 && (sgps.length > 0 || showParlay) ? (
-                    <div
-                      data-name="betslip-v5-bottom"
-                      className="flex max-h-[46%] shrink-0 flex-col gap-2 overflow-y-auto border-t border-border px-3 pt-3 scrollbar-hide"
-                    >
-                      {sgps.map((g) => {
-                        const stakeText = sgpStakes[g.key] ?? DEFAULT_STAKE
-                        const live = slipLiveMeta(g.legs[0]!)
-                        return (
-                          <div
-                            key={g.key}
-                            data-name="betslip-sgp"
-                            data-live={live ? '' : undefined}
-                            className="rounded-lg border border-border bg-card px-3 py-2.5"
-                          >
-                            <div className="flex items-start gap-2">
-                              <div className="min-w-0 flex-1">
-                                <span className="flex items-center gap-1.5 text-sm font-semibold leading-5 text-foreground">
-                                  {g.legs.length}-leg SGP
-                                  <span className="text-xs font-normal tabular-nums text-muted-foreground">
-                                    {decimalOf(g.odds).toFixed(2)}x
-                                  </span>
-                                </span>
-                                <span className="block truncate text-xs leading-4 text-muted-foreground">
-                                  {live ? (
-                                    <span className="font-medium text-destructive">{live.clock} </span>
-                                  ) : null}
-                                  {g.eventLabel}
-                                </span>
-                              </div>
-                              <OddsTag odds={g.odds} />
-                              <StakeField
-                                value={stakeText}
-                                onChange={(next) => setSgpStakes((s) => ({ ...s, [g.key]: next }))}
-                                toWin={winForOdds(g.odds, parseStake(stakeText))}
-                                ariaLabel={`Stake for ${g.eventLabel} Same Game Parlay`}
-                                error={!!errors[g.key]}
-                              />
-                            </div>
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {g.legs.map((l) => (
-                                <span
-                                  key={l.id}
-                                  className="inline-flex h-6 max-w-full items-center truncate rounded-md bg-secondary px-2 text-[11px] text-foreground"
-                                >
-                                  {l.label}
-                                </span>
-                              ))}
-                            </div>
-                            <RejectNote reason={errors[g.key]} />
-                          </div>
-                        )
-                      })}
-                      {showParlay ? (
-                        <div
-                          data-name="betslip-parlay"
-                          className="rounded-lg border border-border bg-card px-3 py-2.5"
-                        >
-                          <div className="flex items-start gap-2">
-                            <div className="min-w-0 flex-1">
-                              <span className="flex items-center gap-1.5 text-sm font-semibold leading-5 text-foreground">
-                                <IconStack2 className="size-4 shrink-0 text-primary" stroke={1.75} aria-hidden />
-                                {units.length}-leg combo
-                              </span>
-                              <span className="mt-0.5 block truncate text-xs leading-4 text-muted-foreground">
-                                {sgpCount > 0
-                                  ? `Includes ${sgpCount} SGP${sgpCount > 1 ? 's' : ''} · `
-                                  : 'Every leg multiplies · '}
-                                <span className="font-semibold tabular-nums text-foreground">
-                                  {decimalOf(parlayOdds).toFixed(2)}x
-                                </span>
-                              </span>
-                            </div>
-                            <OddsTag odds={parlayOdds} />
-                            <StakeField
-                              value={parlayStake}
-                              onChange={setParlayStake}
-                              toWin={winForOdds(parlayOdds, parseStake(parlayStake))}
-                              ariaLabel="Combo stake"
-                              error={!!errors.parlay}
-                            />
-                          </div>
-                          <div className="mt-2 flex gap-1.5">
-                            {['5.00', '10.00', '25.00', '50.00'].map((v) => (
-                              <button
-                                key={v}
-                                type="button"
-                                onClick={() => setParlayStake(v)}
-                                className={cn(
-                                  'inline-flex h-7 flex-1 items-center justify-center rounded-md text-xs font-medium tabular-nums transition-colors',
-                                  parlayStake === v
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-secondary text-foreground hover:bg-accent',
-                                )}
-                              >
-                                ${Number(v)}
-                              </button>
-                            ))}
-                          </div>
-                          <RejectNote reason={errors.parlay} />
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-
                   {/* Sticky parlay — 2+ units (an SGP counts as one) */}
-                  {showParlay && !v5 ? (
+                  {showParlay ? (
                     <div
                       data-name="betslip-parlay"
                       className="shrink-0 border-t border-border bg-secondary/60 px-4 py-3"
@@ -1352,6 +1437,8 @@ export function SoccerBetslip({
                     </Button>
                   </div>
                 </>
+              ) : v5 ? (
+                v5Empty
               ) : (
                 <div className="flex min-h-[160px] flex-1 flex-col items-center justify-center gap-1 px-6 py-10 text-center">
                   <Typography as="p" shape="small" weight="semibold" className="text-foreground">
@@ -1362,11 +1449,88 @@ export function SoccerBetslip({
                   </Typography>
                 </div>
               )}
+            </>
+  )
+
+  const sheet =
+    mounted && portalReady
+      ? createPortal(
+          <div
+            data-soccer-betslip-root=""
+            data-name="soccer-betslip-root"
+            className={cn(
+              'fixed inset-0 z-[120] lg:pointer-events-none lg:inset-x-0 lg:bottom-0 lg:top-auto',
+              shown ? 'pointer-events-auto' : 'pointer-events-none',
+            )}
+          >
+            {/* Mobile: catch off-handle swipes so the page doesn’t pull-to-refresh. */}
+            <button
+              type="button"
+              aria-label="Close betslip"
+              data-soccer-betslip-backdrop=""
+              data-state={shown ? 'open' : 'closed'}
+              onClick={closeDrawer}
+              className="absolute inset-0 border-0 bg-black/60 lg:hidden"
+              style={
+                dragging
+                  ? { opacity: backdropOpacity, transition: 'none' }
+                  : { opacity: shown ? 1 : 0 }
+              }
+            />
+            <aside
+              ref={sheetRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Betslip"
+              data-name="soccer-betslip"
+              data-brand="betonline"
+              data-state={shown ? 'open' : 'closed'}
+              data-dragging={dragging ? 'true' : undefined}
+              {...bind}
+              className={cn(
+                /* Mobile: flush bottom drawer. Desktop: 375 card. */
+                'dark pointer-events-auto absolute inset-x-0 bottom-0 flex w-full flex-col',
+                'mx-auto max-w-none lg:max-w-[375px]',
+                'max-h-[min(85dvh,680px)] overflow-hidden rounded-t-[10px]',
+                'border border-border border-b-0 bg-popover text-popover-foreground',
+                'shadow-[0_8px_40px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.06)]',
+              )}
+              style={
+                offset > 0
+                  ? { transform: `translateY(${offset}px)`, transition: 'none' }
+                  : undefined
+              }
+            >
+              <div
+                data-drag-handle=""
+                className="flex w-full shrink-0 cursor-grab touch-none items-center justify-center px-4 pb-2 pt-3 active:cursor-grabbing"
+                aria-label="Drag down to close"
+              >
+                <span />
+              </div>
+
+              {panel}
             </aside>
           </div>,
           document.body,
         )
       : null
+
+  if (inline) {
+    return (
+      <aside
+        aria-label="Betslip"
+        data-name="soccer-betslip-inline"
+        className={cn(
+          'dark flex max-h-[calc(100dvh-96px)] w-full flex-col overflow-hidden rounded-[10px] pt-3',
+          'border border-border bg-popover text-popover-foreground',
+          'shadow-[0_8px_32px_rgba(0,0,0,0.35)]',
+        )}
+      >
+        {panel}
+      </aside>
+    )
+  }
 
   return (
     <>
@@ -1396,10 +1560,10 @@ export function SoccerBetslip({
                 <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground">
                   {picks.length}
                 </span>
-                <Typography as="span" shape="small" weight="semibold" className="min-w-0 flex-1 truncate text-popover-foreground">
+                <span className="min-w-0 flex-1 truncate text-sm font-bold text-popover-foreground">
                   Selection{picks.length > 1 ? 's' : ''}
-                </Typography>
-                <span className="tabular-nums text-sm font-semibold text-popover-foreground">{headerOdds}</span>
+                </span>
+                <span className="tabular-nums text-sm font-bold text-popover-foreground">{headerOdds}</span>
                 <IconChevronUp aria-hidden className="size-4 shrink-0 text-muted-foreground" stroke={1.5} />
               </button>
             ) : null}
@@ -1407,15 +1571,15 @@ export function SoccerBetslip({
               type="button"
               onClick={comboAction.onClick}
               className={cn(
-                'flex shrink-0 items-center gap-1.5 rounded-lg text-sm font-medium text-popover-foreground transition-colors',
+                'flex shrink-0 items-center gap-1.5 rounded-lg text-sm font-semibold text-popover-foreground transition-colors',
                 hasPicks ? 'h-9 bg-secondary px-3 hover:bg-accent' : 'h-9 flex-1 px-2.5 hover:bg-accent',
               )}
             >
-              <IconStack2 className="size-4 shrink-0 text-primary" stroke={1.75} aria-hidden />
+              <IconStack2 className="size-4 shrink-0 text-foreground" stroke={1.75} aria-hidden />
               {comboAction.label}
               {hasPicks ? null : (
                 <>
-                  <span className="ml-auto text-xs font-normal text-muted-foreground">Stack 2+ picks</span>
+                  <span className="ml-auto text-xs font-normal text-muted-foreground">Pick 2 markets</span>
                   <IconChevronRight aria-hidden className="size-4 shrink-0 text-muted-foreground" stroke={1.5} />
                 </>
               )}
@@ -1486,6 +1650,81 @@ function SlipHeading({ children }: { children: ReactNode }) {
 }
 
 /** Combo legs on a quiet rail — node per leg, line between. */
+/** V5 — stake field (label left, amount right), quick stakes, chance + payout rows. */
+function V5StakeBox({
+  value,
+  onChange,
+  toWin,
+  ariaLabel,
+  error,
+  chance,
+  note,
+}: {
+  value: string
+  onChange: (next: string) => void
+  toWin: number
+  ariaLabel: string
+  error?: boolean
+  /** Implied chance of the bet, 0–100. */
+  chance: number
+  /** Under "To win" — "If all 4 legs win". */
+  note?: string
+}) {
+  return (
+    <div className="mt-3">
+      <label
+        className={cn(
+          'flex h-14 items-center gap-3 rounded-xl border bg-transparent px-4 transition-colors focus-within:border-foreground',
+          error ? 'border-destructive' : 'border-border',
+        )}
+      >
+        <span className="text-base text-muted-foreground">Stake</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          aria-label={ariaLabel}
+          aria-invalid={error || undefined}
+          value={value && value !== DEFAULT_STAKE ? `$${value}` : ''}
+          placeholder="$0"
+          onChange={(e) => onChange(formatStakeInput(e.target.value.replace(/^\$/, '')))}
+          onFocus={(e) => e.target.select()}
+          className="min-w-0 flex-1 bg-transparent text-right text-xl font-bold tabular-nums text-foreground outline-none placeholder:text-muted-foreground"
+        />
+      </label>
+      <div className="mt-2 flex gap-1.5">
+        {['5.00', '10.00', '25.00', '50.00'].map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onChange(v)}
+            className={cn(
+              'inline-flex h-8 items-center justify-center rounded-full border px-3 text-xs font-semibold tabular-nums transition-colors',
+              value === v
+                ? 'border-foreground bg-foreground text-background'
+                : 'border-border text-foreground hover:bg-accent',
+            )}
+          >
+            ${Number(v)}
+          </button>
+        ))}
+      </div>
+      <div className="mt-4 flex items-center justify-between text-sm">
+        <span className="text-muted-foreground">Chance</span>
+        <span className="font-semibold tabular-nums text-foreground">{Math.round(chance)}%</span>
+      </div>
+      <div className="mt-1.5 flex items-end justify-between gap-3">
+        <span className="leading-tight">
+          <span className="block text-sm text-muted-foreground">To win</span>
+          {note ? <span className="block text-xs text-muted-foreground/80">{note}</span> : null}
+        </span>
+        <span className="text-3xl font-bold leading-none tabular-nums text-foreground">
+          ${toWin.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export function LegRail({
   legs,
 }: {

@@ -5,8 +5,11 @@
 ## Hard rules
 - V5 owns `/sports`, `/sports/football`, `/sports/soccer` and both event views **only when V5 is picked**. V1–V3 render exactly as before (`V5Switch` wraps the existing `V3Switch`).
 - **Build on V1.** Same container, breadcrumbs (`BreadcrumbMenu`), league tiles (`LeagueQuickLinks`), mode pills (`ModePillTrack`), card (`rounded-[10px] border bg-card` + soft shadow), `Typography` scale, odds-chip grammar (`rounded-lg border bg-secondary`, primary when picked). If it doesn't look like V1, it's wrong.
-- **No AI-slop tells:** no hero banners, no uppercase tracked eyebrows, no `font-black` headlines, no rainbow, no glow, no pulsing, no flashing.
-- **Hover lights up, never strokes:** cards brighten to `bg-surface-muted-2` (`V5_LIGHT_UP`). Borders never change on hover. Picked state = filled primary chip, never a primary card border.
+- **No AI-slop tells:** no hero banners, no rainbow, no glow, no pulsing, no flashing. Bold type is wanted (`font-bold`, page titles `text-3xl`, shelf titles `text-xl`) but it must sit with the casino lobby type scale — no `font-black` display sizes.
+- **Never red icons.** Icons are foreground/muted. Red is for CTAs, the live clock and picked chips only.
+- **Hover lights up subtly, never strokes:** cards go to `bg-accent` (`V5_LIGHT_UP`). Borders never change on hover. Picked state = filled primary chip, never a primary card border.
+- **Sub-navs use the V1 pill track** (`ModePillTrack`) — markets on sport pages, Moneyline/Spread/Total in the builder, market groups on the event view, prop groups.
+- **Shelves use the casino shelf header:** title left, boxed `See All` + boxed ‹ › arrows right (`V5Shelf`).
 - Lumen tokens only. Picks use the shared betslip store.
 
 ## Lobby (`ComboSportsPage`)
@@ -38,3 +41,14 @@ Same logic as V1. Look: legs are cards (label on its own line, market · multipl
 ## Don't
 - Live-bets feed lists. The live feel is the number stream on the chart.
 - A separate combo slip — the existing betslip is the slip.
+
+
+## Update — 25 Nov evening (V5d)
+- **Sport pages:** title (+ " · View") with a **sort menu** (Start time · Trending · Volatile · New · Closing soon · Volume · 50-50 · Reverse sort), league tabs, then the market pill track: **Games** (default) · Live · Spreads · Totals · Game props · Player props · Win totals · Futures · Combos · Odds Boosts. Data: `lib/lumen/v5-markets.ts` (uniform `KCard` rows; V1 event models for props; NFL win totals from records; futures from `marketFutures`).
+- **Games view:** Popular carousel (league groups, live scores) → Odds Boosts → Popular Combos → **Same Game Combos** → **Mega Combos** (V1 SGP packs / mega parlays renamed), then games by day. Home also gets the casino banner row.
+- **Game cards:** % pill + multiplier per side, **buy points** = V1 board chips + the ⇅ alternate-line dropdown (`AlternateLinePicker`), not a ‹ › stepper.
+- **League logos:** always `leagueLogo()` (the transparent SVGs in `/leagues`).
+- **Builder:** uses the real betslip inline on the right (`SoccerBetslip inline variant="v5"`), which prompts "Pick 1 more market to make a combo". One close button; search is a field.
+- **Betslip V5:** selections timeline; single → stake box; 2+ → "Bet as singles" disclosure; SGP blocks; combo pinned at the bottom with stake field (label left, amount right), quick stakes, Chance row and big **To win**; the slip never pops open on its own in V5 (picks build in the Selections bar).
+- **After a bet:** deck opens when the slip closes on the receipt; 20s per card, **never pauses**; "Add to Selections" adds legs without opening the slip; casino card = blurred art + tile + Play now.
+- **Event view footer:** Market rules (Timeline and payout, rules text, ids, insider betting) + People are also betting.
