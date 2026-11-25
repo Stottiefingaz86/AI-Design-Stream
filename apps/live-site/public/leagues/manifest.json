@@ -1,0 +1,202 @@
+{
+  "source": "Lumen design system (Figma) · page \"League Logos\"",
+  "size": "24×24 viewBox",
+  "logos": [
+    {
+      "name": "Liga Mexicana del Pacífico (LMP)",
+      "sport": "baseball",
+      "country": "mexico",
+      "league": "lmp",
+      "src": "/leagues/baseball/mexico/lmp.svg"
+    },
+    {
+      "name": "MLB",
+      "sport": "baseball",
+      "country": "usa",
+      "league": "mlb",
+      "src": "/leagues/baseball/usa/mlb.svg"
+    },
+    {
+      "name": "EuroLeague",
+      "sport": "basketball",
+      "country": "europe",
+      "league": "euroleague",
+      "src": "/leagues/basketball/europe/euroleague.svg"
+    },
+    {
+      "name": "NBA",
+      "sport": "basketball",
+      "country": "usa",
+      "league": "nba",
+      "src": "/leagues/basketball/usa/nba.svg"
+    },
+    {
+      "name": "NCAA Basketball",
+      "sport": "basketball",
+      "country": "usa",
+      "league": "ncaab",
+      "src": "/leagues/basketball/usa/ncaab.svg"
+    },
+    {
+      "name": "NCAA Football",
+      "sport": "football",
+      "country": "usa",
+      "league": "ncaaf",
+      "src": "/leagues/football/usa/ncaaf.svg"
+    },
+    {
+      "name": "NFL",
+      "sport": "football",
+      "country": "usa",
+      "league": "nfl",
+      "src": "/leagues/football/usa/nfl.svg"
+    },
+    {
+      "name": "Argentina Primera División",
+      "sport": "soccer",
+      "country": "argentina",
+      "league": "primera-division",
+      "src": "/leagues/soccer/argentina/primera-division.svg"
+    },
+    {
+      "name": "Austrian Bundesliga",
+      "sport": "soccer",
+      "country": "austria",
+      "league": "bundesliga",
+      "src": "/leagues/soccer/austria/bundesliga.svg"
+    },
+    {
+      "name": "EFL Championship",
+      "sport": "soccer",
+      "country": "england",
+      "league": "championship",
+      "src": "/leagues/soccer/england/championship.svg"
+    },
+    {
+      "name": "EFL Cup",
+      "sport": "soccer",
+      "country": "england",
+      "league": "efl-cup",
+      "src": "/leagues/soccer/england/efl-cup.svg"
+    },
+    {
+      "name": "FA Cup",
+      "sport": "soccer",
+      "country": "england",
+      "league": "fa-cup",
+      "src": "/leagues/soccer/england/fa-cup.svg"
+    },
+    {
+      "name": "EFL League One",
+      "sport": "soccer",
+      "country": "england",
+      "league": "league-one",
+      "src": "/leagues/soccer/england/league-one.svg"
+    },
+    {
+      "name": "EFL League Two",
+      "sport": "soccer",
+      "country": "england",
+      "league": "league-two",
+      "src": "/leagues/soccer/england/league-two.svg"
+    },
+    {
+      "name": "Premier League",
+      "sport": "soccer",
+      "country": "england",
+      "league": "premier-league",
+      "src": "/leagues/soccer/england/premier-league.svg"
+    },
+    {
+      "name": "UEFA Champions League",
+      "sport": "soccer",
+      "country": "europe",
+      "league": "uefa-champions-league",
+      "src": "/leagues/soccer/europe/uefa-champions-league.svg"
+    },
+    {
+      "name": "UEFA Europa League",
+      "sport": "soccer",
+      "country": "europe",
+      "league": "uefa-europa-league",
+      "src": "/leagues/soccer/europe/uefa-europa-league.svg"
+    },
+    {
+      "name": "Ligue 1",
+      "sport": "soccer",
+      "country": "france",
+      "league": "ligue-1",
+      "src": "/leagues/soccer/france/ligue-1.svg"
+    },
+    {
+      "name": "Ligue 2",
+      "sport": "soccer",
+      "country": "france",
+      "league": "ligue-2",
+      "src": "/leagues/soccer/france/ligue-2.svg"
+    },
+    {
+      "name": "Bundesliga",
+      "sport": "soccer",
+      "country": "germany",
+      "league": "bundesliga",
+      "src": "/leagues/soccer/germany/bundesliga.svg"
+    },
+    {
+      "name": "2. Bundesliga",
+      "sport": "soccer",
+      "country": "germany",
+      "league": "bundesliga-2",
+      "src": "/leagues/soccer/germany/bundesliga-2.svg"
+    },
+    {
+      "name": "Serie A",
+      "sport": "soccer",
+      "country": "italy",
+      "league": "serie-a",
+      "src": "/leagues/soccer/italy/serie-a.svg"
+    },
+    {
+      "name": "Serie B",
+      "sport": "soccer",
+      "country": "italy",
+      "league": "serie-b",
+      "src": "/leagues/soccer/italy/serie-b.svg"
+    },
+    {
+      "name": "Liga MX",
+      "sport": "soccer",
+      "country": "mexico",
+      "league": "liga-mx",
+      "src": "/leagues/soccer/mexico/liga-mx.svg"
+    },
+    {
+      "name": "Copa del Rey",
+      "sport": "soccer",
+      "country": "spain",
+      "league": "copa-del-rey",
+      "src": "/leagues/soccer/spain/copa-del-rey.svg"
+    },
+    {
+      "name": "LaLiga",
+      "sport": "soccer",
+      "country": "spain",
+      "league": "la-liga-primera",
+      "src": "/leagues/soccer/spain/la-liga-primera.svg"
+    },
+    {
+      "name": "LaLiga 2",
+      "sport": "soccer",
+      "country": "spain",
+      "league": "la-liga-segunda",
+      "src": "/leagues/soccer/spain/la-liga-segunda.svg"
+    },
+    {
+      "name": "MLS",
+      "sport": "soccer",
+      "country": "usa",
+      "league": "mls",
+      "src": "/leagues/soccer/usa/mls.svg"
+    }
+  ]
+}
