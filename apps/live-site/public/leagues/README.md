@@ -1,6 +1,6 @@
 # League logos (Lumen)
 
-Exported from the Lumen design system in Figma (page "League Logos"), 24×24 SVGs.
+Exported from the Lumen design system in Figma (page "League Logos"), 24×24 SVGs with transparent backgrounds.
 Path pattern: `/leagues/<sport>/<country>/<league>.svg`, the same naming as the Figma components
 (`league/<sport>/<country>/<league>`). `manifest.json` lists every logo with its display name.
 
