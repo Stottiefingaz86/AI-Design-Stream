@@ -114,8 +114,21 @@ export const OTHER_NAV = [
 
 /** Sports with a built board — everything else still lands on the soccer board. */
 const SPORT_ROUTES: Record<string, string> = {
+  Baseball: "/sports/baseball",
+  Basketball: "/sports/basketball",
+  Boxing: "/sports/boxing",
   Football: "/sports/football",
+  Golf: "/sports/golf",
+  Hockey: "/sports/hockey",
+  "Horse Racing": "/sports/horse-racing",
+  Lacrosse: "/sports/lacrosse",
+  MMA: "/sports/mma",
+  Pool: "/sports/pool",
+  Rugby: "/sports/rugby",
   Soccer: "/sports/soccer",
+  "Table Tennis": "/sports/table-tennis",
+  Tennis: "/sports/tennis",
+  Volleyball: "/sports/volleyball",
 };
 
 const SPORTS_AZ = [
@@ -289,6 +302,10 @@ export function navItemActive(
   ) {
     return pathname.startsWith("/sports/my-bets");
   }
+  /* Every other sport lobby (basketball, boxing, golf…) — active on its page and its events. */
+  if (item.href.startsWith("/sports/") && !item.href.includes("?")) {
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  }
   if (item.label === "All Promotions") {
     return pathname === "/promotions" || pathname === "/promotions/";
   }
@@ -320,6 +337,37 @@ export function navItemActive(
     return section === current;
   }
   return false;
+}
+
+/** Stable id for one side-nav entry (the same sport can sit in Leagues, Top Sports and A–Z). */
+export function navPickKey(
+  group: Pick<ShellNavGroup, "heading">,
+  groupIndex: number,
+  item: Pick<ShellNavItem, "label">,
+): string {
+  return `${group.heading ?? groupIndex}|${item.label}`;
+}
+
+/** Several links can point at one page — light only the one the player clicked, else the first. */
+export function withSingleActive(
+  groups: ShellNavGroup[],
+  prefer?: string | null,
+  pathname?: string,
+): ShellNavGroup[] {
+  const all = groups.flatMap((group, gi) =>
+    group.items.filter((item) => item.active).map((item) => ({ key: navPickKey(group, gi, item), href: item.href })),
+  );
+  /* The most specific link wins — on /sports/basketball/nba that's NBA, not Basketball. */
+  const exact = pathname ? all.filter((x) => x.href === pathname) : [];
+  const lit = (exact.length ? exact : all).map((x) => x.key);
+  if (all.length < 2) return groups;
+  const keep = prefer && lit.includes(prefer) ? prefer : lit[0];
+  return groups.map((group, gi) => ({
+    ...group,
+    items: group.items.map((item) =>
+      item.active && navPickKey(group, gi, item) !== keep ? { ...item, active: false } : item,
+    ),
+  }));
 }
 
 /** Product-tour spotlight hooks for V2 promo nav items. */
@@ -396,9 +444,9 @@ export function navForProduct(
         heading: "Top Leagues",
         collapsible: true,
         items: [
-          { label: "NBA", href: SPORTS_HOME_HREF, icon: "basketball" },
+          { label: "NBA", href: "/sports/basketball/nba", icon: "basketball" },
           { label: "NFL", href: "/sports/football/nfl", icon: "football" },
-          { label: "MLB", href: SPORTS_HOME_HREF, icon: "baseball" },
+          { label: "MLB", href: "/sports/baseball", icon: "baseball" },
         ],
       },
       {
@@ -407,12 +455,12 @@ export function navForProduct(
         items: [
           {
             label: "Baseball",
-            href: SPORTS_HOME_HREF,
+            href: "/sports/baseball",
             icon: SPORT_ICON.Baseball,
           },
           {
             label: "Basketball",
-            href: SPORTS_HOME_HREF,
+            href: "/sports/basketball",
             icon: SPORT_ICON.Basketball,
           },
           {

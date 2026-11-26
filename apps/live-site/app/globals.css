@@ -3448,3 +3448,82 @@ html.dark [data-design-agent-app],
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent);
   }
 }
+
+/* V5 · Combos — sticky bars wear the same frost as the sports sub-nav. */
+.v5-glass {
+  background: color-mix(in srgb, var(--container) 72%, transparent);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  backdrop-filter: blur(24px) saturate(1.2);
+}
+[data-brand='betonline'].dark .v5-glass {
+  background: color-mix(in srgb, var(--header-inverted) 72%, transparent);
+}
+
+/* V5 · Combos — Combo builder: a soft light sweep crosses the button every few seconds. */
+@keyframes v5-combo-sheen {
+  0%, 62% { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+.v5-combo-sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+/* Sheen sits above the button fill but under the label. */
+.v5-combo-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 20%, var(--surface-muted-2) 50%, transparent 80%);
+  animation: v5-combo-sheen 5.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v5-combo-sheen::after { animation: none; opacity: 0; }
+}
+
+/* V5 · Combos — card hover: a whisper lighter (dark) / a whisper greyer (light). */
+:root {
+  --v5-hover: color-mix(in srgb, var(--card) 95%, var(--foreground));
+}
+.dark {
+  --v5-hover: var(--accent);
+}
+
+/* V5 · Combos — payout figure: a soft light sweep across the number (bet deck). */
+@keyframes v5-pay-shimmer {
+  0% { background-position: 120% 0; }
+  55%, 100% { background-position: -20% 0; }
+}
+.v5-pay-shimmer {
+  background-image: linear-gradient(
+    100deg,
+    var(--foreground) 0%,
+    var(--foreground) 38%,
+    color-mix(in srgb, var(--success) 80%, var(--foreground)) 50%,
+    var(--foreground) 62%,
+    var(--foreground) 100%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: v5-pay-shimmer 3.2s ease-in-out 0.9s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v5-pay-shimmer { animation: none; }
+}
+
+/* V5 · Combos — the combo builder is a full-screen sheet (z 255). Deposit / login from its slip must open above it. */
+body:has([data-name="combo-builder"]) [data-cashier-root] {
+  z-index: 260 !important;
+}
+body:has([data-name="combo-builder"]) [data-cashier-root="desktop"] {
+  top: 0 !important;
+}
+body:has([data-name="combo-builder"]) [data-auth-modal-root],
+body:has([data-name="combo-builder"]) [data-cashier-redirect] {
+  z-index: 300 !important;
+}

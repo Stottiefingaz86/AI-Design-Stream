@@ -7,9 +7,19 @@ import {
   marketToSlipPick,
   priceToAmerican,
   type MarketOutcome,
-  type MarketSport,
   type SportsMarket,
 } from '@/lib/lumen/sports-markets'
+import {
+  V5_SPORTS,
+  generatedGames,
+  genLadders,
+  genRecord,
+  isGenerated,
+  leagueHref,
+  leagueSlug,
+  v5SportOf,
+  type V5SportId,
+} from '@/lib/lumen/v5-sportsbook'
 
 /**
  * V5 · Combos — prediction-market style sportsbook.
@@ -17,7 +27,7 @@ import {
  * shared betslip store and placed combos show up in My Bets like any parlay.
  */
 
-export type V5Sport = 'all' | MarketSport
+export type V5Sport = 'all' | V5SportId
 
 // ─── Leagues ─────────────────────────────────────────────────
 
@@ -37,11 +47,15 @@ export function leagueLogo(leagueName: string, fallback?: string): string {
   return LEAGUE_LOGO[leagueName] ?? fallback ?? '/leagues/soccer/england/premier-league.svg'
 }
 
+let allGames: SportsMarket[] | null = null
+
+/** V1 boards (NFL, NCAA, Premier League…) plus every generated sport and league. */
 export function v5Games(sport: V5Sport = 'all'): SportsMarket[] {
-  return marketGames().filter((g) => sport === 'all' || g.sport === sport)
+  allGames ??= [...marketGames(), ...generatedGames()]
+  return sport === 'all' ? allGames : allGames.filter((g) => v5SportOf(g) === sport)
 }
 
-export type V5League = { name: string; logo: string; sport: MarketSport; count: number }
+export type V5League = { name: string; logo: string; sport: V5SportId; count: number }
 
 export function v5Leagues(sport: V5Sport = 'all'): V5League[] {
   const map = new Map<string, V5League>()
@@ -52,7 +66,7 @@ export function v5Leagues(sport: V5Sport = 'all'): V5League[] {
       map.set(g.leagueName, {
         name: g.leagueName,
         logo: leagueLogo(g.leagueName, g.leagueIcon),
-        sport: g.sport,
+        sport: v5SportOf(g),
         count: 1,
       })
   }
@@ -85,6 +99,7 @@ export function groupByDay(games: SportsMarket[]): { label: string; games: Sport
 }
 
 export function teamRecord(game: SportsMarket, outcome: MarketOutcome): string | null {
+  if (isGenerated(game)) return genRecord(game, outcome.label)
   if (game.sport !== 'nfl' || !game.eventId || !outcome.team) return null
   const r = nflRecords(game.eventId)
   if (!r) return null
@@ -99,6 +114,29 @@ export function teamOutcomes(game: SportsMarket): MarketOutcome[] {
 
 export function leadOutcome(game: SportsMarket): MarketOutcome {
   return game.outcomes.reduce((a, b) => (b.chance > a.chance ? b : a), game.outcomes[0]!)
+}
+
+const leagueNames = new Map<V5SportId, Set<string>>()
+
+/** League page link when the league has games in that sport (logos and names on cards use this). */
+export function leaguePageHref(sport: V5SportId | 'topic' | 'all' | undefined, name: string): string | undefined {
+  if (sport === 'topic') return undefined
+  const has = (id: V5SportId) => {
+    let names = leagueNames.get(id)
+    if (!names) {
+      names = new Set(v5Leagues(id).map((l) => l.name))
+      leagueNames.set(id, names)
+    }
+    return names.has(name)
+  }
+  if (sport && sport !== 'all' && has(sport)) return leagueHref(sport, name)
+  /* Family-tagged cards (boosts) — find the one sport that owns this league. */
+  const owners = V5_SPORTS.map((d) => d.id).filter(has)
+  return owners.length === 1 ? leagueHref(owners[0]!, name) : undefined
+}
+
+export function leagueBySlug(sport: V5SportId, slug: string): V5League | undefined {
+  return v5Leagues(sport).find((l) => leagueSlug(l.name) === slug)
 }
 
 // ─── Prices ──────────────────────────────────────────────────
@@ -184,7 +222,7 @@ export type Ladder = {
   kind: LadderKind
   /** "CHI Bears win by over" / "Over" — the line number follows in the UI. */
   lead: string
-  unit: 'points' | 'goals'
+  unit: string
   defaultIndex: number
   rungs: LadderRung[]
 }
@@ -214,6 +252,7 @@ function seeded(key: string): number {
 }
 
 export function eventLadders(game: SportsMarket): Ladder[] {
+  if (isGenerated(game)) return genLadders(game)
   if (!game.eventId) return []
   const ev = marketEvent(game.sport, game.eventId)
   if (!ev) return []
@@ -357,6 +396,8 @@ function marketFamily(p: SoccerSlipPick): string {
 
 export type FeaturedCombo = {
   id: string
+  /** Which sport page shows it ('mixed' = home only). */
+  sport?: V5SportId | 'mixed'
   title: string
   league: string
   leagueLogo: string
@@ -371,14 +412,17 @@ function featured(
   title: string,
   league: string,
   legs: SoccerSlipPick[],
+  sport?: V5SportId | 'mixed',
+  logo?: string,
 ): FeaturedCombo | null {
   if (legs.length < 2) return null
   const r = seeded(id)
   return {
     id,
+    sport,
     title,
     league,
-    leagueLogo: leagueLogo(league),
+    leagueLogo: leagueLogo(league, logo),
     legs,
     decimal: comboDecimal(legs),
     volume: Math.round(180_000 + r * 2_600_000),
@@ -391,7 +435,7 @@ let featuredCache: FeaturedCombo[] | null = null
 export function featuredCombos(sport: V5Sport = 'all'): FeaturedCombo[] {
   if (!featuredCache) {
     const nfl = v5Games('nfl').filter((g) => g.leagueName === 'NFL')
-    const soccer = v5Games('soccer')
+    const soccer = v5Games('soccer').filter((g) => !isGenerated(g))
     const favs = (games: SportsMarket[], n: number) =>
       games.slice(0, n).map((g) => winnerYesPick(g, leadOutcome(g).label === 'Draw' ? teamOutcomes(g)[0]! : leadOutcome(g)))
     const dogs = (games: SportsMarket[], n: number) =>
@@ -407,20 +451,40 @@ export function featuredCombos(sport: V5Sport = 'all'): FeaturedCombo[] {
         .slice(0, n)
         .map((l) => l.rungs[l.defaultIndex]!.yes)
     const prem = soccer.filter((g) => g.leagueName === 'Premier League')
+    const perSport = V5_SPORTS.filter((d) => d.id !== 'nfl' && d.id !== 'soccer').flatMap((d) => {
+      const games = v5Games(d.id).filter((g) => !g.live)
+      const first = games[0]
+      if (!first) return []
+      const title = (s: string) => `${d.label} ${s}`
+      return [
+        featured(`fc-${d.id}-favs`, title('favourites'), first.leagueName, favs(games, 4), d.id, first.leagueIcon),
+        d.format === 'field' ? null : featured(`fc-${d.id}-dogs`, title('upsets'), first.leagueName, dogs(games.slice(1), 3), d.id, first.leagueIcon),
+        featured(`fc-${d.id}-overs`, `${d.label} · overs`, first.leagueName, overs(games, 4), d.id, first.leagueIcon),
+      ]
+    })
+    const extraSoccer = v5Games('soccer').filter((g) => isGenerated(g) && !g.live)
     featuredCache = [
-      featured('fc-nfl-favs', 'Sunday favourites', 'NFL', favs(nfl, 5)),
-      featured('fc-prem-sweep', 'Weekend winners', 'Premier League', favs(prem.length > 2 ? prem : soccer, 4)),
-      featured('fc-nfl-dogs', 'Underdog Sunday', 'NFL', dogs(nfl, 3)),
-      featured('fc-goals', 'Goals galore', 'Premier League', overs(prem.length > 2 ? prem : soccer, 4)),
-      featured('fc-points', 'Points party', 'NFL', overs(nfl, 4)),
+      featured('fc-nfl-favs', 'Sunday favourites', 'NFL', favs(nfl, 5), 'nfl'),
+      featured('fc-prem-sweep', 'Weekend winners', 'Premier League', favs(prem.length > 2 ? prem : soccer, 4), 'soccer'),
+      featured('fc-nfl-dogs', 'Underdog Sunday', 'NFL', dogs(nfl, 3), 'nfl'),
+      featured('fc-goals', 'Goals galore', 'Premier League', overs(prem.length > 2 ? prem : soccer, 4), 'soccer'),
+      featured('fc-points', 'Points party', 'NFL', overs(nfl, 4), 'nfl'),
+      featured('fc-euro-tour', 'European tour', 'Serie A', favs(extraSoccer, 5), 'soccer', extraSoccer[0]?.leagueIcon),
       featured('fc-mixed', 'Cross-sport combo', 'UEFA Champions League', [
         ...favs(soccer.filter((g) => /Champions/.test(g.leagueName)), 2),
         ...favs(nfl.slice(2), 2),
-      ]),
+      ], 'mixed'),
+      featured('fc-all-sports', 'Around the world', 'NBA', [
+        ...favs(v5Games('basketball').filter((g) => !g.live), 1),
+        ...favs(v5Games('hockey').filter((g) => !g.live), 1),
+        ...favs(v5Games('tennis').filter((g) => !g.live), 1),
+        ...favs(extraSoccer, 1),
+      ], 'mixed', '/leagues/basketball/usa/nba.svg'),
+      ...perSport,
     ].filter((x): x is FeaturedCombo => !!x)
   }
-  if (sport === 'all') return featuredCache
-  return featuredCache.filter((c) => c.legs.every((l) => (l.sport ?? 'soccer') === sport))
+  if (sport === 'all') return featuredCache.filter((c) => c.sport === 'mixed' || c.sport === 'nfl' || c.sport === 'soccer' || c.id.endsWith('-favs'))
+  return featuredCache.filter((c) => c.sport === sport)
 }
 
 // ─── Social proof (demo) ─────────────────────────────────────

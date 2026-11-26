@@ -52,3 +52,48 @@ Same logic as V1. Look: legs are cards (label on its own line, market · multipl
 - **Betslip V5:** selections timeline; single → stake box; 2+ → "Bet as singles" disclosure; SGP blocks; combo pinned at the bottom with stake field (label left, amount right), quick stakes, Chance row and big **To win**; the slip never pops open on its own in V5 (picks build in the Selections bar).
 - **After a bet:** deck opens when the slip closes on the receipt; 20s per card, **never pauses**; "Add to Selections" adds legs without opening the slip; casino card = blurred art + tile + Play now.
 - **Event view footer:** Market rules (Timeline and payout, rules text, ids, insider betting) + People are also betting.
+
+## Update — 25 Nov night (V5 round 4)
+- **Full sportsbook:** `lib/lumen/v5-sportsbook.ts` generates every side-nav sport (Basketball, Hockey, Baseball, Tennis, MMA, Boxing, Golf, Horse Racing, Rugby, Lacrosse, Volleyball, Table Tennis, Pool) plus extra Soccer leagues (Serie A, Bundesliga, Ligue 1, Europa League, Liga MX, MLS): leagues, games, live scores, deep event markets per sport (V1 market kinds), ladders, futures. Teams are real; every individual is invented. Routes: `app/sports/[sport]` + `/event/[eventId]` (V5 only; earlier versions show Sports Home). Side nav, Top Leagues, Top Sports and the sport rail link to them; V5 adds the extra sports to the rail with desktop-only chevrons.
+- **Layout:** main column (title, league tabs, market pill track, content) + sticky right rail from the top: promos, Top movers, Casino (Top 10 · Slots · Blackjack · Live casino · Originals, 16 each, scroll with fade), Season forecasts, Politics & Entertainment (sport pages). Home: Trending (3 chart cards) → Popular leagues → Popular → Live now → Popular Combos → sport sections (Football, Basketball, Soccer, Hockey, Tennis, MMA) interleaved with Odds Boosts, Upcoming, Same Game Combos, Politics & Entertainment, Mega Combos → Browse markets (sort · when · category · more).
+- **Shelves:** `V5Shelf fill/minCard` size cards to the column; arrows only when there is more; fade at the clipped edge. `AUTO_GRID`: max two columns, lone card spans, single card fills. `FadeScroll` for vertical/horizontal scroll areas. `V5PillTrack` = V1 pill look + casino overflow (phone: edge-to-edge capsule; desktop: clip, fade, glass chevrons).
+- **Event view:** every V1 market in V1's own groups (Popular · Goals · Halves · Corners · Cards · Players / Quarters · Touchdowns · Props) rendered as Yes / No rows (rows, ladders, lists, grids, correct score, US lines, player tables). Races get a field header + Runners rail.
+- **Casino:** rail games open in a draggable mini player (theatre view, full screen → game launcher; launches with a $0 wallet via `launchGame(..., { skipFunds: true })`).
+- **Deck:** Tinder-style — swipe the top card away (phones), it flies off, the next rises; receipt bar above, roomy cards, full-width CTA.
+- **Combo builder:** glass header, full-height inline slip, sport pills (all sports) + league tabs, Combo meter (legs, $10 pays, next-leg payout), tabs Moneyline · Spread · Total · Game props · Player props · Futures. Combo identity = `/v5/combo-mark.svg` (holographic double-diamond +); the dock button gets a slow light sweep, no glow.
+
+## Update — 26 Nov (V5 round 5)
+- **Side nav:** `withSingleActive()` + `navPickKey()` in `shell-nav.ts` (new exports). In V5 the sidebar lights one item: the clicked one (sessionStorage `shell-sidebar-pick:<product>`), else the first match. Scroll position persists per product.
+- **League menu:** `v5-league-menu.tsx`. "All" plus the top 4 leagues by volume as logo chips, and an "All leagues N" menu grouped by `leagueCountry()` with search, live and game counts. `?league=` deep links.
+- **Header:** back · title · SortMenu · round search, then `V5PillTrack` markets, then league chips (sport pages with 2+ leagues).
+- **Combo mark:** `components/lumen/v5/combo-mark.tsx` (`<ComboMark/>`) is an inline SVG with light/dark gradients. `public/v5/combo-mark.svg` is the clean dark version. It's used on the dock CTA, Build-your-own CTA, ComboPackCard header, builder header and meter, slip hint and empty state, slip combo footer, rail promo and bet stack.
+- **Sheen:** `.v5-combo-sheen` is isolated and the sheen sits at z -1, so it runs under the label.
+- **Builder sport pills:** monochrome `/shell/figma/sports/lumen/*` glyphs.
+
+## Update — 26 Nov morning (V5 round 6)
+- **League pages:** `app/sports/[sport]/[league]`, `app/sports/soccer/[league]` (new) and `app/sports/football/[league]` (V5Switch added). `ComboSportsPage({ sport, leagueSlug })` shows logo + title, Trending, day groups, Futures and Activity for that league, plus a rail filtered to it. Helpers: `leagueSlug` / `leagueHref` (v5-sportsbook) and `leaguePageHref` / `leagueBySlug` (v5-combos). `LeagueLink` (combo-ui) is used on the logo and name of KMarketCard, GameCard, HeroCard, Upcoming and boost cards. LeagueMenu chips navigate. `?league=` redirects; `?view=futures` opens a view. NBA nav → `/sports/basketball/nba`.
+- **Side nav:** `withSingleActive(groups, pick, pathname)` lights the exact-href match first.
+- **Activity:** `components/lumen/v5/v5-activity.tsx` `SportsActivity({ sport, league })`, from the /BA PRD. Open bets are built from V5 games; graded wins come from `ba-workshop` (wins only, no tap). It's on home, sport, league and event pages. `CasinoLiveWinsCarousel` has been removed from the V5 sports and event pages.
+- **Combo boost:** `v5-combo-boost.tsx` `ComboBoostMeter` (12 segments, tiers 4/6/8/12 legs → x1.05/1.15/1.25/1.5, min 1.50x). Full size in the builder; `compact` in the V5 slip.
+- **Marks:** `BoostMark` (brand rocket, warm gradient) sits next to `ComboMark` in `combo-mark.tsx`. Live hub uses the `broadcast` shell icon.
+- **Slip (V5):** "Your combo" header with a help popover; clean empty state; compact pinned combo footer and `V5StakeBox`; the receipt has no casino cross-sell and reads "N-leg combo".
+- **Bet deck:** 8 cards (same game, build on it, casino, league favourites, live now, upsets, 2 popular), desktop glass ← → arrows and a Close button.
+- **Builder:** LeagueMenu replaces the V5Tabs league row.
+- **Home order:** Browse markets is now 3rd, after Popular leagues. Activity is last.
+- **Slip bet-type filter (V5):** header pill (Combo · Singles · SGP, only the types the slip can make). Combo shows the boost meter and pinned footer. Singles shows a stake per pick. SGP shows the same-game blocks. `chooseBetType` clears the other types' stakes.
+- **Ticket receipt:** `TicketReceipt` in `soccer-betslip.tsx` (V5 only, via `ReceiptRow combo`).
+- **Deck payout:** `RollUp` + `.v5-pay-shimmer` (globals.css); bottom Close removed.
+- **Event page (V5):**
+  - `V5EventCrumbs` (`v5-event-crumbs.tsx`) replaces V1 `EventBreadcrumbs`: sport link with its own glyph, a league ▾ menu that links to league pages, and a game ▾ menu (siblings).
+  - The rail is a `FadeScroll` with `[&>*]:shrink-0`; without it the media cards collapse.
+  - `GenTracker` (`v5-tracker.tsx`) is used for generated live games: sport surfaces, possession, a play loop and stats, plus a stream tab where a sample stream exists (soccer only).
+- **Slip filter:** it now only jumps to or opens a section (Combo legs, Singles, SGP). Combo, singles and SGP stakes can all be placed together. Singles are hidden in the inline builder slip.
+- **Activity:** the odds button toggles the bet in the slip and turns red when it's in. It plays by default, and only a mouse hover pauses it.
+- **Builder mobile:** floating glass capsule dock (`MobileComboBar`). The header has no back button or logo on phones.
+- **Receipt (V5):**
+  - Compact header row: check · Bet placed · summary · minimise.
+  - Ticket made of two masked stubs (`notch()`) so the notches cut through the border.
+  - Action circles: Share (`navigator.share`, or copy) · My Bets · More picks (opens the deck) · Reuse or Back to slip.
+  - The inline builder no longer auto-opens the deck.
+- **Bet deck:** centred, fixed overlay with a blurred backdrop (tap it to close), a stronger fly-out, and a countdown that shakes and turns red for the last 5s.
+- **Builder + cashier:** CSS in `globals.css` lifts `[data-cashier-root]` and `[data-auth-modal-root]` above the builder sheet (z 255) while it's open.

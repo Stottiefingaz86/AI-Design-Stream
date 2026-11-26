@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { IconChevronDown } from '@tabler/icons-react'
@@ -12,9 +12,11 @@ import { ShellIcon, ShellLogo } from './shell-icons'
 import { gameForNavAction } from './shell-nav-launch'
 import {
   navForPathname,
+  navPickKey,
   promoNavTourId,
   withLastGamePlayed,
   withNavActive,
+  withSingleActive,
   type ShellNavGroup,
   type ShellNavItem,
 } from './shell-nav'
@@ -49,10 +51,52 @@ export function ShellSidebar() {
     openAuth,
   } = useShell()
   const siteVersion = useSiteVersion()
+  /* V5: one lit item even when MLB, Top Sports › Baseball and A–Z › Baseball share a page. */
+  const pickKey = `shell-sidebar-pick:${product}`
+  const [picked, setPicked] = useState<string | null>(null)
+  useLayoutEffect(() => {
+    try {
+      setPicked(window.sessionStorage.getItem(pickKey))
+    } catch {
+      /* storage blocked — first match wins */
+    }
+  }, [pickKey])
+  const savePick = (event: React.MouseEvent) => {
+    const key = (event.target as HTMLElement).closest<HTMLElement>('[data-nav-pick]')?.dataset.navPick
+    if (!key) return
+    setPicked(key)
+    try {
+      window.sessionStorage.setItem(pickKey, key)
+    } catch {
+      /* ignore */
+    }
+  }
+  const litGroups = withNavActive(navForPathname(pathname, product, siteVersion), pathname, hash)
   const groups = withLastGamePlayed(
-    withNavActive(navForPathname(pathname, product, siteVersion), pathname, hash),
+    siteVersion === 'v5' ? withSingleActive(litGroups, picked, pathname) : litGroups,
     { loggedIn, lastPlayed: lastPlayedGame },
   )
+
+  /* Each route mounts its own shell — keep the nav where the player left it instead of jumping to the top. */
+  const navRef = useRef<HTMLElement>(null)
+  const scrollKey = `shell-sidebar-scroll:${product}`
+  useLayoutEffect(() => {
+    const el = navRef.current
+    if (!el) return
+    try {
+      const saved = Number(window.sessionStorage.getItem(scrollKey) ?? 0)
+      if (saved > 0) el.scrollTop = saved
+    } catch {
+      /* storage blocked — start at the top */
+    }
+  }, [scrollKey])
+  const saveScroll = () => {
+    try {
+      if (navRef.current) window.sessionStorage.setItem(scrollKey, String(navRef.current.scrollTop))
+    } catch {
+      /* ignore */
+    }
+  }
 
   return (
     <aside
@@ -72,6 +116,9 @@ export function ShellSidebar() {
       </div>
 
       <nav
+        ref={navRef}
+        onScroll={saveScroll}
+        onClickCapture={savePick}
         className={cn(
           'shell-scroll flex flex-1 flex-col gap-3 overflow-y-auto overflow-x-visible pt-3 transition-[padding] duration-300 ease-in-out',
           expanded ? 'px-2' : 'px-4',
@@ -183,6 +230,7 @@ function SidebarNavGroup({
           {group.items.map((item) => (
             <NavItem
               key={`${group.heading ?? ''}-${item.label}`}
+              pick={navPickKey(group, index, item)}
               item={item}
               expanded={expanded}
               pathname={pathname}
@@ -201,6 +249,7 @@ function SidebarNavGroup({
 }
 
 function NavItem({
+  pick,
   item,
   expanded,
   pathname,
@@ -211,6 +260,7 @@ function NavItem({
   lastPlayed,
   loggedIn,
 }: {
+  pick?: string
   item: ShellNavItem
   expanded: boolean
   pathname: string
@@ -352,6 +402,7 @@ function NavItem({
       aria-label={item.label}
       aria-current={item.active ? 'page' : undefined}
       data-state={item.active ? 'active' : 'default'}
+      data-nav-pick={pick}
       data-tour={promoNavTourId(item.label)}
       data-tip={expanded ? undefined : item.label}
       data-tip-side="right"

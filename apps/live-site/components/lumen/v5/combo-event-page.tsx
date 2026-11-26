@@ -13,12 +13,10 @@ import {
   IconCircleCheckFilled,
   IconUsers,
 } from '@tabler/icons-react'
-import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
-import { ModePillTrack } from '@/components/lumen/soccer-sport-page'
+import { V5PillTrack } from './v5-pill-track'
 import { ChangeChip, LineChart, RangeTabs, outcomeColor, outcomeDash } from '@/components/lumen/markets/market-ui'
 import { SoccerBetslip, type SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import {
-  EventBreadcrumbs,
   EventHeader,
   EventMissing,
   LiveStatsCard,
@@ -45,13 +43,14 @@ import type {
   ScoreMarket,
   SportsEventModel,
 } from '@/lib/lumen/sports-event'
-import { CHART_RANGES, marketEvent, marketSeries, type ChartRange, type MarketSport } from '@/lib/lumen/sports-markets'
-import { sportsReturnHref } from '@/lib/lumen/sports-return'
+import { CHART_RANGES, marketEvent, marketSeries, type ChartRange, type SportsMarket } from '@/lib/lumen/sports-markets'
+import { genEventModel, genGame, sportDef, sportHref, v5SportOf, type V5SportId } from '@/lib/lumen/v5-sportsbook'
 import {
   bettorsNow,
   eventLadders,
   leadOutcome,
   leagueLogo,
+  leaguePageHref,
   noCents,
   openComboBuilder,
   pickFor,
@@ -65,6 +64,10 @@ import { BetStackPopup, showBetStack } from './bet-stack-popup'
 import { CasinoMiniPlayer } from './casino-mini-player'
 import { ChartBetStream } from './chart-bet-stream'
 import { ComboBuilderOverlay } from './combo-builder'
+import { SportsActivity } from './v5-activity'
+import { V5EventCrumbs } from './v5-event-crumbs'
+import { FadeScroll } from './v5-fade-scroll'
+import { GenTracker, hasGenTracker } from './v5-tracker'
 import { Crest, DrawMark, V5_CARD, V5_LIGHT_UP, YesNoButton, chanceFromAmerican, fmtPctRound, useV5Pick } from './combo-ui'
 
 type OnPick = (pick: SoccerSlipPick, el?: HTMLElement | null) => void
@@ -74,19 +77,27 @@ type OnPick = (pick: SoccerSlipPick, el?: HTMLElement | null) => void
  * stream, match tracker and stats) with the prediction-market layer in the main column:
  * chance chart with bets streaming up, then Yes / No rows with line steppers.
  */
-export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId: string }) {
+export function ComboEventPage({ sport, eventId }: { sport: V5SportId; eventId: string }) {
   const router = useRouter()
   const { startNavigating } = useShell()
   const desktop = useIsDesktop()
-  const ev = marketEvent(sport, eventId)
+  /* Generated sports (and the extra soccer leagues) come from the V5 sportsbook; V1 boards from V1. */
+  const gen = genGame(eventId)
+  const v1 = gen ? null : sport === 'nfl' || sport === 'soccer' ? marketEvent(sport, eventId) : null
+  const ev = gen ? { game: gen as SportsMarket } : v1
+  const field = !!gen?.field
+  /* Sports V1 has no tracker for (basketball, hockey, tennis…) get the V5 one while live. */
+  const genLive = !!gen && !field && !!gen.live && hasGenTracker(gen as SportsMarket)
   const model = useMemo<SportsEventModel | null>(() => {
+    if (gen) return genEventModel(eventId)
     if (sport === 'nfl') {
       const f = findNflEvent(eventId)
       return f ? nflEventModel(f.event, f.section) : null
     }
+    if (sport !== 'soccer') return null
     const f = findSoccerEvent(eventId)
     return f ? soccerEventModel(f.event, f.section) : null
-  }, [sport, eventId])
+  }, [sport, eventId, gen])
   const picks = useSoccerSlip()
   const selected = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
   const onPick = useV5Pick()
@@ -120,14 +131,19 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
   if (!ev || !model) {
     return (
       <>
-        <EventMissing sportLabel={sport === 'nfl' ? 'Football' : 'Soccer'} href={sport === 'nfl' ? '/sports/football' : '/sports/soccer'} />
+        <EventMissing sportLabel={sportDef(sport).label} href={sportHref(sport)} />
         {slip}
       </>
     )
   }
 
+  /* Back = wherever the player came from; a direct visit falls back to this game's league page. */
   const goBack = () => {
-    const href = sportsReturnHref(model.sportHref)
+    if (window.history.length > 1) {
+      router.back()
+      return
+    }
+    const href = leaguePageHref(sport, model.league.name) ?? model.sportHref
     startNavigating(href)
     router.push(href)
   }
@@ -151,21 +167,27 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
       data-live={model.event.live ? 'true' : 'false'}
       className="mx-auto w-full max-w-[1440px] px-4 py-4 md:px-6 md:py-6"
     >
-      <EventBreadcrumbs model={model} onBack={goBack} />
+      <V5EventCrumbs model={model} sport={sport} onBack={goBack} />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="min-w-0">
-          <EventHeader model={model} />
+          {field ? <FieldHeader game={ev.game} /> : <EventHeader model={model} />}
 
           {/* Below lg the stream / tracker sit in-flow; lg+ they live in the rail. */}
           <div className="mt-4 lg:hidden">
-            {model.live ? (desktop === false ? <MediaPanel model={model} /> : null) : <WinProbabilityCard model={model} />}
+            {field ? null : genLive ? (
+              <GenTracker game={ev.game} />
+            ) : model.live ? (
+              desktop === false ? <MediaPanel model={model} /> : null
+            ) : (
+              <WinProbabilityCard model={model} />
+            )}
           </div>
 
           <ChanceChart game={ev.game} />
 
           {/* Market groups — V1 pill track */}
-          <ModePillTrack active={activeTab} onChange={setTab} modes={tabs} ariaLabel="Market groups" className="mb-4 mt-6" />
+          <V5PillTrack active={activeTab} onChange={setTab} modes={tabs} ariaLabel="Market groups" className="mb-4 mt-6" />
 
           <div className="flex flex-col gap-3">
             {activeTab === 'popular' ? <GameLines game={ev.game} selected={selected} onPick={onPick} /> : null}
@@ -179,7 +201,10 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
           </div>
 
           <MarketRules game={ev.game} />
-          <AlsoBetting game={ev.game} sport={sport} />
+          <AlsoBetting game={ev.game} sport={v5SportOf(ev.game)} />
+          <div className="mt-12">
+            <SportsActivity sport={v5SportOf(ev.game)} league={ev.game.leagueName} />
+          </div>
 
           <div className="mt-6 flex flex-col gap-4 lg:hidden">
             {model.live ? <LiveStatsCard model={model} /> : <PreMatchCards model={model} />}
@@ -187,15 +212,25 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
         </div>
 
         {/* Rail — stream, match tracker and stats: the part a prediction market can't give you. */}
-        <aside
-          aria-label={model.event.live ? 'Live stream and tracker' : 'Game stats'}
+        {/* Sticky rail — fades at the edge it scrolls under, never a hard clip. */}
+        <FadeScroll
+          role="complementary"
+          label={model.event.live ? 'Live stream and tracker' : 'Game stats'}
           className={cn(
-            'scrollbar-hide hidden min-w-0 flex-col gap-4 lg:flex lg:self-start lg:overflow-y-auto',
+            'scrollbar-hide hidden min-w-0 flex-col gap-4 lg:flex lg:self-start lg:overflow-y-auto [&>*]:shrink-0',
             'lg:sticky lg:top-[calc(var(--shell-chrome-h,140px)+16px)]',
             'lg:max-h-[calc(100dvh-var(--shell-chrome-h,140px)-32px)]',
           )}
         >
-          {model.live ? (
+          {field ? (
+            <FieldCard game={ev.game} />
+          ) : genLive ? (
+            <>
+              <GenTracker game={ev.game} />
+              <WinProbabilityCard model={model} />
+              <PreMatchCards model={model} />
+            </>
+          ) : model.live ? (
             <>
               {desktop ? <MediaPanel model={model} /> : null}
               <LiveStatsCard model={model} />
@@ -206,11 +241,7 @@ export function ComboEventPage({ sport, eventId }: { sport: MarketSport; eventId
               <PreMatchCards model={model} />
             </>
           )}
-        </aside>
-      </div>
-
-      <div className="-mx-4 mt-8 md:-mx-6">
-        <CasinoLiveWinsCarousel />
+        </FadeScroll>
       </div>
 
       {slip}
@@ -682,6 +713,53 @@ function PlayerLineRow({
   )
 }
 
+// ─── Races (many runners) ──────────────────────────────────────
+
+function FieldHeader({ game }: { game: SportsMarket }) {
+  const [venue, race, dist] = game.title.split(' · ')
+  return (
+    <section data-name="v5-field-header" className={cn(V5_CARD, 'rounded-[14px] px-4 pb-5 pt-4 md:px-6')}>
+      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+        <span className="inline-flex min-w-0 items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={game.leagueIcon} alt="" className="size-4 shrink-0 object-contain" />
+          <span className="truncate">{venue}</span>
+        </span>
+        <span className={cn('font-semibold', game.live ? 'text-destructive' : '')}>{game.live ? `Live · ${game.when}` : game.when}</span>
+      </div>
+      <h1 className="mt-3 text-3xl font-bold leading-9 tracking-tight text-foreground">{race}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {dist} · {game.outcomes.length} runners · {fmtPctRound(game.outcomes[0]!.chance)} favourite
+      </p>
+    </section>
+  )
+}
+
+/** Rail for races — every runner's chance, form string and number. */
+function FieldCard({ game }: { game: SportsMarket }) {
+  return (
+    <section className={cn(V5_CARD, 'rounded-[14px] p-4')}>
+      <h3 className="mb-3 text-base font-bold text-foreground">Runners</h3>
+      <ol className="flex flex-col gap-3">
+        {game.outcomes.map((o, i) => (
+          <li key={o.id} className="flex items-center gap-3">
+            <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-secondary text-xs font-bold tabular-nums text-foreground">
+              {i + 1}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold text-foreground">{o.label}</span>
+              <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-secondary">
+                <span className="block h-full rounded-full bg-foreground" style={{ width: `${Math.max(4, o.chance)}%` }} />
+              </span>
+            </span>
+            <span className="w-10 shrink-0 text-right text-sm font-bold tabular-nums text-foreground">{fmtPctRound(o.chance)}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
 // ─── Every V1 market as Kalshi rows ────────────────────────────
 
 /** The chance-chart Game Lines already cover these on Popular. */
@@ -1095,7 +1173,7 @@ function MarketRules({ game }: { game: NonNullable<ReturnType<typeof marketEvent
   )
 }
 
-function AlsoBetting({ game, sport }: { game: NonNullable<ReturnType<typeof marketEvent>>['game']; sport: MarketSport }) {
+function AlsoBetting({ game, sport }: { game: NonNullable<ReturnType<typeof marketEvent>>['game']; sport: V5SportId }) {
   const others = v5Games(sport)
     .filter((g) => g.id !== game.id)
     .sort((a, b) => Number(b.live) - Number(a.live) || b.volume - a.volume)

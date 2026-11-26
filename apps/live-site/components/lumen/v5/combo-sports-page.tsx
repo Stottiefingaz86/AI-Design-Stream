@@ -3,11 +3,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { IconChevronLeft, IconChevronRight, IconSearch, IconUsers, IconX } from '@tabler/icons-react'
-import { CasinoLiveWinsCarousel } from '@/components/lumen/casino-live-wins-carousel'
 import { CasinoLobbyBannerRow } from '@/components/lumen/casino-lobby-banners'
 import { SoccerBetslip, type SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import { LiveClock } from '@/components/lumen/sports-home-page'
-import { AlternateLinePicker, LIVE_ROW_STYLE, ModePillTrack, OddsButton } from '@/components/lumen/soccer-sport-page'
+import { AlternateLinePicker, LIVE_ROW_STYLE, OddsButton } from '@/components/lumen/soccer-sport-page'
+import { V5PillTrack } from './v5-pill-track'
 import { useShell } from '@/components/site/shell-context'
 import { CASINO_LOBBY_PROMO_BANNERS } from '@/lib/lumen/casino-lobby-promos'
 import { setSoccerSlip, useSoccerSlip } from '@/lib/lumen/soccer-slip-store'
@@ -20,6 +20,7 @@ import {
   groupByDay,
   kickoffTime,
   leadOutcome,
+  leagueBySlug,
   leagueLogo,
   openComboBuilder,
   pickFor,
@@ -34,6 +35,7 @@ import {
 import {
   SORT_MODES,
   futureCards,
+  gameCardOf,
   gameCards,
   gamePropCards,
   gameSortable,
@@ -52,6 +54,7 @@ import { BuildOwnCard, ComboBuilderOverlay } from './combo-builder'
 import {
   Crest,
   DrawMark,
+  LeagueLink,
   PctPill,
   ProbBar,
   V5Heading,
@@ -64,6 +67,8 @@ import {
   useV5Pick,
 } from './combo-ui'
 import { KMarketCard, SortMenu } from './v5-market-cards'
+import { LeagueMenu } from './v5-league-menu'
+import { SportsActivity } from './v5-activity'
 import {
   AUTO_GRID,
   BrowseMarkets,
@@ -79,6 +84,7 @@ import {
   UpcomingShelf,
 } from './v5-widgets'
 import { topicMix } from '@/lib/lumen/v5-topics'
+import { isGenerated, leagueHref, sportDef, sportHref, v5SportOf, type V5SportId } from '@/lib/lumen/v5-sportsbook'
 import {
   BoostsGrid,
   BoostsShelf,
@@ -92,14 +98,10 @@ import {
   sameGameCombos,
 } from './v5-shelves'
 
-const SPORT_LABEL: Record<V5Sport, string> = { all: 'Sports', nfl: 'Football', soccer: 'Soccer' }
+const labelOf = (sport: V5Sport) => (sport === 'all' ? 'Sports' : sportDef(sport).label)
 
-/** Sports with V5 content — more join as their boards land. */
-const HOME_SPORTS: { id: string; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'nfl', label: 'Football' },
-  { id: 'soccer', label: 'Soccer' },
-]
+/** Home sport sections — the biggest games of each. */
+const HOME_SECTIONS: V5SportId[] = ['nfl', 'basketball', 'soccer', 'hockey', 'tennis', 'mma']
 
 const VIEW_LABEL: Record<V5View, string> = {
   games: 'Games',
@@ -125,10 +127,13 @@ const AUTO_GRID_3 =
  * Spreads · Totals · Game props · Player props · Win totals · Futures · Combos · Odds Boosts),
  * casino-style shelves on Games, uniform market cards everywhere else. Home gets the banners.
  */
-export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
+export function ComboSportsPage({ sport = 'all', leagueSlug }: { sport?: V5Sport; leagueSlug?: string }) {
   const router = useRouter()
   const { startNavigating, setCashierOpen, setVipHubOpen } = useShell()
-  const [league, setLeague] = useState<string>('all')
+  /* League pages are routes (/sports/soccer/premier-league) — the slug picks the league. */
+  const leagueDef = sport !== 'all' && leagueSlug ? leagueBySlug(sport, leagueSlug) : undefined
+  const league = leagueDef?.name ?? 'all'
+  const leaguePage = Boolean(leagueDef)
   const [view, setView] = useState<V5View>('games')
   const [sort, setSort] = useState<SortMode>('trending')
   const [reverse, setReverse] = useState(false)
@@ -141,6 +146,16 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
   const [pageRef, wide] = useWide(1120)
 
   const leagues = v5Leagues(sport)
+  /* League menu — popular few as tabs, every league by country in the menu. */
+  const leagueMenu = useMemo(() => {
+    const games = v5Games(sport)
+    return leagues.map((l) => ({
+      ...l,
+      live: games.filter((g) => g.leagueName === l.name && g.live).length,
+      volume: games.filter((g) => g.leagueName === l.name).reduce((a, g) => a + g.volume, 0),
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sport])
   const inLeague = <T extends { league?: string; leagueName?: string }>(x: T) =>
     league === 'all' || (x.league ?? x.leagueName) === league
   const q = query.trim().toLowerCase()
@@ -157,8 +172,10 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
       winTotals: winTotalCards(sport),
       futures: futureCards(sport),
       combos: featuredCombos(sport),
-      footballCards: sport === 'all' ? sortItems(gameCards('nfl'), 'volume') : [],
-      soccerCards: sport === 'all' ? sortItems(gameCards('soccer'), 'volume') : [],
+      sections:
+        sport === 'all'
+          ? Object.fromEntries(HOME_SECTIONS.map((id) => [id, sortItems(gameCards(id), 'volume')]))
+          : ({} as Record<string, KCard[]>),
     }),
     [sport],
   )
@@ -194,12 +211,25 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
     if (!pills.some((p) => p.id === view)) setView('games')
   }, [pills, view])
 
-  /* Popular leagues deep link — /sports/soccer?league=Premier%20League */
+  /* Old ?league= links land on the league page; ?view=futures opens a market view. */
   useEffect(() => {
-    const want = new URLSearchParams(window.location.search).get('league')
-    if (want && leagues.some((l) => l.name === want)) setLeague(want)
+    const params = new URLSearchParams(window.location.search)
+    const want = params.get('league')
+    if (want && sport !== 'all' && leagues.some((l) => l.name === want)) {
+      router.replace(leagueHref(sport, want))
+      return
+    }
+    const v = params.get('view') as V5View | null
+    if (v && v in VIEW_LABEL) setView(v)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sport])
+  }, [sport, leagueSlug])
+
+  /* Changing view scrolls back to the top of the page so the switch is visible. */
+  const showView = (v: V5View) => {
+    setView(v)
+    document.getElementById('shell-scroll')?.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+  const pickLeague = (id: string) => go(id === 'all' || sport === 'all' ? sportHref(sport as V5SportId) : leagueHref(sport, id))
 
   const banners = useMemo(
     () =>
@@ -238,13 +268,13 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
       <p className="py-16 text-center text-sm text-muted-foreground">Nothing here right now.</p>
     )
 
-  const title = league === 'all' ? SPORT_LABEL[sport] : shortLeague(league)
+  const title = league === 'all' ? labelOf(sport) : league
   const home = sport === 'all'
   const mixed = home || new Set(games.map((g) => g.sport)).size > 1
   const canBack = view !== 'games' || league !== 'all' || !home
   const back = () => {
     if (view !== 'games') setView('games')
-    else if (league !== 'all') setLeague('all')
+    else if (leaguePage && sport !== 'all') go(sportHref(sport))
     else go('/sports')
   }
 
@@ -253,36 +283,59 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
       <section key={d.label} className="mb-10">
         <V5Heading>{d.label}</V5Heading>
         <div className={AUTO_GRID}>
-          {d.games.map((g) => (
-            <GameCard key={g.id} game={g} padDraw={mixed} selected={selected} onPick={onPick} onOpen={() => go(g.href)} />
-          ))}
+          {d.games.map((g) =>
+            isGenerated(g) && g.field ? (
+              <KMarketCard key={g.id} card={gameCardOf(g)} selected={selected} onPick={onPick} />
+            ) : (
+              <GameCard key={g.id} game={g} padDraw={mixed} selected={selected} onPick={onPick} onOpen={() => go(g.href)} />
+            ),
+          )}
         </div>
       </section>
     ) : null
 
   /* Games view — curated widgets between the day groups, never three combo shelves in a row. */
-  const curated = view === 'games' && league === 'all' && !q
-  const toCombos = () => setView('combos')
-  const toBoosts = () => setView('boosts')
+  const curated = view === 'games' && !q
+  const toCombos = () => showView('combos')
+  const toBoosts = () => showView('boosts')
   const gamesView = (() => {
     if (!curated) return gameGroups.map(dayGroup)
+    if (leaguePage) {
+      /* League page — trending, the odds by day, that league's futures, then the rest. */
+      const [l0, l1, ...lrest] = gameGroups
+      return (
+        <>
+          <TrendingHero sport={sport} league={league} />
+          {l0 ? dayGroup(l0) : null}
+          <MarketSection title="Futures" cards={futures} onSeeAll={() => showView('futures')} />
+          {l1 ? dayGroup(l1) : null}
+          {lrest.map(dayGroup)}
+          <SportsActivity sport={sport} league={league} />
+        </>
+      )
+    }
     if (home) {
       const live = gameList.filter((g) => g.live)
       return (
         <>
           <TrendingHero sport={sport} />
           <PopularLeagues />
+          <BrowseMarkets sport={sport} />
           <PopularCarousel sport={sport} />
-          {live.length ? dayGroup({ label: 'Live now', games: live.slice(0, 4) }) : null}
+          {live.length ? dayGroup({ label: 'Live now', games: live.filter((g) => !(isGenerated(g) && g.field)).slice(0, 6) }) : null}
           <CombosShelf sport={sport} onSeeAll={toCombos} lead={<BuildOwnCard sport={sport} />} />
-          <MarketSection title="Football" cards={data.footballCards} onSeeAll={() => go('/sports/football')} />
+          <SportSection id="nfl" cards={data.sections.nfl} go={go} />
+          <SportSection id="basketball" cards={data.sections.basketball} go={go} />
           <BoostsShelf sport={sport} onSeeAll={toBoosts} />
           <UpcomingShelf sport={sport} />
-          <MarketSection title="Soccer" cards={data.soccerCards} onSeeAll={() => go('/sports/soccer')} />
+          <SportSection id="soccer" cards={data.sections.soccer} go={go} />
           <SameGameCombosShelf sport={sport} onSeeAll={toCombos} />
+          <SportSection id="hockey" cards={data.sections.hockey} go={go} />
+          <SportSection id="tennis" cards={data.sections.tennis} go={go} />
           <MarketSection title="Politics & Entertainment" cards={topicMix()} />
           <MegaCombosShelf sport={sport} onSeeAll={toCombos} />
-          <BrowseMarkets sport={sport} />
+          <SportSection id="mma" cards={data.sections.mma} go={go} />
+          <SportsActivity sport={sport} />
         </>
       )
     }
@@ -299,17 +352,22 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
         <SameGameCombosShelf sport={sport} onSeeAll={toCombos} />
         {rest.map(dayGroup)}
         <MegaCombosShelf sport={sport} onSeeAll={toCombos} />
-        <MarketSection title="Futures" cards={futures} onSeeAll={() => setView('futures')} />
+        <MarketSection title="Futures" cards={futures} onSeeAll={() => showView('futures')} />
+        <SportsActivity sport={sport} />
       </>
     )
   })()
 
   const rail = (
     <>
-      <RailPromos sport={sport} onBoosts={toBoosts} onLive={() => setView(liveCount ? 'live' : 'games')} />
-      <RailMovers sport={sport} />
+      <RailPromos sport={sport} onBoosts={toBoosts} onLive={() => showView(liveCount ? 'live' : 'games')} />
+      <RailMovers sport={sport} league={leaguePage ? league : undefined} />
       <RailCasino />
-      <RailForecasts sport={sport} onMore={futures.length ? () => setView('futures') : undefined} />
+      <RailForecasts
+        sport={sport}
+        league={leaguePage ? league : undefined}
+        onMore={futures.length ? () => showView('futures') : undefined}
+      />
       {!home ? <RailTopics /> : null}
     </>
   )
@@ -336,6 +394,10 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
               >
                 <IconChevronLeft className="size-5" stroke={2} />
               </button>
+            ) : null}
+            {leagueDef ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={leagueDef.logo} alt="" className="size-10 shrink-0 object-contain" />
             ) : null}
             <h1 className={cn(V5_TITLE, 'min-w-0 flex-1 truncate')}>
               {title}
@@ -366,33 +428,26 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
             />
           ) : null}
 
-          {/* Home: sports. Sport pages: that sport's leagues. */}
-          {home ? (
-            <V5Tabs
-              className="mt-5"
-              tabs={HOME_SPORTS}
-              active="all"
-              onChange={(id) => {
-                if (id !== 'all') go(id === 'nfl' ? '/sports/football' : '/sports/soccer')
-              }}
-            />
-          ) : (
-            <V5Tabs
-              className="mt-5"
-              tabs={[{ id: 'all', label: 'All' }, ...leagues.map((l) => ({ id: l.name, label: shortLeague(l.name) }))]}
+          {/* Markets sub-nav — V1 pill track */}
+          <V5PillTrack
+            active={view}
+            onChange={showView}
+            modes={pills.map((p) => ({ id: p.id, label: p.label }))}
+            ariaLabel="Markets"
+            className="mb-0 mt-6"
+          />
+
+          {/* Sport pages: that sport's leagues (home has the sport rail up top). */}
+          {home || leagues.length < 2 ? null : (
+            <LeagueMenu
+              className="mt-4"
+              leagues={leagueMenu}
               active={league}
-              onChange={setLeague}
+              onChange={pickLeague}
+              short={shortLeague}
             />
           )}
 
-          {/* Markets sub-nav — V1 pill track */}
-          <ModePillTrack
-            active={view}
-            onChange={setView}
-            modes={pills.map((p) => ({ id: p.id, label: p.label }))}
-            ariaLabel="Markets"
-            className="mb-0 mt-4"
-          />
           <div className="mt-8">
           <ShelfBleed.Provider value={!wide}>
           {view === 'combos' ? (
@@ -438,7 +493,7 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
           ) : view === 'player-props' ? (
             <>
               {propGroups.length > 1 ? (
-                <ModePillTrack
+                <V5PillTrack
                   active={activeGroup}
                   onChange={setPropGroup}
                   modes={propGroups.map((g) => ({ id: g, label: g }))}
@@ -478,10 +533,6 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
         </FadeScroll>
       </div>
 
-      <div className="-mx-4 mt-10 md:-mx-6">
-        <CasinoLiveWinsCarousel />
-      </div>
-
       <SoccerBetslip
         picks={picks}
         onRemove={(id) => setSoccerSlip((prev) => prev.filter((p) => p.id !== id))}
@@ -496,6 +547,12 @@ export function ComboSportsPage({ sport = 'all' }: { sport?: V5Sport }) {
       <CasinoMiniPlayer />
     </div>
   )
+}
+
+/** Home sport section — its four biggest games, See All jumps to the sport page. */
+function SportSection({ id, cards, go }: { id: V5SportId; cards?: KCard[]; go: (href: string) => void }) {
+  if (!cards?.length) return null
+  return <MarketSection title={sportDef(id).label} cards={cards} onSeeAll={() => go(sportHref(id))} />
 }
 
 /** Wide enough for main column + rail. */
@@ -547,8 +604,10 @@ function GameCard({
       className={cn(V5_CARD, V5_LIGHT_UP, 'cursor-pointer overflow-hidden rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring')}
     >
       <div className="flex items-center gap-3 px-4 pt-4">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={leagueLogo(game.leagueName, game.leagueIcon)} alt="" className="size-9 shrink-0 object-contain" />
+        <LeagueLink sport={v5SportOf(game)} league={game.leagueName} className="shrink-0">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={leagueLogo(game.leagueName, game.leagueIcon)} alt="" className="size-9 shrink-0 object-contain" />
+        </LeagueLink>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-bold leading-6 text-foreground">{game.title}</p>
           <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -560,7 +619,9 @@ function GameCard({
               </span>
             )}
             <span aria-hidden>·</span>
-            <span className="truncate">{game.leagueName}</span>
+            <LeagueLink sport={v5SportOf(game)} league={game.leagueName} className="truncate hover:text-foreground">
+              {game.leagueName}
+            </LeagueLink>
           </p>
         </div>
       </div>

@@ -3,7 +3,7 @@
 import { Children, createContext, isValidElement, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { IconCheck, IconChevronLeft, IconChevronRight, IconRocket } from '@tabler/icons-react'
+import { IconCheck, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import { LiveClock, useCardMotion } from '@/components/lumen/sports-home-page'
 import { BoardTeamBadge, LIVE_ROW_STYLE, OddsButton } from '@/components/lumen/soccer-sport-page'
 import { useShell } from '@/components/site/shell-context'
@@ -21,7 +21,10 @@ import {
 import type { SportsMarket } from '@/lib/lumen/sports-markets'
 import {
   decimalToAmerican,
+  eventLadders,
   featuredCombos,
+  leadOutcome,
+  pickFor,
   fmtX,
   decimalOf,
   kickoffTime,
@@ -32,9 +35,11 @@ import {
   type FeaturedCombo,
   type V5Sport,
 } from '@/lib/lumen/v5-combos'
+import { genBoostTitle, isGenerated, sportDef, type V5Game } from '@/lib/lumen/v5-sportsbook'
 import { flyBetDotToSlip } from '@/lib/lumen/vip-celebrate'
 import { cn } from '@/lib/utils'
-import { Crest, LiveDot, V5_CARD, V5_HEADING, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtUsd } from './combo-ui'
+import { BoostMark, ComboMark } from './combo-mark'
+import { Crest, LeagueLink, LiveDot, V5_CARD, V5_HEADING, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtUsd } from './combo-ui'
 
 
 // ─── Shelf — casino shelf header (title · See All box · arrow boxes) + snap rail ───
@@ -141,7 +146,7 @@ export function V5Shelf({
           onScroll={measure}
           aria-label={label ?? title}
           className={cn(
-            'scrollbar-hide -my-2 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain scroll-px-4 px-4 py-2 md:scroll-px-6 md:px-6 [&>*]:snap-start',
+            'scrollbar-hide -my-2 flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-px-4 px-4 py-2 md:scroll-px-6 md:px-6 [&>*]:snap-start',
             !bleedRight && 'pr-0 md:pr-0',
           )}
         >
@@ -169,7 +174,8 @@ export function PopularCarousel({ sport, title = 'Popular' }: { sport: V5Sport; 
   const router = useRouter()
   const { startNavigating } = useShell()
   const groups = useMemo(() => {
-    const all = v5Games(sport)
+    /* Races list every runner — they live on their own cards, not in the two-team Popular tiles. */
+    const all = v5Games(sport).filter((g) => !(isGenerated(g) && g.field))
     const map = new Map<string, SportsMarket[]>()
     for (const g of all) map.set(g.leagueName, [...(map.get(g.leagueName) ?? []), g])
     return [...map.entries()]
@@ -257,7 +263,7 @@ export function BoostsShelf({
   onSeeAll?: () => void
   fill?: number
 }) {
-  const boosts = useMemo<OddsBoost[]>(() => (sport === 'all' ? sportsHomeOddsBoosts() : sportOddsBoosts(sport)), [sport])
+  const boosts = useMemo<OddsBoost[]>(() => boostsFor(sport), [sport])
   const cards = useBoostCards(boosts)
   if (!boosts.length) return null
   return (
@@ -268,10 +274,64 @@ export function BoostsShelf({
 }
 
 export function BoostsGrid({ sport }: { sport: V5Sport }) {
-  const boosts = useMemo<OddsBoost[]>(() => (sport === 'all' ? sportsHomeOddsBoosts() : sportOddsBoosts(sport)), [sport])
+  const boosts = useMemo<OddsBoost[]>(() => boostsFor(sport), [sport])
   const cards = useBoostCards(boosts)
   if (!boosts.length) return <p className="py-16 text-center text-sm text-muted-foreground">No Odds Boosts right now.</p>
   return <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 [&>*]:!w-full">{cards}</div>
+}
+
+/** V1 boosts for Football / Soccer, generated ones for every other sport (home gets a mix). */
+/* V1 boost copy names real players — V5 demos only use invented athletes. */
+const INVENTED: [RegExp, string][] = [
+  [/Erling Haaland/g, 'Nils Brekke'],
+  [/Kenneth Walker III/g, 'Darnell Pike'],
+  [/Josh Allen/g, 'Cole Brandt'],
+]
+function noRealNames(b: OddsBoost): OddsBoost {
+  const fix = (t: string) => INVENTED.reduce((s, [re, to]) => s.replace(re, to), t)
+  return { ...b, title: fix(b.title), pick: { ...b.pick, label: fix(b.pick.label) } }
+}
+
+function boostsFor(sport: V5Sport): OddsBoost[] {
+  if (sport === 'nfl' || sport === 'soccer') return sportOddsBoosts(sport).map(noRealNames)
+  const gen = (games: SportsMarket[]) =>
+    games
+      .filter((g): g is V5Game => isGenerated(g))
+      .slice(0, 6)
+      .map((g): OddsBoost => {
+        const { title, was, boosted } = genBoostTitle(g)
+        const sides = g.outcomes.filter((o) => o.label !== 'Draw')
+        return {
+          id: `boost-${g.id}`,
+          sport: g.sport,
+          leagueName: g.leagueName,
+          leagueIcon: g.leagueIcon,
+          when: g.when,
+          live: g.live,
+          teams: [sides[0]?.label ?? '', sides[1]?.label ?? ''],
+          eventHref: g.href,
+          title,
+          was: `+${was}`,
+          boosted: `+${boosted}`,
+          pick: {
+            id: `boost-${g.id}`,
+            label: title,
+            odds: `+${boosted}`,
+            eventLabel: g.eventLabel,
+            market: 'Odds Boost',
+            eventId: g.eventId,
+            eventHref: g.href,
+            sport: g.sport,
+            live: g.live,
+            outright: true,
+          },
+        }
+      })
+  if (sport === 'all') {
+    const picks = ['basketball', 'hockey', 'tennis', 'mma'] as const
+    return [...sportsHomeOddsBoosts().map(noRealNames), ...picks.flatMap((id) => gen(v5Games(id).filter((g) => !g.live)).slice(0, 1))]
+  }
+  return gen(v5Games(sport))
 }
 
 function useBoostCards(boosts: OddsBoost[]) {
@@ -324,9 +384,15 @@ function V5BoostCard({
     >
       <div className="flex flex-col gap-2.5 p-3">
         <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={leagueLogo(boost.leagueName, boost.leagueIcon)} alt="" className="size-4 object-contain" />
-          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{boost.leagueName}</span>
+          <LeagueLink
+            sport={boost.sport}
+            league={boost.leagueName}
+            className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={leagueLogo(boost.leagueName, boost.leagueIcon)} alt="" className="size-4 object-contain" />
+            <span className="min-w-0 truncate">{boost.leagueName}</span>
+          </LeagueLink>
           {boost.live ? <LiveClock when={boost.when} /> : <span className="text-xs text-muted-foreground">{boost.when}</span>}
         </div>
         <button
@@ -346,7 +412,7 @@ function V5BoostCard({
         </button>
       </div>
       <div className="flex flex-1 items-start gap-2 px-4 pb-4 pt-1">
-        <IconRocket className="mt-0.5 size-4 shrink-0 text-foreground" stroke={1.75} aria-hidden />
+        <BoostMark className="mt-0.5 size-5" />
         <p className="text-sm font-semibold leading-5 text-foreground">{boost.title}</p>
       </div>
       <div className="mt-auto grid grid-cols-2 gap-2 border-t border-border p-3">
@@ -397,8 +463,7 @@ export function ComboPackCard({
       )}
     >
       <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={combo.leagueLogo} alt="" className="size-5 shrink-0 object-contain" />
+        <ComboMark className="size-5" />
         <p className="min-w-0 flex-1 truncate text-base font-bold tracking-tight text-foreground">{combo.title}</p>
         <span className="shrink-0 text-xs text-muted-foreground">{combo.bettors.toLocaleString('en-US')} on this</span>
       </div>
@@ -481,32 +546,91 @@ function pseudo(id: string, lo: number, hi: number): number {
 
 /** Same-game packs as combos — every leg on one game. */
 export function sameGameCombos(sport: V5Sport): FeaturedCombo[] {
-  const packs = sport === 'all' ? sportsHomeSgpPacks() : sportSgpPacks(sport)
-  return packs.map((p) => ({
-    id: p.id,
-    title: p.eventLabel,
-    league: p.leagueName,
-    leagueLogo: leagueLogo(p.leagueName, p.leagueIcon),
-    legs: p.legs,
-    decimal: decimalOf(p.odds),
-    volume: pseudo(p.id, 120_000, 900_000),
-    bettors: pseudo(`${p.id}-b`, 140, 1_800),
-  }))
+  const v1 = (s: 'soccer' | 'nfl' | 'all') =>
+    (s === 'all' ? sportsHomeSgpPacks() : sportSgpPacks(s)).map((p) => ({
+      id: p.id,
+      title: p.eventLabel,
+      league: p.leagueName,
+      leagueLogo: leagueLogo(p.leagueName, p.leagueIcon),
+      legs: p.legs,
+      decimal: decimalOf(p.odds),
+      volume: pseudo(p.id, 120_000, 900_000),
+      bettors: pseudo(`${p.id}-b`, 140, 1_800),
+    }))
+  if (sport === 'all') return [...v1('all'), ...genSameGame('basketball', 1), ...genSameGame('hockey', 1)]
+  if (sport === 'nfl' || sport === 'soccer') return [...v1(sport), ...(sport === 'soccer' ? genSameGame('soccer', 2) : [])]
+  return genSameGame(sport, 4)
+}
+
+/** Generated same-game combos — winner, the main total and a line, all on one game. */
+function genSameGame(sport: Exclude<V5Sport, 'all'>, n: number): FeaturedCombo[] {
+  return v5Games(sport)
+    .filter((g): g is V5Game => isGenerated(g) && !g.field && !g.live)
+    .slice(0, n)
+    .map((g) => {
+      const lead = leadOutcome(g)
+      const win = pickFor(g, lead.label === 'Draw' ? g.outcomes[0]! : lead, 'yes')
+      const ladders = eventLadders(g)
+      const total = ladders.find((l) => l.kind === 'total')
+      const spread = ladders.find((l) => l.kind === 'spread')
+      const legs = [
+        { ...win, label: `${win.label}` },
+        ...(total ? [total.rungs[total.defaultIndex]!.yes] : []),
+        ...(spread ? [spread.rungs[Math.max(0, spread.defaultIndex - 1)]!.yes] : []),
+      ]
+      return {
+        id: `sgc-${g.id}`,
+        title: g.title,
+        league: g.leagueName,
+        leagueLogo: leagueLogo(g.leagueName, g.leagueIcon),
+        legs,
+        decimal: legs.reduce((a, l) => a * decimalOf(l.odds), 1) * 0.82 + 0.18,
+        volume: pseudo(g.id, 90_000, 700_000),
+        bettors: pseudo(`${g.id}-b`, 90, 1_400),
+      }
+    })
 }
 
 /** Mega combos — big multi-game tickets. */
 export function megaCombos(sport: V5Sport): FeaturedCombo[] {
-  const megas = sport === 'all' ? sportsHomeMegaParlays() : sportMegaParlays(sport)
-  return megas.map((m) => ({
-    id: m.id,
-    title: m.title,
-    league: m.sport === 'nfl' ? 'NFL' : 'Premier League',
-    leagueLogo: leagueLogo(m.sport === 'nfl' ? 'NFL' : 'Premier League'),
-    legs: m.legs,
-    decimal: decimalOf(m.odds),
-    volume: pseudo(m.id, 300_000, 2_400_000),
-    bettors: pseudo(`${m.id}-b`, 400, 4_200),
-  }))
+  const v1 = (s: 'soccer' | 'nfl' | 'all') =>
+    (s === 'all' ? sportsHomeMegaParlays() : sportMegaParlays(s)).map((m) => ({
+      id: m.id,
+      title: m.title,
+      league: m.sport === 'nfl' ? 'NFL' : 'Premier League',
+      leagueLogo: leagueLogo(m.sport === 'nfl' ? 'NFL' : 'Premier League'),
+      legs: m.legs,
+      decimal: decimalOf(m.odds),
+      volume: pseudo(m.id, 300_000, 2_400_000),
+      bettors: pseudo(`${m.id}-b`, 400, 4_200),
+    }))
+  if (sport === 'all') return [...v1('all'), ...genMega('basketball')]
+  if (sport === 'nfl' || sport === 'soccer') return v1(sport)
+  return [genMega(sport), genMega(sport, true)].flat()
+}
+
+function genMega(sport: Exclude<V5Sport, 'all'>, dogs = false): FeaturedCombo[] {
+  const games = v5Games(sport).filter((g) => !g.live && !(isGenerated(g) && g.field)).slice(dogs ? 1 : 0)
+  if (games.length < 4) return []
+  const legs = games.slice(0, 6).map((g) => {
+    const sides = g.outcomes.filter((o) => o.label !== 'Draw')
+    const pick = dogs ? sides.reduce((a, b) => (b.chance < a.chance ? b : a)) : sides.reduce((a, b) => (b.chance > a.chance ? b : a))
+    return pickFor(g, pick, 'yes')
+  })
+  const label = sportDef(sport).label
+  const id = `mega-${sport}-${dogs ? 'dogs' : 'favs'}`
+  return [
+    {
+      id,
+      title: dogs ? `${label} long shots` : `${label} mega`,
+      league: games[0]!.leagueName,
+      leagueLogo: leagueLogo(games[0]!.leagueName, games[0]!.leagueIcon),
+      legs,
+      decimal: legs.reduce((a, l) => a * decimalOf(l.odds), 1),
+      volume: pseudo(id, 200_000, 1_600_000),
+      bettors: pseudo(`${id}-b`, 300, 3_000),
+    },
+  ]
 }
 
 export function SameGameCombosShelf({ sport, onSeeAll }: { sport: V5Sport; onSeeAll?: () => void }) {

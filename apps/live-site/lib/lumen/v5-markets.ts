@@ -32,6 +32,7 @@ import {
   v5Games,
   type V5Sport,
 } from '@/lib/lumen/v5-combos'
+import { genEventModel, genFutures, isGenerated, v5SportOf, type V5SportId } from '@/lib/lumen/v5-sportsbook'
 
 export type V5View =
   | 'games'
@@ -84,7 +85,7 @@ export type KCard = {
   sub: string
   icon: string
   href?: string
-  sport: 'nfl' | 'soccer' | 'topic'
+  sport: V5SportId | 'topic'
   /** Non-sports markets (Politics / Entertainment). */
   category?: 'politics' | 'entertainment'
   /** Icon tile for markets without a league logo (see TopicGlyph). */
@@ -143,7 +144,7 @@ function base(game: SportsMarket, id: string, title: string): Omit<KCard, 'rows'
     sub: sub(game),
     icon: leagueLogo(game.leagueName, game.leagueIcon),
     href: game.href,
-    sport: game.sport,
+    sport: v5SportOf(game),
     league: game.leagueName,
     live: game.live,
     volume: Math.round(game.volume * (0.18 + seeded(id) * 0.4)),
@@ -163,6 +164,7 @@ function finish(card: Omit<KCard, 'swing' | 'balance'>): KCard {
 const modelCache = new Map<string, SportsEventModel | null>()
 function modelFor(game: SportsMarket): SportsEventModel | null {
   if (!game.eventId) return null
+  if (isGenerated(game)) return game.field ? null : genEventModel(game.eventId)
   const key = `${game.sport}:${game.eventId}`
   if (modelCache.has(key)) return modelCache.get(key)!
   let model: SportsEventModel | null = null
@@ -355,7 +357,7 @@ function groupOf(name: string): string {
 
 /** NFL season win totals — two lines per team around its projection (17 games). */
 export function winTotalCards(sport: V5Sport): KCard[] {
-  if (sport === 'soccer') return []
+  if (sport !== 'all' && sport !== 'nfl') return []
   const seen = new Map<string, KCard>()
   for (const game of v5Games('nfl')) {
     for (const o of teamOutcomes(game)) {
@@ -417,15 +419,15 @@ export function winTotalCards(sport: V5Sport): KCard[] {
 
 /** Futures — champions, MVP, league winners. */
 export function futureCards(sport: V5Sport): KCard[] {
-  return marketFutures()
-    .filter((f) => (sport === 'all' || f.sport === sport) && !/mvp|boot|scorer|player|rookie|award/i.test(f.title))
+  return [...marketFutures(), ...genFutures()]
+    .filter((f) => (sport === 'all' || v5SportOf(f) === sport) && !/mvp|boot|scorer|player|rookie|award/i.test(f.title))
     .map((f) =>
       finish({
         id: f.id,
         title: f.title,
         sub: `${f.leagueName} · Season`,
         icon: leagueLogo(f.leagueName, f.leagueIcon),
-        sport: f.sport,
+        sport: v5SportOf(f),
         league: f.leagueName,
         live: false,
         volume: f.volume,
@@ -474,9 +476,18 @@ export function gameSortable(game: SportsMarket): Sortable & { game: SportsMarke
   }
 }
 
+/** One game as a market card (races and other many-runner events use this on the board). */
+export function gameCardOf(game: SportsMarket): KCard {
+  return gameCardsFrom([game])[0]!
+}
+
 /** Games as market cards — who wins, crest per side, live score. */
 export function gameCards(sport: V5Sport): KCard[] {
-  return v5Games(sport).map((game) => {
+  return gameCardsFrom(v5Games(sport))
+}
+
+function gameCardsFrom(games: SportsMarket[]): KCard[] {
+  return games.map((game) => {
     const teams = teamOutcomes(game)
     return finish({
       ...base(game, `${game.id}-ml`, game.title),

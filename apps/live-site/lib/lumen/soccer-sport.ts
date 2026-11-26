@@ -91,16 +91,16 @@ export const SOCCER_MODES: { id: SoccerMode; label: string }[] = [
   { id: 'leagues', label: 'All Leagues' },
 ]
 
-/** Until other sport lobbies ship, every rail item lands on soccer content. */
+/** Every sport has its own lobby route (V5 · Combos fills them; earlier versions show Sports Home). */
 export const SOCCER_SPORT_RAIL: SoccerRailItem[] = [
   { id: 'my-bets', label: 'My Bets', icon: 'bets', href: '/sports/my-bets' },
   { id: 'soccer', label: 'Soccer', icon: 'soccer', href: '/sports/soccer' },
   { id: 'football', label: 'Football', icon: 'football', href: '/sports/football' },
-  { id: 'basketball', label: 'Basketball', icon: 'basketball', href: '/sports/soccer' },
-  { id: 'tennis', label: 'Tennis', icon: 'tennis', href: '/sports/soccer' },
-  { id: 'baseball', label: 'Baseball', icon: 'baseball', href: '/sports/soccer' },
-  { id: 'hockey', label: 'Hockey', icon: 'hockey', href: '/sports/soccer' },
-  { id: 'mma', label: 'MMA', icon: 'mma', href: '/sports/soccer' },
+  { id: 'basketball', label: 'Basketball', icon: 'basketball', href: '/sports/basketball' },
+  { id: 'tennis', label: 'Tennis', icon: 'tennis', href: '/sports/tennis' },
+  { id: 'baseball', label: 'Baseball', icon: 'baseball', href: '/sports/baseball' },
+  { id: 'hockey', label: 'Hockey', icon: 'hockey', href: '/sports/hockey' },
+  { id: 'mma', label: 'MMA', icon: 'mma', href: '/sports/mma' },
 ]
 
 /** PropShopX quicklinks — Figma-exported marks (`public/shell/figma/soccer/icon-*.svg`). */

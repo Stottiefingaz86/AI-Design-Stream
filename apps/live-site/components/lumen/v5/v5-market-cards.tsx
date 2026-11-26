@@ -7,7 +7,7 @@ import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import { AlternateLinePicker } from '@/components/lumen/soccer-sport-page'
 import { SORT_MODES, type KCard, type KRow, type SortMode } from '@/lib/lumen/v5-markets'
 import { cn } from '@/lib/utils'
-import { Crest, ProbBar, TopicGlyph, V5_CARD, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtVol } from './combo-ui'
+import { Crest, LeagueLink, ProbBar, TopicGlyph, V5_CARD, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtVol } from './combo-ui'
 
 type OnPick = (pick: SoccerSlipPick, el?: HTMLElement | null) => void
 
@@ -20,29 +20,39 @@ export function KMarketCard({ card, selected, onPick }: { card: KCard; selected:
   const [open, setOpen] = useState(false)
   const rows = open ? card.rows : card.rows.slice(0, PREVIEW)
   const hidden = card.rows.length - PREVIEW
+  const titleEl = <span className="block truncate text-[17px] font-bold leading-6 tracking-tight text-foreground">{card.title}</span>
+  /* Logo and league line open the league page; the title opens the market. */
   const head = (
     <>
-      {card.glyph ? (
-        <TopicGlyph name={card.glyph} />
-      ) : (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={card.icon} alt="" className="size-9 shrink-0 object-contain" />
-      )}
+      <LeagueLink sport={card.sport} league={card.league} className="shrink-0">
+        {card.glyph ? (
+          <TopicGlyph name={card.glyph} />
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src={card.icon} alt="" className="size-9 shrink-0 object-contain" />
+        )}
+      </LeagueLink>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[17px] font-bold leading-6 tracking-tight text-foreground">{card.title}</span>
-        <span className={cn('block truncate text-xs', card.live ? 'text-destructive' : 'text-muted-foreground')}>{card.sub}</span>
+        {card.href ? (
+          <Link href={card.href} className="block transition-opacity hover:opacity-80">
+            {titleEl}
+          </Link>
+        ) : (
+          titleEl
+        )}
+        <LeagueLink
+          sport={card.sport}
+          league={card.league}
+          className={cn('block truncate text-xs', card.live ? 'text-destructive' : 'text-muted-foreground')}
+        >
+          {card.sub}
+        </LeagueLink>
       </span>
     </>
   )
   return (
     <article data-name="v5-market-card" className={cn(V5_CARD, V5_LIGHT_UP, 'flex flex-col overflow-hidden rounded-[14px]')}>
-      {card.href ? (
-        <Link href={card.href} className="flex items-center gap-3 px-4 pt-4 transition-opacity hover:opacity-80">
-          {head}
-        </Link>
-      ) : (
-        <div className="flex items-center gap-3 px-4 pt-4">{head}</div>
-      )}
+      <div className="flex items-center gap-3 px-4 pt-4">{head}</div>
       <div className="flex flex-col gap-3 px-4 py-4">
         {rows.map((r) => (
           <KRowView key={r.id} row={r} selected={selected} onPick={onPick} />

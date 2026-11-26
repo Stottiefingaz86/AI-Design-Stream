@@ -5,9 +5,9 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  IconArrowRight,
   IconCheck,
   IconChevronLeft,
+  IconChevronUp,
   IconPlus,
   IconSearch,
   IconStack2,
@@ -17,7 +17,7 @@ import { Typography } from '@/components/ui/typography'
 import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import { SoccerBetslip } from '@/components/lumen/soccer-betslip'
 import { LiveClock } from '@/components/lumen/sports-home-page'
-import { ModePillTrack } from '@/components/lumen/soccer-sport-page'
+import { V5PillTrack } from './v5-pill-track'
 import { useShell } from '@/components/site/shell-context'
 import { setSoccerSlip, useSoccerSlip } from '@/lib/lumen/soccer-slip-store'
 import type { SportsMarket } from '@/lib/lumen/sports-markets'
@@ -30,6 +30,7 @@ import {
   kickoffTime,
   leadOutcome,
   leagueLogo,
+  nextLegDecimal,
   noCents,
   openComboBuilder,
   pickFor,
@@ -42,6 +43,9 @@ import {
   type V5Sport,
 } from '@/lib/lumen/v5-combos'
 import { cn } from '@/lib/utils'
+import { ComboMark } from './combo-mark'
+import { ComboBoostMeter, comboBoostFor, qualifyingLegs } from './v5-combo-boost'
+import { LeagueMenu } from './v5-league-menu'
 import { showBetStack } from './bet-stack-popup'
 import {
   Crest,
@@ -54,16 +58,26 @@ import {
   YesNoButton,
   fmtUsd,
   fmtVol,
+  useV5Pick,
 } from './combo-ui'
 import { ComboPackCard, V5Shelf } from './v5-shelves'
+import { KMarketCard } from './v5-market-cards'
+import { AUTO_GRID } from './v5-widgets'
+import { futureCards, gamePropCards, playerPropCards } from '@/lib/lumen/v5-markets'
+import { sportDef, type V5SportId } from '@/lib/lumen/v5-sportsbook'
 
-type MarketTab = 'winner' | 'spread' | 'total'
+type MarketTab = 'winner' | 'spread' | 'total' | 'props' | 'players' | 'futures'
 
 const MARKET_TABS: { id: MarketTab; label: string }[] = [
   { id: 'winner', label: 'Moneyline' },
   { id: 'spread', label: 'Spread' },
   { id: 'total', label: 'Total' },
+  { id: 'props', label: 'Game props' },
+  { id: 'players', label: 'Player props' },
+  { id: 'futures', label: 'Futures' },
 ]
+
+const BUILDER_SPORTS: V5SportId[] = ['soccer', 'nfl', 'basketball', 'hockey', 'tennis', 'baseball', 'mma', 'boxing', 'golf', 'horse-racing', 'rugby', 'volleyball', 'table-tennis', 'lacrosse', 'pool']
 
 /** Full-screen combo builder — opened from the Selections bar or a Build-your-own card. */
 export function ComboBuilderOverlay() {
@@ -105,20 +119,22 @@ export function ComboBuilderOverlay() {
 }
 
 function Builder({ initialSport }: { initialSport: V5Sport }) {
+  const [sport, setSport] = useState<V5Sport>(initialSport)
   /** 'all' or a league name. */
   const [scope, setScope] = useState<string>('all')
   const [tab, setTab] = useState<MarketTab>('winner')
   const [query, setQuery] = useState('')
   const picks = useSoccerSlip()
   const selected = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
-  const leagues = v5Leagues(initialSport)
+  const onPick = useV5Pick()
+  const leagues = v5Leagues(sport)
+  const q = query.trim().toLowerCase()
 
   const games = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return v5Games(initialSport)
+    return v5Games(sport)
       .filter((g) => scope === 'all' || g.leagueName === scope)
       .filter((g) => !q || g.title.toLowerCase().includes(q) || g.leagueName.toLowerCase().includes(q))
-  }, [initialSport, scope, query])
+  }, [sport, scope, q])
 
   const byLeague = useMemo(() => {
     const map = new Map<string, SportsMarket[]>()
@@ -126,22 +142,33 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
     return [...map.entries()]
   }, [games])
 
-  const combos = featuredCombos(initialSport)
-  const pills = [
-    { id: 'all', label: 'All', icon: <IconStack2 className="size-5" stroke={1.75} /> },
-    ...leagues.map((l) => ({ id: l.name, label: l.name === 'NCAA Football' ? 'NCAA' : l.name, logo: l.logo })),
+  /* Props, player props and futures — every V5 market card can join the combo. */
+  const cards = useMemo(() => {
+    if (tab !== 'props' && tab !== 'players' && tab !== 'futures') return []
+    const all = tab === 'props' ? gamePropCards(sport) : tab === 'players' ? playerPropCards(sport) : futureCards(sport)
+    return all
+      .filter((c) => scope === 'all' || c.league === scope)
+      .filter((c) => !q || `${c.title} ${c.league}`.toLowerCase().includes(q))
+      .slice(0, 30)
+  }, [tab, sport, scope, q])
+
+  const combos = featuredCombos(sport)
+  const sportPills = [
+    { id: 'all', label: 'All sports', icon: <IconStack2 className="size-5" stroke={1.75} /> },
+    ...BUILDER_SPORTS.map((id) => ({ id, label: sportDef(id).label, icon: <SportGlyph id={id} /> })),
   ]
 
   return (
     <div className="min-h-full">
       {/* Top bar — back, breadcrumb, search field, one close. */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background">
+      <header className="v5-glass sticky top-0 z-40 border-b border-border">
         <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-4 md:px-6">
+          {/* Phones: search + close only. sm+: back + breadcrumb. */}
           <button
             type="button"
             onClick={closeComboBuilder}
             aria-label="Back"
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary transition-colors hover:bg-accent"
+            className="hidden size-7 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary transition-colors hover:bg-accent sm:inline-flex"
           >
             <IconChevronLeft className="size-4" stroke={1.5} />
           </button>
@@ -151,7 +178,7 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
               /
             </span>
             <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-              <IconStack2 className="size-4" stroke={1.75} aria-hidden /> Combo builder
+              <ComboMark className="size-4" /> Combo builder
             </span>
           </span>
           <label className="ml-auto flex h-9 w-full max-w-sm items-center gap-2 rounded-lg border border-border bg-secondary px-3 focus-within:border-input">
@@ -198,7 +225,29 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
               Pick 2 or more markets from any game. Every leg multiplies the payout.
             </Typography>
 
-            <LeaguePills className="mt-6" items={pills} active={scope} onChange={setScope} />
+            <LeaguePills
+              className="mt-6"
+              items={sportPills}
+              active={sport}
+              onChange={(id) => {
+                setSport(id as V5Sport)
+                setScope('all')
+              }}
+            />
+            {sport !== 'all' && leagues.length > 1 ? (
+              <LeagueMenu
+                className="mt-4"
+                leagues={leagues.map((l) => {
+                  const lg = v5Games(sport).filter((g) => g.leagueName === l.name)
+                  return { ...l, live: lg.filter((g) => g.live).length, volume: lg.reduce((a, g) => a + g.volume, 0) }
+                })}
+                active={scope}
+                onChange={setScope}
+                short={(n) => (n === 'NCAA Football' ? 'NCAA' : n)}
+              />
+            ) : null}
+
+            <ComboMeter />
 
             {combos.length && !query ? (
               <V5Shelf title="Popular Combos" className="mt-8" bleedRight={false} fill={3}>
@@ -208,30 +257,45 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
               </V5Shelf>
             ) : null}
 
-            <ModePillTrack active={tab} onChange={setTab} modes={MARKET_TABS} ariaLabel="Market" className="mb-6 mt-8" />
+            <V5PillTrack active={tab} onChange={setTab} modes={MARKET_TABS} ariaLabel="Market" className="mb-6 mt-8" />
 
-            {byLeague.length === 0 ? (
-              <p className="py-16 text-center text-sm text-muted-foreground">No games match “{query}”.</p>
-            ) : null}
-
-            {byLeague.map(([league, list]) => (
-              <section key={league} className="mb-6">
-                <div className="mb-3 flex items-center gap-2.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={leagueLogo(league, list[0]!.leagueIcon)} alt="" className="size-7 object-contain" />
-                  <h2 className="text-2xl font-bold tracking-tight text-foreground">{league}</h2>
-                </div>
-                <div className="grid gap-3 xl:grid-cols-2">
-                  {list.map((g) => (
-                    <BuilderGameCard key={g.id} game={g} tab={tab} selected={selected} />
+            {tab === 'props' || tab === 'players' || tab === 'futures' ? (
+              cards.length ? (
+                <div className={AUTO_GRID}>
+                  {cards.map((c) => (
+                    <KMarketCard key={c.id} card={c} selected={selected} onPick={onPick} />
                   ))}
                 </div>
-              </section>
-            ))}
+              ) : (
+                <p className="py-16 text-center text-sm text-muted-foreground">Nothing here for this sport yet.</p>
+              )
+            ) : (
+              <>
+                {byLeague.length === 0 ? (
+                  <p className="py-16 text-center text-sm text-muted-foreground">No games match “{query}”.</p>
+                ) : null}
+
+                {byLeague.map(([league, list]) => (
+                  <section key={league} className="mb-6">
+                    <div className="mb-3 flex items-center gap-2.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={leagueLogo(league, list[0]!.leagueIcon)} alt="" className="size-7 object-contain" />
+                      <h2 className="text-2xl font-bold tracking-tight text-foreground">{league}</h2>
+                    </div>
+                    <div className="grid gap-3 xl:grid-cols-2">
+                      {list.map((g) => (
+                        <BuilderGameCard key={g.id} game={g} tab={tab as 'winner' | 'spread' | 'total'} selected={selected} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </>
+            )}
           </div>
 
           <aside className="hidden lg:block">
-            <div className="sticky top-[72px]">
+            {/* Full-height slip rail — the betslip fills the column, stake and Place pinned to the bottom. */}
+            <div className="sticky top-[72px] flex h-[calc(100dvh-88px)] flex-col [&>aside]:!max-h-none [&>aside]:flex-1">
               {/* The real betslip, in place — prompts for 2 markets until it's a combo. */}
               <SoccerBetslip
                 inline
@@ -252,7 +316,50 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
   )
 }
 
+/** Combo meter — how many legs, what $10 pays now, and what one more leg would pay. */
+function ComboMeter() {
+  const picks = useSoccerSlip()
+  const n = picks.length
+  const dec = comboDecimal(picks)
+  const next = nextLegDecimal(picks)
+  /* Boost ladder (x1.05 → x1.5) with what $10 pays underneath. */
+  return (
+    <ComboBoostMeter
+      picks={picks}
+      className="mt-6"
+      footer={
+        n === 0
+          ? 'Every leg you add multiplies the payout.'
+          : n === 1
+            ? `One more leg makes it a combo · about ${fmtUsd(10 * next)} on $10`
+            : `${n}-leg combo · ${fmtX(dec)} · $10 pays ${fmtUsd(10 * dec)} now, about ${fmtUsd(10 * next)} with one more leg`
+      }
+    />
+  )
+}
+
 /** Opens the builder — first tile of the Combos grid. Centred mark, soft shimmer. */
+/** Same monochrome sport glyphs as the sub-nav — they follow the text colour in light and dark. */
+function SportGlyph({ id }: { id: string }) {
+  const file = id === 'nfl' ? 'football' : id
+  return (
+    <span
+      aria-hidden
+      className="inline-block size-5 shrink-0 bg-current"
+      style={{
+        maskImage: `url(/shell/figma/sports/lumen/${file}.svg)`,
+        WebkitMaskImage: `url(/shell/figma/sports/lumen/${file}.svg)`,
+        maskSize: 'contain',
+        WebkitMaskSize: 'contain',
+        maskRepeat: 'no-repeat',
+        WebkitMaskRepeat: 'no-repeat',
+        maskPosition: 'center',
+        WebkitMaskPosition: 'center',
+      }}
+    />
+  )
+}
+
 export function BuildOwnCard({ sport }: { sport: V5Sport }) {
   return (
     <button
@@ -261,7 +368,7 @@ export function BuildOwnCard({ sport }: { sport: V5Sport }) {
       className={cn(
         V5_CARD,
         V5_LIGHT_UP,
-        'lm-shimmer flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-[14px] p-6 text-center',
+        'flex min-h-[280px] flex-col items-center justify-center gap-3 rounded-[14px] p-6 text-center',
       )}
     >
       {/* A combo slip being built — two legs ticked, the third waiting, payout climbing. */}
@@ -299,14 +406,14 @@ export function BuildOwnCard({ sport }: { sport: V5Sport }) {
       </span>
       <span className="text-xl font-bold leading-7 text-foreground">Build your own combo</span>
       <span className="max-w-[260px] text-sm text-muted-foreground">Pick from every game. Each leg multiplies the payout.</span>
-      <span className="mt-2 inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-bold text-primary-foreground">
-        Open combo builder <IconArrowRight className="size-4" stroke={2} aria-hidden />
+      <span className="v5-combo-sheen mt-2 inline-flex h-10 items-center gap-2 rounded-lg bg-secondary px-4 text-sm font-bold text-foreground">
+        <ComboMark className="size-5" /> Open combo builder
       </span>
     </button>
   )
 }
 
-function BuilderGameCard({ game, tab, selected }: { game: SportsMarket; tab: MarketTab; selected: Set<string> }) {
+function BuilderGameCard({ game, tab, selected }: { game: SportsMarket; tab: 'winner' | 'spread' | 'total'; selected: Set<string> }) {
   const lead = leadOutcome(game)
   const toggle = (pick: SoccerSlipPick) => setSoccerSlip((prev) => toggleLeg(prev, pick))
   const ladder = tab === 'winner' ? null : eventLadders(game).find((l) => l.kind === tab)
@@ -381,34 +488,54 @@ function MobileComboBar() {
   const picks = useSoccerSlip()
   const review = useReview()
   const decimal = comboDecimal(picks)
+  const n = picks.length
+  const legs = qualifyingLegs(picks)
+  const boost = comboBoostFor(legs)
+  /* Floating glass capsule — mark + count, payout as the hero, Review on the right, boost progress on the edge. */
   return (
     <AnimatePresence>
-      {picks.length ? (
+      {n ? (
         <motion.div
-          initial={{ y: 90 }}
-          animate={{ y: 0 }}
-          exit={{ y: 90 }}
+          initial={{ y: 110, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 110, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-          className="dark fixed inset-x-0 bottom-0 z-30 border-t border-border bg-popover p-3 pb-[max(env(safe-area-inset-bottom),12px)] text-popover-foreground lg:hidden"
+          className="fixed inset-x-3 bottom-[max(env(safe-area-inset-bottom),12px)] z-30 lg:hidden"
         >
-          <div className="flex items-center gap-3">
-            <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-              {picks.length}
+          <button
+            type="button"
+            onClick={review}
+            aria-label={`Review your ${n}-leg combo`}
+            className="v5-glass relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-border p-2 pl-2.5 text-left shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+          >
+            <span className="relative inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary">
+              <ComboMark className="size-6" />
+              <span className="absolute -right-1.5 -top-1.5 inline-flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold tabular-nums text-primary-foreground">
+                {n}
+              </span>
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-xs text-muted-foreground">
-                {picks.length >= 2 ? `${picks.length}-leg combo` : '1 selection'} · {fmtX(decimal)}
+              <span className="block truncate text-xs text-muted-foreground">
+                {n >= 2 ? `${n}-leg combo · ${fmtX(decimal)}` : 'Add 1 more leg'}
+                {boost > 1 ? ` · x${boost.toFixed(2)} boost` : ''}
               </span>
-              <span className="block text-sm font-semibold">$10 pays {fmtUsd(10 * decimal)}</span>
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-xs text-muted-foreground">$10 pays</span>
+                <span className="v5-pay-shimmer text-lg font-bold leading-6 tabular-nums tracking-tight">{fmtUsd(10 * decimal)}</span>
+              </span>
             </span>
-            <button
-              type="button"
-              onClick={review}
-              className="inline-flex h-10 shrink-0 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground"
-            >
+            <span className="inline-flex h-11 shrink-0 items-center gap-1 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground">
               Review
-            </button>
-          </div>
+              <IconChevronUp className="size-4" stroke={2.25} aria-hidden />
+            </span>
+            {/* Boost progress — 12 legs at 1.50x+ is the max. */}
+            <span className="absolute inset-x-4 bottom-0 h-0.5 overflow-hidden rounded-full bg-secondary" aria-hidden>
+              <span
+                className="block h-full rounded-full bg-success transition-[width] duration-300"
+                style={{ width: `${Math.min(100, (legs / 12) * 100)}%` }}
+              />
+            </span>
+          </button>
         </motion.div>
       ) : null}
     </AnimatePresence>

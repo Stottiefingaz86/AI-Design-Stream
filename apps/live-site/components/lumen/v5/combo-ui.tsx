@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
+import Link from 'next/link'
 import { motion } from 'framer-motion'
+import { FadeScroll } from './v5-fade-scroll'
 import {
   IconBuildingBank,
   IconBuildingMonument,
@@ -17,7 +19,8 @@ import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import { revealShellDock } from '@/components/site/shell-scroll'
 import { setSoccerSlip } from '@/lib/lumen/soccer-slip-store'
 import { soccerTeamLogo } from '@/lib/lumen/soccer-sport'
-import { toggleLeg } from '@/lib/lumen/v5-combos'
+import { leaguePageHref, toggleLeg } from '@/lib/lumen/v5-combos'
+import type { V5SportId } from '@/lib/lumen/v5-sportsbook'
 import { flyBetDotToSlip } from '@/lib/lumen/vip-celebrate'
 import { cn } from '@/lib/utils'
 
@@ -31,7 +34,7 @@ import { cn } from '@/lib/utils'
 export const V5_CARD = 'rounded-[10px] border border-border bg-card shadow-[0_0_16px_rgba(0,0,0,0.06)]'
 
 /** Light-up on hover — surface brightens, no stroke. */
-export const V5_LIGHT_UP = 'transition-colors duration-200 hover:bg-accent'
+export const V5_LIGHT_UP = 'transition-colors duration-200 hover:bg-[var(--v5-hover)]'
 
 /** Live marker — steady, never pulsing. */
 export function LiveDot({ className }: { className?: string }) {
@@ -298,7 +301,7 @@ export function V5Tabs<T extends string>({
   className?: string
 }) {
   return (
-    <div role="tablist" className={cn('scrollbar-hide flex gap-7 overflow-x-auto', className)}>
+    <div role="tablist" className={cn('scrollbar-hide flex gap-7 overflow-x-auto overflow-y-hidden', className)}>
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -331,7 +334,7 @@ export function LeaguePills({
   className?: string
 }) {
   return (
-    <div className={cn('scrollbar-hide -mx-4 flex gap-2.5 overflow-x-auto px-4 md:-mx-6 md:px-6', className)}>
+    <FadeScroll axis="x" className={cn('scrollbar-hide -mx-4 flex gap-2.5 overflow-x-auto overflow-y-hidden px-4 md:-mx-6 md:px-6', className)}>
       {items.map((it) => {
         const on = it.id === active
         return (
@@ -357,7 +360,7 @@ export function LeaguePills({
           </button>
         )
       })}
-    </div>
+    </FadeScroll>
   )
 }
 
@@ -411,5 +414,31 @@ export function TopicGlyph({ name, className }: { name: string; className?: stri
     <span className={cn('inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground', className)} aria-hidden>
       <G className="size-[55%]" stroke={1.75} />
     </span>
+  )
+}
+
+/** League logo / name → that league's page. Stops the card underneath from opening. */
+export function LeagueLink({
+  sport,
+  league,
+  className,
+  children,
+}: {
+  sport: V5SportId | 'topic' | 'all' | undefined
+  league: string
+  className?: string
+  children: ReactNode
+}) {
+  const href = leaguePageHref(sport, league)
+  if (!href) return <span className={className}>{children}</span>
+  return (
+    <Link
+      href={href}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      className={cn('pointer-events-auto relative z-[1] transition-opacity hover:opacity-70', className)}
+    >
+      {children}
+    </Link>
   )
 }

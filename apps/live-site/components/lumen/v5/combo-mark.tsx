@@ -1,0 +1,100 @@
+'use client'
+
+import { useId } from 'react'
+import { cn } from '@/lib/utils'
+
+/* Combo identity — two linked diamonds, the front one adds a leg. Artwork gradient (pastel on dark, deeper on light). */
+const BACK = 'M13 9.5 12.7 9.2A2.4 2.4 0 0 0 9.3 9.2L4.2 14.3A2.4 2.4 0 0 0 4.2 17.7L9.3 22.8A2.4 2.4 0 0 0 12.7 22.8L13 22.5'
+const FRONT =
+  'M19.3 9.2A2.4 2.4 0 0 1 22.7 9.2L27.8 14.3A2.4 2.4 0 0 1 27.8 17.7L22.7 22.8A2.4 2.4 0 0 1 19.3 22.8L14.2 17.7A2.4 2.4 0 0 1 14.2 14.3Z'
+const PLUS = 'M21 12.75v6.5M17.75 16h6.5'
+
+const DARK = ['#F3A8E6', '#B8F2DE', '#CBB8FF', '#8FA7FF']
+const LIGHT = ['#C44FB4', '#16A085', '#7C5CF2', '#3F63E6']
+const STOPS = [0, 0.35, 0.68, 1]
+
+function Grad({ id, colors }: { id: string; colors: string[] }) {
+  return (
+    <linearGradient id={id} x1="2" y1="7" x2="30" y2="25" gradientUnits="userSpaceOnUse">
+      {colors.map((c, i) => (
+        <stop key={c} offset={STOPS[i]} stopColor={c} />
+      ))}
+    </linearGradient>
+  )
+}
+
+export function ComboMark({ className, title }: { className?: string; title?: string }) {
+  const id = useId().replace(/:/g, '')
+  const lines = (
+    <>
+      <path d={BACK} />
+      <path d={FRONT} />
+      <path d={PLUS} />
+    </>
+  )
+  const stroke = { strokeWidth: 2.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  return (
+    <svg
+      viewBox="1.5 1.5 29 29"
+      fill="none"
+      className={cn('size-5 shrink-0', className)}
+      role={title ? 'img' : undefined}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
+    >
+      <defs>
+        <Grad id={`${id}l`} colors={LIGHT} />
+        <Grad id={`${id}d`} colors={DARK} />
+      </defs>
+      <g className="dark:hidden" stroke={`url(#${id}l)`} {...stroke}>
+        {lines}
+      </g>
+      <g className="hidden dark:inline" stroke={`url(#${id}d)`} {...stroke}>
+        {lines}
+      </g>
+    </svg>
+  )
+}
+
+/* Odds boost identity — the brand rocket in a warm holographic gradient (companion to the combo mark). */
+const ROCKET =
+  'M 6.2755 12.8370 C 5.9131 13.6290 4.7037 15.4770 1.3054 15.4770 C 1.1349 15.4770 0.9714 15.4100 0.8508 15.2890 C 0.7303 15.1680 0.6625 15.0050 0.6625 14.8340 C 0.6625 11.4360 2.5108 10.2270 3.3031 9.8640 C 3.3799 9.8290 3.4629 9.8100 3.5473 9.8070 C 3.6316 9.8040 3.7158 9.8180 3.7949 9.8470 C 3.8740 9.8770 3.9465 9.9210 4.0082 9.9790 C 4.0700 10.0370 4.1198 10.1060 4.1549 10.1830 C 4.1899 10.2590 4.2095 10.3420 4.2124 10.4270 C 4.2154 10.5110 4.2017 10.5950 4.1722 10.6740 C 4.1426 10.7530 4.0978 10.8260 4.0402 10.8880 C 3.9826 10.9500 3.9135 10.9990 3.8366 11.0340 C 3.3200 11.2700 2.1797 12.0280 1.9788 14.1610 C 4.1123 13.9600 4.8716 12.8200 5.1055 12.3030 C 5.1405 12.2260 5.1903 12.1570 5.2521 12.1000 C 5.3139 12.0420 5.3864 11.9970 5.4655 11.9680 C 5.5446 11.9380 5.6287 11.9240 5.7131 11.9270 C 5.7975 11.9300 5.8805 11.9500 5.9573 11.9850 C 6.0341 12.0200 6.1033 12.0700 6.1608 12.1320 C 6.2184 12.1930 6.2632 12.2660 6.2928 12.3450 C 6.3223 12.4240 6.3360 12.5080 6.3331 12.5930 C 6.3301 12.6770 6.3105 12.7600 6.2755 12.8370 Z M 16.0791 1.2650 C 16.0600 0.9520 15.9269 0.6560 15.7049 0.4340 C 15.4828 0.2120 15.1872 0.0790 14.8737 0.0600 C 13.8628 0.0000 11.2793 0.0920 9.1362 2.2350 L 5.1625 6.2120 C 5.1029 6.2720 5.0320 6.3190 4.9540 6.3520 C 4.8760 6.3840 4.7924 6.4010 4.7079 6.4010 C 4.5373 6.4010 4.3736 6.3330 4.2529 6.2130 C 4.1322 6.0920 4.0643 5.9290 4.0641 5.7580 C 4.0640 5.5880 4.1316 5.4240 4.2521 5.3030 L 6.3864 3.1680 C 6.4311 3.1230 6.4615 3.0660 6.4738 3.0040 C 6.4860 2.9420 6.4797 2.8770 6.4555 2.8190 C 6.4312 2.7600 6.3903 2.7100 6.3376 2.6750 C 6.2850 2.6390 6.2232 2.6200 6.1598 2.6200 H 4.0657 C 3.8963 2.6190 3.7285 2.6520 3.5719 2.7170 C 3.4153 2.7810 3.2731 2.8760 3.1536 2.9960 L 0.3974 5.7540 C 0.2283 5.9230 0.1097 6.1360 0.0548 6.3680 C 0.0000 6.6010 0.0110 6.8440 0.0867 7.0710 C 0.1624 7.2970 0.2997 7.4990 0.4834 7.6510 C 0.6670 7.8040 0.8896 7.9030 1.1262 7.9370 L 4.2175 8.3680 L 7.7701 11.9210 L 8.2016 15.0140 C 8.2348 15.2500 8.3335 15.4730 8.4866 15.6560 C 8.6397 15.8400 8.8410 15.9770 9.0679 16.0520 C 9.2000 16.0960 9.3384 16.1190 9.4777 16.1190 C 9.6464 16.1190 9.8135 16.0860 9.9693 16.0210 C 10.1252 15.9570 10.2667 15.8620 10.3858 15.7430 L 13.1436 12.9860 C 13.2633 12.8660 13.3581 12.7240 13.4226 12.5680 C 13.4871 12.4110 13.5201 12.2430 13.5197 12.0740 V 9.9800 C 13.5196 9.9170 13.5006 9.8540 13.4653 9.8020 C 13.4299 9.7490 13.3797 9.7080 13.3209 9.6840 C 13.2622 9.6590 13.1976 9.6530 13.1353 9.6650 C 13.0730 9.6780 13.0158 9.7090 12.9708 9.7530 L 10.8358 11.8880 C 10.7733 11.9500 10.6986 11.9990 10.6164 12.0320 C 10.5342 12.0640 10.4462 12.0790 10.3579 12.0760 C 10.2696 12.0730 10.1829 12.0510 10.1032 12.0130 C 10.0235 11.9750 9.9526 11.9210 9.8948 11.8540 C 9.7893 11.7260 9.7357 11.5640 9.7447 11.3990 C 9.7536 11.2330 9.8244 11.0780 9.9430 10.9620 L 13.9022 7.0030 C 16.0469 4.8590 16.1393 2.2750 16.0791 1.2640 V 1.2650 Z'
+
+const BOOST_DARK = ['#FFE29A', '#FFB38A', '#F3A8E6']
+const BOOST_LIGHT = ['#C98A00', '#D9642E', '#C44FB4']
+const BOOST_STOPS = [0, 0.5, 1]
+
+function BoostGrad({ id, colors }: { id: string; colors: string[] }) {
+  return (
+    <linearGradient id={id} x1="1" y1="19" x2="19" y2="1" gradientUnits="userSpaceOnUse">
+      {colors.map((c, i) => (
+        <stop key={c} offset={BOOST_STOPS[i]} stopColor={c} />
+      ))}
+    </linearGradient>
+  )
+}
+
+export function BoostMark({ className, title }: { className?: string; title?: string }) {
+  const id = useId().replace(/:/g, '')
+  const shape = (fill: string, cls: string) => (
+    <g className={cls} fill={fill} transform="translate(1.2 1.2114) scale(1.12591)">
+      <path d={ROCKET} />
+    </g>
+  )
+  return (
+    <svg
+      viewBox="0 0 20.5714 20.5714"
+      className={cn('size-5 shrink-0', className)}
+      role={title ? 'img' : undefined}
+      aria-label={title}
+      aria-hidden={title ? undefined : true}
+    >
+      <defs>
+        <BoostGrad id={`${id}l`} colors={BOOST_LIGHT} />
+        <BoostGrad id={`${id}d`} colors={BOOST_DARK} />
+      </defs>
+      {shape(`url(#${id}l)`, 'dark:hidden')}
+      {shape(`url(#${id}d)`, 'hidden dark:inline')}
+    </svg>
+  )
+}
