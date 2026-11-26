@@ -7,6 +7,7 @@ import type { SportsEventModel } from '@/lib/lumen/sports-event'
 import { leagueLogo, leaguePageHref, v5Leagues } from '@/lib/lumen/v5-combos'
 import { sportDef, sportHref, type V5SportId } from '@/lib/lumen/v5-sportsbook'
 import { cn } from '@/lib/utils'
+import { useMenuPosition } from './v5-market-cards'
 
 /**
  * V5 event breadcrumb — round back · sport (own glyph) / league ▾ / game ▾.
@@ -158,6 +159,7 @@ function CrumbMenu({
     }
   }, [open])
   const can = items.length > 1
+  const menuPos = useMenuPosition(open, ref, 320)
   return (
     <div ref={ref} className="relative min-w-0">
       <button
@@ -180,11 +182,7 @@ function CrumbMenu({
         ) : null}
       </button>
       {open ? (
-        <ul
-          role="listbox"
-          aria-label={label}
-          className="absolute left-0 top-10 z-40 max-h-[min(60vh,420px)] w-80 overflow-y-auto rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-[0_16px_40px_rgba(0,0,0,0.4)]"
-        >
+        <ul role="listbox" aria-label={label} style={menuPos} className="z-[95] max-h-[min(60vh,420px)] overflow-y-auto rounded-xl border border-border bg-popover p-1 text-popover-foreground shadow-[0_16px_40px_rgba(0,0,0,0.4)]">
           {items.map((it) => (
             <li key={it.key} role="option" aria-selected={!!it.current}>
               <Link

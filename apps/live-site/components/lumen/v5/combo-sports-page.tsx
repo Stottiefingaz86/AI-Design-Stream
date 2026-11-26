@@ -51,21 +51,7 @@ import { cn } from '@/lib/utils'
 import { BetStackPopup, showBetStack } from './bet-stack-popup'
 import { CasinoMiniPlayer } from './casino-mini-player'
 import { BuildOwnCard, ComboBuilderOverlay } from './combo-builder'
-import {
-  Crest,
-  DrawMark,
-  LeagueLink,
-  PctPill,
-  ProbBar,
-  V5Heading,
-  V5Tabs,
-  V5_CARD,
-  V5_LIGHT_UP,
-  V5_NUM,
-  V5_TITLE,
-  fmtVol,
-  useV5Pick,
-} from './combo-ui'
+import { Crest, DrawMark, LeagueLink, PctPill, ProbBar, V5Heading, V5Tabs, V5_CARD, V5_LIGHT_UP, V5_NUM, V5_TITLE, fmtVol, useV5Pick, PendingVeil, V5_PRESS, usePending } from './combo-ui'
 import { KMarketCard, SortMenu } from './v5-market-cards'
 import { LeagueMenu } from './v5-league-menu'
 import { SportsActivity } from './v5-activity'
@@ -397,9 +383,10 @@ export function ComboSportsPage({ sport = 'all', leagueSlug }: { sport?: V5Sport
             ) : null}
             {leagueDef ? (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={leagueDef.logo} alt="" className="size-10 shrink-0 object-contain" />
+              <img src={leagueDef.logo} alt="" className="size-8 shrink-0 object-contain sm:size-10" />
             ) : null}
-            <h1 className={cn(V5_TITLE, 'min-w-0 flex-1 truncate')}>
+            {/* Phones: a size down and up to two lines — never "Pre…". */}
+            <h1 className={cn(V5_TITLE, 'line-clamp-2 min-w-0 flex-1 text-2xl leading-7 sm:truncate sm:text-3xl sm:leading-9')}>
               {title}
               {view !== 'games' ? <span className="text-muted-foreground"> · {VIEW_LABEL[view]}</span> : null}
             </h1>
@@ -591,18 +578,24 @@ function GameCard({
   const draw = game.outcomes.find((o) => o.label === 'Draw')
   const rows = [...teams, ...(draw ? [draw] : [])]
   const ladders = eventLadders(game)
+  const [pending, startPending] = usePending()
+  const open = () => {
+    startPending()
+    onOpen()
+  }
   return (
     <div
       role="link"
       tabIndex={0}
       data-name="v5-game-card"
-      onClick={onOpen}
+      onClick={open}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') onOpen()
+        if (e.key === 'Enter') open()
       }}
       style={game.live ? LIVE_ROW_STYLE : undefined}
-      className={cn(V5_CARD, V5_LIGHT_UP, 'cursor-pointer overflow-hidden rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring')}
+      className={cn(V5_CARD, V5_LIGHT_UP, V5_PRESS, 'relative cursor-pointer overflow-hidden rounded-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring')}
     >
+      <PendingVeil on={pending} />
       <div className="flex items-center gap-3 px-4 pt-4">
         <LeagueLink sport={v5SportOf(game)} league={game.leagueName} className="shrink-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}

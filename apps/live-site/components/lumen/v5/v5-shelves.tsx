@@ -39,7 +39,7 @@ import { genBoostTitle, isGenerated, sportDef, type V5Game } from '@/lib/lumen/v
 import { flyBetDotToSlip } from '@/lib/lumen/vip-celebrate'
 import { cn } from '@/lib/utils'
 import { BoostMark, ComboMark } from './combo-mark'
-import { Crest, LeagueLink, LiveDot, V5_CARD, V5_HEADING, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtUsd } from './combo-ui'
+import { Crest, LeagueLink, LiveDot, V5_CARD, V5_HEADING, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtUsd, PendingVeil, V5_PRESS, usePending } from './combo-ui'
 
 
 // ─── Shelf — casino shelf header (title · See All box · arrow boxes) + snap rail ───
@@ -215,13 +215,18 @@ export function PopularCarousel({ sport, title = 'Popular' }: { sport: V5Sport; 
 
 function PopularCard({ game, onOpen }: { game: SportsMarket; onOpen: () => void }) {
   const teams = teamOutcomes(game)
+  const [pending, startPending] = usePending()
   return (
     <button
       type="button"
-      onClick={onOpen}
+      onClick={() => {
+        startPending()
+        onOpen()
+      }}
       style={game.live ? LIVE_ROW_STYLE : undefined}
-      className={cn(V5_CARD, V5_LIGHT_UP, 'flex h-[132px] w-[264px] shrink-0 flex-col gap-2.5 p-4 text-left')}
+      className={cn(V5_CARD, V5_LIGHT_UP, V5_PRESS, 'relative flex h-[132px] w-[264px] shrink-0 flex-col gap-2.5 p-4 text-left')}
     >
+      <PendingVeil on={pending} />
       {game.live ? (
         <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-foreground">
           <LiveDot /> Live <span className="font-semibold normal-case tracking-normal text-muted-foreground">· {game.when}</span>

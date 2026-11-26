@@ -39,7 +39,7 @@ import { topicCards, topicMix } from '@/lib/lumen/v5-topics'
 import { genFutures, leagueHref, sportHref, v5SportOf, type V5SportId } from '@/lib/lumen/v5-sportsbook'
 import { cn } from '@/lib/utils'
 import { BoostMark, ComboMark } from './combo-mark'
-import { LeagueLink, LiveDot, TopicGlyph, fmtUsd, V5_CARD, V5_HEADING, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtVol, useV5Pick } from './combo-ui'
+import { LeagueLink, LiveDot, TopicGlyph, fmtUsd, V5_CARD, V5_HEADING, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtVol, useV5Pick, PendingVeil, V5_PRESS, usePending } from './combo-ui'
 import { openMiniPlayer } from './casino-mini-player'
 import { FadeScroll } from './v5-fade-scroll'
 import { KMarketCard, RadioMenu, SortMenu } from './v5-market-cards'
@@ -58,7 +58,7 @@ export function SectionHead({ title, onSeeAll, children }: { title: string; onSe
   return (
     <header className="mb-3 flex min-h-9 flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <h2 className={cn(V5_HEADING, 'min-w-0 truncate')}>{title}</h2>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         {children}
         {onSeeAll ? (
           <button type="button" onClick={onSeeAll} className={cn(SHELF_BOX, 'px-3 text-xs font-medium text-muted-foreground hover:text-foreground')}>
@@ -125,16 +125,19 @@ function HeroCard({ game }: { game: SportsMarket }) {
     values: series[i]!,
   }))
   const more = game.outcomes.length - shown.length
+  const [pending, startPending] = usePending()
   return (
     <article
       data-name="v5-hero-card"
       className={cn(
         V5_CARD,
         V5_LIGHT_UP,
+        V5_PRESS,
         'relative flex w-[86%] min-w-0 shrink-0 snap-start flex-col gap-4 rounded-[14px] p-5 md:w-auto [&>span]:pointer-events-none [&>span]:relative',
       )}
     >
-      <Link href={game.href} aria-label={game.title} className="absolute inset-0 rounded-[14px]" />
+      <Link href={game.href} aria-label={game.title} onClick={startPending} className="absolute inset-0 rounded-[14px]" />
+      <PendingVeil on={pending} />
       <span className="flex items-center gap-2">
         <LeagueLink sport={v5SportOf(game)} league={game.leagueName} className="flex min-w-0 items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -185,15 +188,25 @@ export function UpcomingShelf({ sport }: { sport: V5Sport }) {
   return (
     <V5Shelf title="Upcoming" fill={5} minCard={176}>
       {games.map((g) => (
+        <UpcomingCard key={g.id} g={g} />
+      ))}
+    </V5Shelf>
+  )
+}
+
+function UpcomingCard({ g }: { g: SportsMarket }) {
+  const [pending, startPending] = usePending()
+  return (
         <article
-          key={g.id}
           className={cn(
             V5_CARD,
             V5_LIGHT_UP,
+            V5_PRESS,
             'relative flex min-h-[208px] flex-col gap-3 rounded-[14px] p-4 [&>span]:pointer-events-none [&>span]:relative',
           )}
         >
-          <Link href={g.href} aria-label={g.title} className="absolute inset-0 rounded-[14px]" />
+          <Link href={g.href} aria-label={g.title} onClick={startPending} className="absolute inset-0 rounded-[14px]" />
+          <PendingVeil on={pending} />
           <span className="flex">
             <LeagueLink sport={v5SportOf(g)} league={g.leagueName} className="flex size-11 items-center justify-center rounded-xl bg-secondary">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -212,8 +225,6 @@ export function UpcomingShelf({ sport }: { sport: V5Sport }) {
             </LeagueLink>
           </span>
         </article>
-      ))}
-    </V5Shelf>
   )
 }
 

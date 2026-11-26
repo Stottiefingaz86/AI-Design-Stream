@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useLayoutEffect } from 'react'
 import Link from 'next/link'
-import { IconChevronDown, IconChevronRight } from '@tabler/icons-react'
+import { IconArrowsSort, IconChevronDown, IconChevronRight } from '@tabler/icons-react'
 import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import { AlternateLinePicker } from '@/components/lumen/soccer-sport-page'
 import { SORT_MODES, type KCard, type KRow, type SortMode } from '@/lib/lumen/v5-markets'
 import { cn } from '@/lib/utils'
-import { Crest, LeagueLink, ProbBar, TopicGlyph, V5_CARD, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtVol } from './combo-ui'
+import { Crest, LeagueLink, ProbBar, TopicGlyph, V5_CARD, V5_LIGHT_UP, V5_NUM, fmtPctRound, fmtVol, PendingVeil, V5_PRESS, usePending } from './combo-ui'
 
 type OnPick = (pick: SoccerSlipPick, el?: HTMLElement | null) => void
 
@@ -18,6 +18,7 @@ const PREVIEW = 3
 /** Uniform market card — header, rows (chance bar · multiplier · Yes / No), volume, view market. */
 export function KMarketCard({ card, selected, onPick }: { card: KCard; selected: Set<string>; onPick: OnPick }) {
   const [open, setOpen] = useState(false)
+  const [pending, startPending] = usePending()
   const rows = open ? card.rows : card.rows.slice(0, PREVIEW)
   const hidden = card.rows.length - PREVIEW
   const titleEl = <span className="block truncate text-[17px] font-bold leading-6 tracking-tight text-foreground">{card.title}</span>
@@ -34,7 +35,7 @@ export function KMarketCard({ card, selected, onPick }: { card: KCard; selected:
       </LeagueLink>
       <span className="min-w-0 flex-1">
         {card.href ? (
-          <Link href={card.href} className="block transition-opacity hover:opacity-80">
+          <Link href={card.href} onClick={startPending} className="block transition-opacity hover:opacity-80">
             {titleEl}
           </Link>
         ) : (
@@ -51,7 +52,8 @@ export function KMarketCard({ card, selected, onPick }: { card: KCard; selected:
     </>
   )
   return (
-    <article data-name="v5-market-card" className={cn(V5_CARD, V5_LIGHT_UP, 'flex flex-col overflow-hidden rounded-[14px]')}>
+    <article data-name="v5-market-card" className={cn(V5_CARD, V5_LIGHT_UP, V5_PRESS, 'relative flex flex-col overflow-hidden rounded-[14px]')}>
+      <PendingVeil on={pending} />
       <div className="flex items-center gap-3 px-4 pt-4">{head}</div>
       <div className="flex flex-col gap-3 px-4 py-4">
         {rows.map((r) => (
@@ -71,7 +73,7 @@ export function KMarketCard({ card, selected, onPick }: { card: KCard; selected:
       <div className="mt-auto flex h-10 items-center border-t border-border px-4 text-xs text-muted-foreground">
         <span>{fmtVol(card.volume)}</span>
         {card.href ? (
-          <Link href={card.href} className="ml-auto inline-flex items-center gap-0.5 font-bold text-foreground hover:underline">
+          <Link href={card.href} onClick={startPending} className="ml-auto inline-flex items-center gap-0.5 font-bold text-foreground hover:underline">
             View market <IconChevronRight className="size-3.5" stroke={2} />
           </Link>
         ) : null}
@@ -208,6 +210,7 @@ export function SortMenu({
       document.removeEventListener('keydown', onKey)
     }
   }, [open])
+  const sortPos = useMenuPosition(open, ref, 256)
   const label = SORT_MODES.find((m) => m.id === value)?.label ?? 'Sort'
   return (
     <div ref={ref} className="relative">
@@ -216,17 +219,16 @@ export function SortMenu({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-5 text-[15px] font-bold tracking-tight text-foreground transition-colors hover:bg-accent"
+        aria-label={`Sort: ${label}`}
+        className="inline-flex h-11 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-[15px] font-bold tracking-tight text-foreground transition-colors hover:bg-accent sm:px-5"
       >
-        {label}
-        <IconChevronDown className={cn('size-4 transition-transform', open && 'rotate-180')} stroke={2.25} />
+        {/* Phones: icon only, so page titles keep their room. */}
+        <IconArrowsSort className="size-5 sm:hidden" stroke={2} aria-hidden />
+        <span className="hidden sm:inline">{label}</span>
+        <IconChevronDown className={cn('hidden size-4 transition-transform sm:block', open && 'rotate-180')} stroke={2.25} />
       </button>
       {open ? (
-        <div
-          role="listbox"
-          aria-label="Sort"
-          className="absolute right-0 top-full z-40 mt-2 w-64 rounded-[14px] border border-border bg-popover p-2 text-popover-foreground shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
-        >
+        <div role="listbox" aria-label="Sort" className={MENU_PANEL} style={sortPos}>
           {SORT_MODES.map((m) => {
             const on = m.id === value
             return (
@@ -282,6 +284,35 @@ export function SortMenu({
 }
 
 /** Pill-button dropdown with radio options and optional switches (Browse markets filters). */
+/** Dropdown panel — fixed to the viewport and clamped to its edges, so no row or screen edge ever cuts it off. */
+const MENU_PANEL =
+  'z-[95] max-h-[min(70dvh,480px)] overflow-y-auto rounded-[14px] border border-border bg-popover p-2 text-popover-foreground shadow-[0_12px_40px_rgba(0,0,0,0.45)]'
+
+export function useMenuPosition(open: boolean, anchor: React.RefObject<HTMLElement>, width: number): React.CSSProperties {
+  const [style, setStyle] = useState<React.CSSProperties>({ position: 'fixed', visibility: 'hidden' })
+  useLayoutEffect(() => {
+    if (!open) return
+    const place = () => {
+      const el = anchor.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const vw = window.innerWidth
+      const w = Math.min(width, vw - 32)
+      /* Left-align under the button when it fits, else right-align; always 16px inside the screen. */
+      const left = r.left + w <= vw - 16 ? Math.max(16, r.left) : Math.max(16, Math.min(r.right - w, vw - w - 16))
+      setStyle({ position: 'fixed', top: r.bottom + 8, left, width: w })
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open, anchor, width])
+  return style
+}
+
 export function RadioMenu<T extends string>({
   label,
   options,
@@ -307,6 +338,7 @@ export function RadioMenu<T extends string>({
     document.addEventListener('pointerdown', onDoc)
     return () => document.removeEventListener('pointerdown', onDoc)
   }, [open])
+  const radioPos = useMenuPosition(open, ref, 240)
   const current = options?.find((o) => o.id === value)?.label
   return (
     <div ref={ref} className="relative">
@@ -326,7 +358,7 @@ export function RadioMenu<T extends string>({
         )}
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-40 mt-2 w-60 rounded-[14px] border border-border bg-popover p-2 text-popover-foreground shadow-[0_12px_40px_rgba(0,0,0,0.45)]">
+        <div className={MENU_PANEL} style={radioPos}>
           {switches?.map((sw) => (
             <button
               key={sw.label}

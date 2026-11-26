@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import NumberFlow from '@number-flow/react'
@@ -178,7 +178,7 @@ export function ComboEventPage({ sport, eventId }: { sport: V5SportId; eventId: 
             {field ? null : genLive ? (
               <GenTracker game={ev.game} />
             ) : model.live ? (
-              desktop === false ? <MediaPanel model={model} /> : null
+              desktop === false ? <MediaPanel model={model} statsSlot={<LiveStatsCard model={model} bare />} /> : null
             ) : (
               <WinProbabilityCard model={model} />
             )}
@@ -207,7 +207,8 @@ export function ComboEventPage({ sport, eventId }: { sport: V5SportId; eventId: 
           </div>
 
           <div className="mt-6 flex flex-col gap-4 lg:hidden">
-            {model.live ? <LiveStatsCard model={model} /> : <PreMatchCards model={model} />}
+            {/* Phones: live stats are a tab on the stream / tracker card, not at the bottom. */}
+            {model.live ? null : <PreMatchCards model={model} />}
           </div>
         </div>
 
@@ -354,13 +355,14 @@ function MarketRow({
         <div className="min-w-0">
           <p className="truncate text-base font-bold tracking-tight text-foreground">{label}</p>
           {sub ? <p className="truncate text-xs text-muted-foreground">{sub}</p> : null}
-          {stepper ? <div className="mt-2">{stepper}</div> : null}
         </div>
       </div>
       <span className="flex items-center justify-end gap-1 md:justify-start">
         <span className="text-2xl font-bold tabular-nums tracking-tight text-foreground">{fmtPctRound(chance)}</span>
         {change !== undefined ? <ChangeChip value={change} /> : null}
       </span>
+      {/* Line stepper — its own full-width row on phones (never under the %), under the label from md. */}
+      {stepper ? <div className="col-span-2 min-w-0 md:col-span-1 md:col-start-1 md:row-start-2 md:-mt-1">{stepper}</div> : null}
       <span className="col-span-2 flex gap-2 md:col-span-1">
         <YesNoButton side="yes" value={yes.value} selected={yes.selected} onClick={yes.onClick} className="flex-1 md:flex-none" />
         {no ? (
@@ -373,7 +375,7 @@ function MarketRow({
   )
 }
 
-/** ‹ 2.5 · 3.5 · 4.5 › — V1 chip track. */
+/** ‹ 2.5 · 3.5 · 4.5 › — V1 chip track. Phones: every line in one swipeable row, picked one centred, no arrows. */
 function LineStepper({
   labels,
   index,
@@ -384,45 +386,59 @@ function LineStepper({
   onChange: (i: number) => void
 }) {
   const start = Math.min(Math.max(0, index - 2), Math.max(0, labels.length - 5))
-  const visible = labels.slice(start, start + 5)
   const step = (d: 1 | -1) => onChange(Math.min(labels.length - 1, Math.max(0, index + d)))
+  const rowRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const row = rowRef.current
+    const chip = row?.querySelector<HTMLElement>('[data-on="true"]')
+    if (!row || !chip || row.scrollWidth <= row.clientWidth) return
+    row.scrollTo({ left: chip.offsetLeft - row.clientWidth / 2 + chip.offsetWidth / 2, behavior: 'smooth' })
+  }, [index])
+  const chip = (l: string, i: number, extra?: string) => (
+    <button
+      key={`${l}-${i}`}
+      type="button"
+      data-on={i === index}
+      onClick={() => onChange(i)}
+      className={cn(
+        'h-8 min-w-[52px] shrink-0 rounded-md px-2 text-sm tabular-nums transition-colors md:h-7 md:min-w-[44px] md:px-1.5 md:text-xs',
+        i === index ? 'bg-primary font-semibold text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+        extra,
+      )}
+    >
+      {l}
+    </button>
+  )
   return (
-    <div className="inline-flex h-8 items-center gap-0.5 rounded-lg border border-border bg-secondary px-0.5">
-      <button
-        type="button"
-        aria-label="Lower line"
-        onClick={() => step(-1)}
-        disabled={index === 0}
-        className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
+    <>
+      <div
+        ref={rowRef}
+        className="scrollbar-hide flex h-10 w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-secondary px-1 md:hidden"
       >
-        <IconChevronLeft className="size-4" stroke={1.5} />
-      </button>
-      {visible.map((l, k) => {
-        const i = start + k
-        return (
-          <button
-            key={`${l}-${i}`}
-            type="button"
-            onClick={() => onChange(i)}
-            className={cn(
-              'h-7 min-w-[44px] rounded-md px-1.5 text-xs tabular-nums transition-colors',
-              i === index ? 'bg-primary font-semibold text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {l}
-          </button>
-        )
-      })}
-      <button
-        type="button"
-        aria-label="Higher line"
-        onClick={() => step(1)}
-        disabled={index === labels.length - 1}
-        className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
-      >
-        <IconChevronRight className="size-4" stroke={1.5} />
-      </button>
-    </div>
+        {labels.map((l, i) => chip(l, i))}
+      </div>
+      <div className="hidden h-8 items-center gap-0.5 rounded-lg border border-border bg-secondary px-0.5 md:inline-flex">
+        <button
+          type="button"
+          aria-label="Lower line"
+          onClick={() => step(-1)}
+          disabled={index === 0}
+          className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
+        >
+          <IconChevronLeft className="size-4" stroke={1.5} />
+        </button>
+        {labels.slice(start, start + 5).map((l, k) => chip(l, start + k))}
+        <button
+          type="button"
+          aria-label="Higher line"
+          onClick={() => step(1)}
+          disabled={index === labels.length - 1}
+          className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-30"
+        >
+          <IconChevronRight className="size-4" stroke={1.5} />
+        </button>
+      </div>
+    </>
   )
 }
 

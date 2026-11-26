@@ -1865,6 +1865,8 @@ function V5StakeBox({
   /** Under "To win" — "If all 4 legs win". */
   note?: string
 }) {
+  const [focused, setFocused] = useState(false)
+  const hasStake = parseStake(value) > 0
   /* One left/right axis: stake field full width, then quick amounts left · to-win right. */
   return (
     <div className="mt-2">
@@ -1872,9 +1874,13 @@ function V5StakeBox({
         className={cn(
           'flex h-11 items-center gap-2 rounded-xl border bg-transparent px-3 transition-colors focus-within:border-foreground',
           error ? 'border-destructive' : 'border-border',
+          /* Empty + not focused: the edge sweeps and the label shimmers — "your stake goes here". */
+          !error && !hasStake && !focused && 'v5-stake-attn',
         )}
       >
-        <span className="text-sm text-muted-foreground">Stake</span>
+        <span className={cn('text-sm', hasStake ? 'text-muted-foreground' : 'v5-pay-shimmer font-semibold')}>
+          {hasStake ? 'Stake' : 'Enter stake'}
+        </span>
         <input
           type="text"
           inputMode="decimal"
@@ -1883,7 +1889,11 @@ function V5StakeBox({
           value={value && value !== DEFAULT_STAKE ? `$${value}` : ''}
           placeholder="$0"
           onChange={(e) => onChange(formatStakeInput(e.target.value.replace(/^\$/, '')))}
-          onFocus={(e) => e.target.select()}
+          onFocus={(e) => {
+            setFocused(true)
+            e.target.select()
+          }}
+          onBlur={() => setFocused(false)}
           className="min-w-0 flex-1 bg-transparent text-right text-lg font-bold tabular-nums text-foreground outline-none placeholder:text-muted-foreground"
         />
       </label>

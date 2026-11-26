@@ -3527,3 +3527,42 @@ body:has([data-name="combo-builder"]) [data-auth-modal-root],
 body:has([data-name="combo-builder"]) [data-cashier-redirect] {
   z-index: 300 !important;
 }
+
+/* V5 · Combos — card press: squeeze while held, springy release. Pressing a price inside doesn't squeeze the card. */
+.v5-press {
+  transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  -webkit-tap-highlight-color: transparent;
+}
+.v5-press:active:not(:has(button:active)) {
+  transform: scale(0.975);
+  transition-duration: 90ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v5-press, .v5-press:active { transition: none; transform: none; }
+}
+
+/* V5 · betslip stake — until a stake is in, the field's edge sweeps and "Enter stake" shimmers. */
+@property --v5-stake-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes v5-stake-sweep {
+  to { --v5-stake-angle: 360deg; }
+}
+.v5-stake-attn {
+  border-color: transparent !important;
+  background:
+    linear-gradient(var(--popover), var(--popover)) padding-box,
+    conic-gradient(
+      from var(--v5-stake-angle),
+      var(--border) 0deg,
+      var(--border) 220deg,
+      var(--foreground) 300deg,
+      var(--border) 360deg
+    ) border-box;
+  animation: v5-stake-sweep 2.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .v5-stake-attn { animation: none; }
+}

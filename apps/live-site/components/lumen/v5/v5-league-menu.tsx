@@ -65,6 +65,14 @@ export function LeagueMenu({
     return [...map.entries()].sort(([a], [b]) => (a === 'International' ? 1 : b === 'International' ? -1 : a.localeCompare(b)))
   }, [leagues, q])
 
+  /* Keep the active chip in view — on phones the row would otherwise land half-way through it. */
+  useEffect(() => {
+    const row = ref.current?.querySelector<HTMLElement>('[role="tablist"]')
+    const on = row?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!row || !on || row.scrollWidth <= row.clientWidth) return
+    row.scrollTo({ left: Math.max(0, on.offsetLeft - 16), behavior: 'auto' })
+  }, [active])
+
   const pick = (name: string) => {
     onChange(name)
     setOpen(false)

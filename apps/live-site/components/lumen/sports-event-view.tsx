@@ -25,6 +25,7 @@ import {
   IconPlayerPlay,
   IconPlayerPlayFilled,
   IconPlus,
+  IconChartBar,
   IconSoccerField,
   IconTriangleFilled,
   IconVolume,
@@ -1466,7 +1467,7 @@ function ScoreBody({
 
 // ─── Live media: stream + tracker ─────────────────────────────
 
-type Media = 'stream' | 'tracker'
+type Media = 'stream' | 'tracker' | 'stats'
 
 function enterFullscreen(frame: HTMLElement | null) {
   if (!frame) return
@@ -1481,7 +1482,14 @@ function enterFullscreen(frame: HTMLElement | null) {
 }
 
 /** Also used by V5 Combos. */
-export function MediaPanel({ model }: { model: SportsEventModel }) {
+export function MediaPanel({
+  model,
+  statsSlot,
+}: {
+  model: SportsEventModel
+  /** Optional third tab (V5 phones): live stats inside the media card instead of at the page bottom. */
+  statsSlot?: ReactNode
+}) {
   const { loggedIn } = useShell()
   const [media, setMedia] = useState<Media>('stream')
   const frameRef = useRef<HTMLDivElement>(null)
@@ -1490,7 +1498,9 @@ export function MediaPanel({ model }: { model: SportsEventModel }) {
     <section data-name="event-media" className={cn(CARD, 'overflow-hidden')}>
       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
         <span className="text-sm font-medium text-foreground">
-          {media === 'stream'
+          {media === 'stats'
+            ? 'Stats'
+            : media === 'stream'
             ? 'Live Stream'
             : model.sport === 'nfl'
               ? 'Game Tracker'
@@ -1519,6 +1529,7 @@ export function MediaPanel({ model }: { model: SportsEventModel }) {
                   label: model.sport === 'nfl' ? 'Game Tracker' : 'Match Tracker',
                   icon: IconSoccerField,
                 },
+                ...(statsSlot ? ([{ id: 'stats', label: 'Stats', icon: IconChartBar }] as const) : []),
               ] as const
             ).map((tab) => {
               const on = media === tab.id
@@ -1546,7 +1557,9 @@ export function MediaPanel({ model }: { model: SportsEventModel }) {
           </div>
         </div>
       </div>
-      {media === 'stream' ? (
+      {media === 'stats' && statsSlot ? (
+        statsSlot
+      ) : media === 'stream' ? (
         <LiveStream model={model} frameRef={frameRef} />
       ) : model.sport === 'nfl' ? (
         <FieldTracker model={model} />
@@ -1957,12 +1970,12 @@ function FieldTracker({ model }: { model: SportsEventModel }) {
 // ─── Live stats + timeline ────────────────────────────────────
 
 /** Also used by V5 Combos. */
-export function LiveStatsCard({ model }: { model: SportsEventModel }) {
+export function LiveStatsCard({ model, bare = false }: { model: SportsEventModel; /** No card chrome (inside another card). */ bare?: boolean }) {
   const [view, setView] = useState<'stats' | 'timeline'>('stats')
   const live = model.live
   if (!live) return null
   return (
-    <section data-name="event-live-stats" className={cn(CARD, 'overflow-hidden')}>
+    <section data-name="event-live-stats" className={cn(!bare && CARD, 'overflow-hidden', bare && 'border-t border-border')}>
       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
         <Tabs value={view} onValueChange={(v) => setView(v as 'stats' | 'timeline')}>
           <TabsList>

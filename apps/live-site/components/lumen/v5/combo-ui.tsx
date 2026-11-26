@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { FadeScroll } from './v5-fade-scroll'
@@ -440,5 +440,31 @@ export function LeagueLink({
     >
       {children}
     </Link>
+  )
+}
+
+/** Card press — a small squeeze while pressed, a springy release (see `.v5-press` in globals). */
+export const V5_PRESS = 'v5-press'
+
+/** "I heard you" while the next page loads — set on tap, cleared by navigation (or 8s). */
+export function usePending(): [boolean, () => void] {
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    if (!on) return
+    const t = window.setTimeout(() => setOn(false), 8000)
+    return () => window.clearTimeout(t)
+  }, [on])
+  return [on, () => setOn(true)]
+}
+
+export function PendingVeil({ on }: { on: boolean }) {
+  if (!on) return null
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center rounded-[inherit] bg-[color-mix(in_srgb,var(--card)_55%,transparent)]"
+    >
+      <span className="size-7 animate-spin rounded-full border-[2.5px] border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] border-t-foreground" />
+    </span>
   )
 }
