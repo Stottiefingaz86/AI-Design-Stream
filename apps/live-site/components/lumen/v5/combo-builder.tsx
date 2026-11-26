@@ -35,6 +35,7 @@ import {
   noCents,
   openComboBuilder,
   pickFor,
+  registerComboBuilderHost,
   teamOutcomes,
   toggleLeg,
   useComboBuilder,
@@ -61,7 +62,7 @@ import {
   fmtVol,
   useV5Pick,
 } from './combo-ui'
-import { ComboPackCard, V5Shelf } from './v5-shelves'
+import { ComboPackCard, V5Shelf, megaCombos } from './v5-shelves'
 import { KMarketCard } from './v5-market-cards'
 import { AUTO_GRID } from './v5-widgets'
 import { futureCards, gamePropCards, playerPropCards } from '@/lib/lumen/v5-markets'
@@ -85,6 +86,7 @@ export function ComboBuilderOverlay() {
   const { open, sport } = useComboBuilder()
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
+  useEffect(() => registerComboBuilderHost(), [])
   useEffect(() => {
     if (!open) return
     const prev = document.documentElement.style.overflow
@@ -160,6 +162,8 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
   }, [tab, sport, scope, q])
 
   const combos = featuredCombos(sport)
+  /* Mega combos — the big ones, 5 legs and up. */
+  const megas = useMemo(() => megaCombos(sport).filter((c) => c.legs.length >= 5), [sport])
   const sportPills = [
     { id: 'all', label: 'All sports', icon: <IconStack2 className="size-5" stroke={1.75} /> },
     ...BUILDER_SPORTS.map((id) => ({ id, label: sportDef(id).label, icon: <SportGlyph id={id} /> })),
@@ -260,6 +264,14 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
               <V5Shelf title="Popular Combos" className="mt-8" bleedRight={false} fill={3}>
                 {combos.map((c) => (
                   <ComboPackCard key={c.id} combo={c} />
+                ))}
+              </V5Shelf>
+            ) : null}
+
+            {megas.length && !query ? (
+              <V5Shelf title="Mega Combos · 5+ legs" label="Mega combos" bleedRight={false} fill={3}>
+                {megas.map((c) => (
+                  <ComboPackCard key={c.id} combo={c} kind="mega combo" />
                 ))}
               </V5Shelf>
             ) : null}
@@ -552,6 +564,12 @@ function MobileComboBar({ hidden, onOpen }: { hidden: boolean; onOpen: () => voi
  */
 function MobileComboSheet({ open, onClose, picks }: { open: boolean; onClose: () => void; picks: SoccerSlipPick[] }) {
   const drag = useDragControls()
+  /* Every close (scrim, drag, minimise) bumps this — the slip hands a placed ticket to the bet stack. */
+  const [dismissTick, setDismissTick] = useState(0)
+  const close = () => {
+    onClose()
+    setDismissTick((t) => t + 1)
+  }
   return (
     <>
       <AnimatePresence>
@@ -564,7 +582,7 @@ function MobileComboSheet({ open, onClose, picks }: { open: boolean; onClose: ()
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={onClose}
+            onClick={close}
             className="fixed inset-0 z-40 cursor-default bg-black/60 lg:hidden"
           />
         ) : null}
@@ -581,7 +599,7 @@ function MobileComboSheet({ open, onClose, picks }: { open: boolean; onClose: ()
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={{ top: 0, bottom: 0.7 }}
         onDragEnd={(_, info) => {
-          if (info.offset.y > 90 || info.velocity.y > 600) onClose()
+          if (info.offset.y > 90 || info.velocity.y > 600) close()
         }}
         className={cn(
           'fixed inset-x-0 bottom-0 z-50 lg:hidden',
@@ -604,7 +622,8 @@ function MobileComboSheet({ open, onClose, picks }: { open: boolean; onClose: ()
           onRemove={(id) => setSoccerSlip((prev) => prev.filter((p) => p.id !== id))}
           onClear={() => setSoccerSlip([])}
           onChange={setSoccerSlip}
-          onMinimize={onClose}
+          onMinimize={close}
+          dismissTick={dismissTick}
           onClosedAfterPlace={(placed) => {
             onClose()
             showBetStack(placed)

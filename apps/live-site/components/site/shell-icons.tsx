@@ -94,6 +94,7 @@ export type ShellIconName =
   | 'userPlus'
   | 'users'
   | 'megaParlay'
+  | 'combo'
   | 'videoPoker'
   | 'vip'
   | 'virtuals'
@@ -198,6 +199,8 @@ const ICONS: Record<ShellIconName, string> = {
   users: '/shell/figma/sports/parlay.svg',
   /** Lumen DS Mega Parlay (52196:37903). */
   megaParlay: '/shell/figma/sports/mega-parlay.svg',
+  /** V5 · Combos mark (mono, for the sports side nav). */
+  combo: '/shell/figma/sports/combo.svg',
   videoPoker: '/shell/figma/casino/video-poker.svg',
   vip: '/shell/figma/promo/vip.svg',
   /* Stopwatch/bolt — solid black so chrome invert stays bright (not Live Casino flame). */

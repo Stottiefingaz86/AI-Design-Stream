@@ -44,6 +44,7 @@ import {
   type InboxNotification,
 } from '@/lib/lumen/notifications'
 import { productFromPath, type ShellProduct } from './shell-nav'
+import { currentSiteVersion } from '@/lib/lumen/site-versions'
 import {
   accountLevel,
   hasFullName,
@@ -1176,8 +1177,9 @@ export function ShellProvider({
       return
     }
     const asFreeSpins = Boolean(opts?.freeSpins)
-    /* Empty wallet — open cashier instead of launching (free-spins sessions skip this). */
-    if (!asFreeSpins && !opts?.skipFunds && balanceRef.current <= 0) {
+    /* Empty wallet — open cashier instead of launching (free-spins sessions skip this).
+     * V5: never forced — the game opens on an empty wallet too. */
+    if (!asFreeSpins && !opts?.skipFunds && balanceRef.current <= 0 && currentSiteVersion() !== 'v5') {
       setChurnRescueOpen(false)
       setVipHubOpen(false)
       setDrawerOpen(false)

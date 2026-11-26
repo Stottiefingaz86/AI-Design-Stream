@@ -9,6 +9,7 @@ import { ShellIcon, type ShellIconName } from './shell-icons'
 import { useHideOnScroll } from './shell-scroll'
 import type { ShellProduct } from './shell-nav'
 import { cn } from '@/lib/utils'
+import { useSiteVersion } from '@/lib/lumen/site-versions'
 
 type DockItem = {
   href: string
@@ -74,7 +75,13 @@ export function ShellMobileNav() {
     openAuth,
   } = useShell()
   const hidden = useHideOnScroll('down')
-  const items = dockForPath(pathname, product)
+  const v5 = useSiteVersion() === 'v5'
+  const baseItems = dockForPath(pathname, product)
+  /* V5 · the homepage takes sports picks (Browse markets, Activity) — show Betslip once there are some. */
+  const items =
+    v5 && pathname === '/' && sportsBetCount > 0
+      ? [baseItems[0]!, { href: '/', icon: 'betslip' as const, label: 'Betslip', action: 'betslip' as const }, ...baseItems.slice(1)]
+      : baseItems
   const [selected, setSelected] = useState<string | null>(null)
 
   if (items.length === 0) return null

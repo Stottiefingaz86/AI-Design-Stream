@@ -3527,6 +3527,10 @@ body:has([data-name="combo-builder"]) [data-auth-modal-root],
 body:has([data-name="combo-builder"]) [data-cashier-redirect] {
   z-index: 300 !important;
 }
+/* The bet stack shares the trade-sheet root (z 255) — it must land above the builder, not behind it. */
+[data-trade-sheet-root][data-name="v5-bet-stack"] {
+  z-index: 265 !important;
+}
 
 /* V5 · Combos — card press: squeeze while held, springy release. Pressing a price inside doesn't squeeze the card. */
 .v5-press {

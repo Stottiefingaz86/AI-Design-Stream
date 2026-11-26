@@ -8,7 +8,7 @@ import {
 export type ShellProduct = "casino" | "sports" | "poker" | "promotions";
 
 export type ShellNavGameAction = "launch-last-game" | "launch-random";
-export type ShellNavAction = ShellNavGameAction | "open-vip-hub";
+export type ShellNavAction = ShellNavGameAction | "open-vip-hub" | "open-combo-builder";
 
 export type ShellNavItem = {
   label: string;
@@ -432,12 +432,21 @@ export function navForProduct(
             icon: "sgp",
             emphasis: true,
           },
-          {
-            label: "Mega Parlay",
-            href: SPORTS_HOME_HREF,
-            icon: "megaParlay",
-            emphasis: true,
-          },
+          /* V5 · Combos — the combo builder takes Mega Parlay's slot (opens over the page). */
+          version === "v5"
+            ? {
+                label: "Combo Builder",
+                href: "/sports?combo=1",
+                icon: "combo",
+                emphasis: true,
+                action: "open-combo-builder",
+              }
+            : {
+                label: "Mega Parlay",
+                href: SPORTS_HOME_HREF,
+                icon: "megaParlay",
+                emphasis: true,
+              },
         ],
       },
       {

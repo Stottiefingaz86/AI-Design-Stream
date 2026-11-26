@@ -11,6 +11,9 @@ import {
 } from "@/lib/lumen/soccer-sport";
 import { useSportsBets } from "@/lib/lumen/sports-bets-store";
 import { useSiteVersion } from "@/lib/lumen/site-versions";
+import { comboBuilderHosted, openComboBuilder, useComboBuilder, type V5Sport } from "@/lib/lumen/v5-combos";
+import { V5_SPORTS } from "@/lib/lumen/v5-sportsbook";
+import { ComboMark } from "@/components/lumen/v5/combo-mark";
 import { cn } from "@/lib/utils";
 
 /** Lumen sports marks — same ShellIcon set as the sports side nav. */
@@ -68,6 +71,39 @@ export function SportsSubNav() {
     ...(version === "v5" ? V5_EXTRA_RAIL : []),
   ];
   const active = activeRailId(pathname, rail);
+  /* V5 · Combos — the combo builder gets a tile right after My Bets (opens over the page). */
+  const v5 = version === "v5";
+  const { open: comboOpen } = useComboBuilder();
+  const openCombos = () => {
+    const id = active === "football" ? "nfl" : active;
+    const sport: V5Sport = V5_SPORTS.some((s) => s.id === id) ? (id as V5Sport) : "all";
+    if (comboBuilderHosted()) openComboBuilder(sport);
+    else {
+      startNavigating("/sports");
+      router.push("/sports?combo=1");
+    }
+  };
+  /* V5: warm every sport page so a tap lands first time (no "tap, wait, tap again"). */
+  useEffect(() => {
+    if (!v5) return;
+    for (const item of rail) router.prefetch(item.href);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [v5]);
+  const comboTile = (
+    <button
+      key="v5-combos"
+      type="button"
+      onClick={openCombos}
+      aria-pressed={comboOpen}
+      className={cn(
+        "relative flex h-14 w-[68px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg px-1 transition-colors",
+        comboOpen ? "bg-secondary text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+      )}
+    >
+      <ComboMark className="size-5" />
+      <span className="text-[11px] font-medium leading-none tracking-tight">Combos</span>
+    </button>
+  );
   /* Desktop only — glass chevrons + edge fade when the rail overflows (mice have no sideways scroll). */
   const scrollRef = useRef<HTMLElement>(null);
   const [edge, setEdge] = useState({ back: false, more: false });
@@ -131,11 +167,11 @@ export function SportsSubNav() {
           className="scrollbar-hide flex w-full min-w-0 gap-0.5 overflow-x-auto px-4 md:gap-1 md:px-0"
           style={edge.back || edge.more ? { maskImage: fade, WebkitMaskImage: fade } : undefined}
         >
-          {rail.map((item) => {
+          {rail.flatMap((item) => {
             const on = item.id === active;
             const loading = railLoading === item.id;
             const icon = item.shell;
-            return (
+            const tile = (
               <button
                 key={item.id}
                 type="button"
@@ -176,6 +212,7 @@ export function SportsSubNav() {
                 ) : null}
               </button>
             );
+            return v5 && item.id === "my-bets" ? [tile, comboTile] : [tile];
           })}
         </nav>
         {edge.back ? (

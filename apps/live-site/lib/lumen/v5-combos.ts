@@ -601,6 +601,19 @@ export function closeComboBuilder() {
   builderListeners.forEach((fn) => fn())
 }
 
+/* Pages that render the builder overlay register here — shell chrome (the sports sub-nav) opens it in
+ * place when there's a host, otherwise it sends the player to Sports with ?combo=1. */
+let builderHosts = 0
+export function registerComboBuilderHost(): () => void {
+  builderHosts += 1
+  return () => {
+    builderHosts -= 1
+  }
+}
+export function comboBuilderHosted(): boolean {
+  return builderHosts > 0
+}
+
 function subscribeBuilder(fn: () => void) {
   builderListeners.add(fn)
   return () => {

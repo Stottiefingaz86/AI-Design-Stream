@@ -11,6 +11,8 @@ import {
   type CasinoLobbyGame,
 } from '@/lib/lumen/casino-lobby-catalog'
 import { cn } from '@/lib/utils'
+import { useScrollEdgeFade } from '@/components/ui/edge-fade'
+import { useSiteVersion } from '@/lib/lumen/site-versions'
 
 /** Rainbet-style Live Wins — Lumen tokens, activity feed data, lobby bottom. */
 const VISIBLE = 14
@@ -120,6 +122,8 @@ export function CasinoLiveWinsCarousel({ className }: { className?: string }) {
   const scrollerRef = useRef<HTMLDivElement>(null)
   const sectionRef = useRef<HTMLElement>(null)
   const headerRef = useRef<HTMLElement>(null)
+  /* V5 only — fade the edge that has more wins to scroll to (V1–V3 unchanged). */
+  const railFade = useScrollEdgeFade(scrollerRef, useSiteVersion() === 'v5')
   const hoverPaused = finePointer && hovered
   const armed = playing && !hoverPaused
   /**
@@ -258,6 +262,7 @@ export function CasinoLiveWinsCarousel({ className }: { className?: string }) {
         ref={scrollerRef}
         data-name="live-wins-rail"
         className="scrollbar-hide overflow-x-auto overscroll-x-contain"
+        style={railFade}
       >
         {/* py room so tile lift (y: -6) isn’t clipped */}
         <div className="flex w-max gap-2.5 px-6 py-3">

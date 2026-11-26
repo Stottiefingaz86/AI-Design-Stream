@@ -207,6 +207,13 @@ export function ComboSportsPage({ sport = 'all', leagueSlug }: { sport?: V5Sport
     }
     const v = params.get('view') as V5View | null
     if (v && v in VIEW_LABEL) setView(v)
+    /* Sub-nav "Combos" from a page without the builder lands here with ?combo=1. */
+    if (params.get('combo')) {
+      params.delete('combo')
+      const rest = params.toString()
+      window.history.replaceState(null, '', `${window.location.pathname}${rest ? `?${rest}` : ''}`)
+      openComboBuilder(sport)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sport, leagueSlug])
 
@@ -216,6 +223,13 @@ export function ComboSportsPage({ sport = 'all', leagueSlug }: { sport?: V5Sport
     document.getElementById('shell-scroll')?.scrollTo({ top: 0, behavior: 'smooth' })
   }
   const pickLeague = (id: string) => go(id === 'all' || sport === 'all' ? sportHref(sport as V5SportId) : leagueHref(sport, id))
+  /* Warm the league pages behind the chips so the first tap navigates straight away. */
+  useEffect(() => {
+    if (sport === 'all') return
+    router.prefetch(sportHref(sport as V5SportId))
+    for (const l of leagues.slice(0, 8)) router.prefetch(leagueHref(sport, l.name))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sport])
 
   const banners = useMemo(
     () =>

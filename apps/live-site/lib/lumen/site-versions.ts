@@ -27,6 +27,11 @@ function get(): SiteVersionId {
   return current
 }
 
+/** The active site version outside React (event handlers, shell callbacks). */
+export function currentSiteVersion(): SiteVersionId {
+  return get()
+}
+
 export function setSiteVersion(id: SiteVersionId) {
   current = id
   document.cookie = `${COOKIE}=${id}; path=/; max-age=${ONE_YEAR_S}; samesite=lax`

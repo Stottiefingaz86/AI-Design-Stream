@@ -10,6 +10,7 @@ import { hashFromHref, isInPageHashHref, scrollShellToId } from '@/lib/lumen/she
 import { useShell } from './shell-context'
 import { ShellIcon, ShellLogo } from './shell-icons'
 import { gameForNavAction } from './shell-nav-launch'
+import { comboBuilderHosted, openComboBuilder } from '@/lib/lumen/v5-combos'
 import {
   navForPathname,
   navPickKey,
@@ -359,7 +360,7 @@ function NavItem({
     )
   }
 
-  if (item.action) {
+  if (item.action && item.action !== 'open-combo-builder') {
     return (
       <button
         type="button"
@@ -377,7 +378,7 @@ function NavItem({
             onLaunch(lastPlayed)
             return
           }
-          onLaunch(gameForNavAction(item.action))
+          onLaunch(gameForNavAction(item.action as 'launch-random'))
         }}
       >
         {body}
@@ -389,6 +390,12 @@ function NavItem({
     <Link
       href={item.href}
       onClick={(event) => {
+        /* V5 · Combo Builder opens over the page when the page has one; otherwise the link lands on Sports. */
+        if (item.action === 'open-combo-builder' && comboBuilderHosted()) {
+          event.preventDefault()
+          openComboBuilder('all')
+          return
+        }
         if (isInPageHashHref(item.href, pathname)) {
           event.preventDefault()
           const id = hashFromHref(item.href)

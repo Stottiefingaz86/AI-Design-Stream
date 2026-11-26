@@ -256,6 +256,7 @@ export function SoccerBetslip({
   onClosedAfterPlace,
   inline = false,
   onMinimize,
+  dismissTick,
 }: {
   picks: SoccerSlipPick[]
   onRemove: (id: string) => void
@@ -275,6 +276,8 @@ export function SoccerBetslip({
   inline?: boolean
   /** V5 combo builder on phones — the inline slip sits in a sheet; this closes it. */
   onMinimize?: () => void
+  /** V5 combo builder on phones — bumps whenever the sheet closes (scrim, drag, minimise). */
+  dismissTick?: number
 }) {
   const router = useRouter()
   const v5 = variant === 'v5'
@@ -436,6 +439,32 @@ export function SoccerBetslip({
 
   const receiptRef = useRef(receipt)
   receiptRef.current = receipt
+
+  /* Inline (combo builder) slip: hand a placed ticket to the bet stack exactly once — on "More picks",
+   * on closing the phone sheet, or when the builder itself closes with the ticket still showing. */
+  const handedRef = useRef(false)
+  const handOffInline = useCallback(() => {
+    const placed = receiptRef.current?.placed ?? []
+    if (!placed.length || handedRef.current) return false
+    handedRef.current = true
+    onClosedAfterPlaceRef.current?.(placed)
+    return true
+  }, [])
+  const dismissSeenRef = useRef(dismissTick)
+  useEffect(() => {
+    if (!inline || dismissTick === dismissSeenRef.current) return
+    dismissSeenRef.current = dismissTick
+    if (!handOffInline()) return
+    /* Clear after the sheet has slid away, so it doesn't flash back to the slip on the way out. */
+    const t = window.setTimeout(() => setReceipt(null), 320)
+    return () => window.clearTimeout(t)
+  }, [dismissTick, inline, handOffInline])
+  useEffect(() => {
+    if (!inline) return
+    return () => {
+      handOffInline()
+    }
+  }, [inline, handOffInline])
 
   /* Inline (combo builder) slip has no close — its receipt's "More picks" opens the cards instead. */
 
@@ -668,6 +697,7 @@ export function SoccerBetslip({
     })
     if (!rejectedKeys.has('parlay')) setParlayStake(DEFAULT_STAKE)
 
+    handedRef.current = false
     setReceipt({ placed, rejected, reuse })
     setErrors(Object.fromEntries(rejected.map((r) => [r.key, r.reason])))
     if (remaining.length !== picks.length) {
@@ -689,18 +719,12 @@ export function SoccerBetslip({
     const placed = receipt?.placed ?? []
     if (!placed.length) return
     if (inline) {
-      onClosedAfterPlaceRef.current?.(placed)
-      setReceipt(null)
+      if (handOffInline()) setReceipt(null)
     } else closeDrawer()
   }
 
-  /* Combo builder sheet (phones): closing after a bet hands the ticket to the stack, like the drawer does. */
+  /* Combo builder sheet (phones): every way of closing it goes through the parent, which bumps dismissTick. */
   const minimizeInline = () => {
-    const placed = receipt?.placed ?? []
-    if (placed.length) {
-      onClosedAfterPlaceRef.current?.(placed)
-      setReceipt(null)
-    }
     onMinimize?.()
   }
 

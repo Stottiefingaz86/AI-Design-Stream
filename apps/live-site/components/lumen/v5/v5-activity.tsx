@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react'
 import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
@@ -41,7 +41,7 @@ const ROW_H = 'h-16'
 const ROW_CSS = '4rem'
 const EASE = [0.22, 1, 0.36, 1] as const
 
-const USERS = ['Hidden', 'ace_***', 'lux***', 'nova***', 'bolt***', 'kira***', 'zen***', 'fox***', 'rex***', 'ivy***']
+export const ACTIVITY_USERS = ['Hidden', 'ace_***', 'lux***', 'nova***', 'bolt***', 'kira***', 'zen***', 'fox***', 'rex***', 'ivy***']
 const CROWNS: BaCrown[] = ['gold', 'purple', 'silver']
 const STAKES = [250, 80, 100, 150, 60, 135, 40, 500, 25, 75]
 
@@ -94,7 +94,7 @@ function buildPool(sport: V5Sport, league?: string): Row[] {
   const rows: Row[] = []
   const n = Math.max(16, games.length)
   for (let i = 0; i < n; i++) {
-    const user = USERS[i % USERS.length]!
+    const user = ACTIVITY_USERS[i % ACTIVITY_USERS.length]!
     const crown = CROWNS[i % CROWNS.length]!
     const stake = STAKES[i % STAKES.length]!
     if (i % 3 === 2 && games.length > 2) {
@@ -131,7 +131,7 @@ const decimalOfRow = (row: Row) =>
 type Kind = 'all' | 'combos' | 'graded'
 
 /** Width of the feed itself (it sits in the main column next to the rail, so viewport breakpoints lie). */
-function useWidth<T extends HTMLElement>() {
+export function useWidth<T extends HTMLElement>() {
   const ref = useRef<T>(null)
   const [w, setW] = useState(0)
   useEffect(() => {
@@ -144,7 +144,16 @@ function useWidth<T extends HTMLElement>() {
   return [ref, w] as const
 }
 
-export function SportsActivity({ sport, league }: { sport: V5Sport; league?: string }) {
+export function SportsActivity({
+  sport,
+  league,
+  titleSlot,
+}: {
+  sport: V5Sport
+  league?: string
+  /** Replaces the "Activity" heading (homepage: heading + Casino / Sports switch). */
+  titleSlot?: ReactNode
+}) {
   /* Scope — home: a sport; sport page: a league; league page: fixed. */
   const scopes = useMemo(() => {
     if (league) return []
@@ -240,7 +249,7 @@ export function SportsActivity({ sport, league }: { sport: V5Sport; league?: str
     <section data-name="v5-sports-activity" aria-label="Activity" className="mb-10">
       {/* Title · kind switch · scope menu · play/pause — one tidy row, wraps on phones. */}
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-3">
-        <h2 className={cn(V5_HEADING, 'mr-auto')}>Activity</h2>
+        {titleSlot ? <div className="mr-auto">{titleSlot}</div> : <h2 className={cn(V5_HEADING, 'mr-auto')}>Activity</h2>}
         {kinds.length > 1 ? (
           <div role="tablist" aria-label="Bet type" className="inline-flex h-10 items-center rounded-full border border-border bg-card p-1">
             {kinds.map((k) => (
@@ -402,7 +411,7 @@ function EventLine({ row }: { row: Row }) {
   )
 }
 
-function CrownMark({ tone }: { tone: BaCrown }) {
+export function CrownMark({ tone }: { tone: BaCrown }) {
   return (
     <ShellIcon
       name="crown"
@@ -419,7 +428,7 @@ function CrownMark({ tone }: { tone: BaCrown }) {
   )
 }
 
-function PlayToggle({ live, onToggle }: { live: boolean; onToggle: () => void }) {
+export function PlayToggle({ live, onToggle }: { live: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"

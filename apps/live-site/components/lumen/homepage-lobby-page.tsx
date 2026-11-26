@@ -30,6 +30,14 @@ import {
   TOP10_GAMES,
 } from '@/lib/lumen/casino-lobby-catalog'
 import { HOMEPAGE_PROMO_BANNERS } from '@/lib/lumen/homepage-banners'
+import { useSiteVersion } from '@/lib/lumen/site-versions'
+import {
+  V5HomeActivity,
+  V5HomeLeagues,
+  V5HomePopular,
+  V5HomeSlip,
+  V5HomeTrending,
+} from '@/components/lumen/v5/v5-home'
 import { cn } from '@/lib/utils'
 
 /** Brief tile spinner before soft-nav — matches hero destination cards. */
@@ -378,6 +386,8 @@ export function HomepageLobby() {
     openVipStatusMatch,
     loggedIn,
   } = useShell()
+  /* V5 · Combos — the sports shelves become the V5 sports components; V1–V3 keep the static ones. */
+  const v5 = useSiteVersion() === 'v5'
 
   const homeBanners = useMemo(
     () =>
@@ -419,22 +429,43 @@ export function HomepageLobby() {
       {/* Homepage: Live Wins under promo strip — above Continue Playing. */}
       <CasinoLiveWinsCarousel />
       <ContinuePlayingShelf />
-      <TopMarketsShelf />
+      {v5 ? (
+        <>
+          <V5HomePopular />
+          <V5HomeLeagues />
+        </>
+      ) : (
+        <TopMarketsShelf />
+      )}
       <CasinoGameShelf
         title="Originals"
         games={ORIGINALS_GAMES}
         seeMoreHref="/casino/category/originals"
         onLaunch={launchGame}
       />
-      <TrendingSportsShelf />
+      {v5 ? <V5HomeTrending /> : <TrendingSportsShelf />}
       <CasinoTop10
         games={TOP10_GAMES}
         title="Top 10 Games this week"
         onLaunch={launchGame}
       />
-      <CasinoProviderRow title="Providers" />
-      <CasinoActivity />
-      <CasinoJackpots onLaunch={launchGame} />
+      {v5 ? (
+        <>
+          {/* V5: Activity, then Jackpots, then Providers. */}
+          <V5HomeActivity />
+          <CasinoJackpots onLaunch={launchGame} />
+          {/* Room under the provider row before the next shelf header. */}
+          <div className="pb-6">
+            <CasinoProviderRow title="Providers" />
+          </div>
+        </>
+      ) : (
+        <>
+          <CasinoProviderRow title="Providers" />
+          <CasinoActivity />
+          <CasinoJackpots onLaunch={launchGame} />
+        </>
+      )}
       <CasinoGameShelf
         title="Live Casino"
         games={LIVE_GAMES}
@@ -442,6 +473,7 @@ export function HomepageLobby() {
         onLaunch={launchGame}
       />
       <VipRewardsFlipCarousel onExplore={() => setVipHubOpen(true)} />
+      {v5 ? <V5HomeSlip /> : null}
     </div>
   )
 }

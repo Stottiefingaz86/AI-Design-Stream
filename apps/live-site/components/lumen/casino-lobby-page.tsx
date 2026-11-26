@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import NumberFlow from '@number-flow/react'
@@ -841,7 +841,12 @@ function ActivityPlayToggle({
 }
 
 /** Match bol-seven: Framer layout + popLayout — new row slides in, others push down. Table only — no Jackpot / Daily Race sub-nav. */
-export function CasinoActivity() {
+export function CasinoActivity({
+  titleSlot,
+}: {
+  /** Optional — replaces the "Activity" heading (V5 homepage: heading + Casino / Sports switch). */
+  titleSlot?: ReactNode
+} = {}) {
   const { launchGame: openLauncher } = useShell()
   const [playing, setPlaying] = useState(true)
   const [hovered, setHovered] = useState(false)
@@ -880,9 +885,11 @@ export function CasinoActivity() {
 
   return (
     <section data-name="Activity" aria-label="Activity" className="px-6 py-6">
-      <Typography as="h3" shape="h4" weight="semibold" className="mb-2.5">
-        Activity
-      </Typography>
+      {titleSlot ?? (
+        <Typography as="h3" shape="h4" weight="semibold" className="mb-2.5">
+          Activity
+        </Typography>
+      )}
       <div
         data-name="Casino activity"
         onMouseEnter={() => setHovered(true)}

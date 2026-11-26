@@ -46,6 +46,8 @@ import { Crest, LeagueLink, LiveDot, V5_CARD, V5_HEADING, V5_LIGHT_UP, V5_NUM, f
 
 /** Whether shelves bleed past the column's right edge — off when a rail sits beside them. */
 export const ShelfBleed = createContext(true)
+/** Page gutter in px when a shelf sits outside the V5 sports layout (e.g. the homepage's 24px). */
+export const ShelfGutter = createContext<number | null>(null)
 
 export const SHELF_BOX =
   'inline-flex h-9 shrink-0 items-center justify-center rounded-md border border-border bg-secondary transition-colors hover:bg-muted disabled:opacity-45'
@@ -76,6 +78,7 @@ export function V5Shelf({
   minCard?: number
 }) {
   const bleedCtx = useContext(ShelfBleed)
+  const gutter = useContext(ShelfGutter)
   const bleedRight = bleedProp ?? bleedCtx
   const sectionRef = useRef<HTMLElement>(null)
   const ref = useRef<HTMLDivElement>(null)
@@ -139,11 +142,19 @@ export function V5Shelf({
       </header>
       <div
         className={bleedRight ? '-mx-4 md:-mx-6' : '-ml-4 overflow-hidden md:-ml-6'}
-        style={bleedRight || !scrolls ? undefined : { maskImage: fade, WebkitMaskImage: fade }}
+        style={{
+          ...(gutter != null ? { marginLeft: -gutter, marginRight: bleedRight ? -gutter : undefined } : null),
+          ...(bleedRight || !scrolls ? null : { maskImage: fade, WebkitMaskImage: fade }),
+        }}
       >
         <div
           ref={ref}
           onScroll={measure}
+          style={
+            gutter != null
+              ? { paddingLeft: gutter, paddingRight: bleedRight ? gutter : 0, scrollPaddingLeft: gutter }
+              : undefined
+          }
           aria-label={label ?? title}
           className={cn(
             'scrollbar-hide -my-2 flex snap-x snap-mandatory gap-3 overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-px-4 px-4 py-2 md:scroll-px-6 md:px-6 [&>*]:snap-start',

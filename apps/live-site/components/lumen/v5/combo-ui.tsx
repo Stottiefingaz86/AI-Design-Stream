@@ -459,15 +459,16 @@ export function usePending(): [boolean, () => void] {
 
 export function PendingVeil({ on }: { on: boolean }) {
   if (!on) return null
+  /* A div with !absolute: cards that style their direct <span> children (relative) can't pull it into
+   * the flow. Covers the whole card — content softly blurred, spinner dead centre. */
   return (
-    <span
+    <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center rounded-[inherit] bg-[color-mix(in_srgb,var(--background)_60%,transparent)]"
+      className="pointer-events-none !absolute inset-0 z-[3] flex items-center justify-center rounded-[inherit] bg-[color-mix(in_srgb,var(--background)_45%,transparent)] backdrop-blur-[3px]"
     >
-      {/* Spinner on a chip so it reads on any card, light or dark. */}
       <span className="flex size-11 items-center justify-center rounded-full bg-popover shadow-md">
         <span className="size-6 animate-spin rounded-full border-[2.5px] border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] border-t-foreground" />
       </span>
-    </span>
+    </div>
   )
 }

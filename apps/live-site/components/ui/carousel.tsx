@@ -8,6 +8,8 @@ import { IconChevronLeft, IconChevronRight } from "@tabler/icons-react"
 
 import { cn } from "@/lib/utils/index"
 import { Button } from "@/components/ui/button"
+import { edgeFadeMask } from "@/components/ui/edge-fade"
+import { useSiteVersion } from "@/lib/lumen/site-versions"
 
 type CarouselApi = UseEmblaCarouselType[1]
 type UseCarouselParameters = Parameters<typeof useEmblaCarousel>
@@ -174,7 +176,10 @@ const CarouselContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => {
-  const { carouselRef, orientation } = useCarousel()
+  const { carouselRef, orientation, canScrollPrev, canScrollNext } = useCarousel()
+  /* V5 only — the edge with more to scroll fades out instead of clipping a card (V1–V3 unchanged). */
+  const v5 = useSiteVersion() === "v5"
+  const fade = v5 && orientation === "horizontal" ? edgeFadeMask(canScrollPrev, canScrollNext) : undefined
 
   return (
     <div
@@ -184,6 +189,7 @@ const CarouselContent = React.forwardRef<
         // pan-y alone gets pointercancel on horizontal swipes (mobile). Allow both axes;
         // Embla axis-locks once the gesture direction is clear.
         touchAction: "pan-x pan-y",
+        ...fade,
       }}
     >
       <div
