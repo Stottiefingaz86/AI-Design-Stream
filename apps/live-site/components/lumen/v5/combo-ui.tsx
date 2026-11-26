@@ -462,9 +462,12 @@ export function PendingVeil({ on }: { on: boolean }) {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center rounded-[inherit] bg-[color-mix(in_srgb,var(--card)_55%,transparent)]"
+      className="pointer-events-none absolute inset-0 z-[3] flex items-center justify-center rounded-[inherit] bg-[color-mix(in_srgb,var(--background)_60%,transparent)]"
     >
-      <span className="size-7 animate-spin rounded-full border-[2.5px] border-[color-mix(in_srgb,var(--foreground)_22%,transparent)] border-t-foreground" />
+      {/* Spinner on a chip so it reads on any card, light or dark. */}
+      <span className="flex size-11 items-center justify-center rounded-full bg-popover shadow-md">
+        <span className="size-6 animate-spin rounded-full border-[2.5px] border-[color-mix(in_srgb,var(--foreground)_18%,transparent)] border-t-foreground" />
+      </span>
     </span>
   )
 }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useDragControls } from 'framer-motion'
 import {
   IconCheck,
   IconChevronLeft,
@@ -16,6 +16,7 @@ import {
 import { Typography } from '@/components/ui/typography'
 import type { SoccerSlipPick } from '@/components/lumen/soccer-betslip'
 import { SoccerBetslip } from '@/components/lumen/soccer-betslip'
+import { useIsDesktop } from '@/components/lumen/sports-event-view'
 import { LiveClock } from '@/components/lumen/sports-home-page'
 import { V5PillTrack } from './v5-pill-track'
 import { useShell } from '@/components/site/shell-context'
@@ -127,6 +128,12 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
   const picks = useSoccerSlip()
   const selected = useMemo(() => new Set(picks.map((p) => p.id)), [picks])
   const onPick = useV5Pick()
+  /* Phones: the slip opens as a sheet over the builder — you never leave the page. */
+  const desktop = useIsDesktop()
+  const [sheet, setSheet] = useState(false)
+  useEffect(() => {
+    if (desktop) setSheet(false)
+  }, [desktop])
   const leagues = v5Leagues(sport)
   const q = query.trim().toLowerCase()
 
@@ -297,21 +304,28 @@ function Builder({ initialSport }: { initialSport: V5Sport }) {
             {/* Full-height slip rail — the betslip fills the column, stake and Place pinned to the bottom. */}
             <div className="sticky top-[72px] flex h-[calc(100dvh-88px)] flex-col [&>aside]:!max-h-none [&>aside]:flex-1">
               {/* The real betslip, in place — prompts for 2 markets until it's a combo. */}
-              <SoccerBetslip
-                inline
-                variant="v5"
-                picks={picks}
-                onRemove={(id) => setSoccerSlip((prev) => prev.filter((p) => p.id !== id))}
-                onClear={() => setSoccerSlip([])}
-                onChange={setSoccerSlip}
-                onClosedAfterPlace={showBetStack}
-              />
+              {desktop === false ? null : (
+                <SoccerBetslip
+                  inline
+                  variant="v5"
+                  picks={picks}
+                  onRemove={(id) => setSoccerSlip((prev) => prev.filter((p) => p.id !== id))}
+                  onClear={() => setSoccerSlip([])}
+                  onChange={setSoccerSlip}
+                  onClosedAfterPlace={showBetStack}
+                />
+              )}
             </div>
           </aside>
         </div>
       </div>
 
-      <MobileComboBar />
+      {desktop === false ? (
+        <>
+          <MobileComboBar hidden={sheet} onOpen={() => setSheet(true)} />
+          <MobileComboSheet open={sheet} onClose={() => setSheet(false)} picks={picks} />
+        </>
+      ) : null}
     </div>
   )
 }
@@ -474,27 +488,17 @@ function BuilderGameCard({ game, tab, selected }: { game: SportsMarket; tab: 'wi
   )
 }
 
-/** Hand the combo to the existing betslip to stake and place. */
-function useReview() {
-  const { openSportsBetslip } = useShell()
-  return () => {
-    closeComboBuilder()
-    window.setTimeout(() => openSportsBetslip(), 120)
-  }
-}
-
-/** Mobile: payout bar pinned to the bottom of the builder. */
-function MobileComboBar() {
+/** Mobile: payout bar pinned to the bottom of the builder — tap it to open the slip sheet. */
+function MobileComboBar({ hidden, onOpen }: { hidden: boolean; onOpen: () => void }) {
   const picks = useSoccerSlip()
-  const review = useReview()
   const decimal = comboDecimal(picks)
   const n = picks.length
   const legs = qualifyingLegs(picks)
   const boost = comboBoostFor(legs)
-  /* Floating glass capsule — mark + count, payout as the hero, Review on the right, boost progress on the edge. */
+  /* Floating glass capsule — mark + count, payout as the hero, a quiet open chevron, boost progress on the edge. */
   return (
     <AnimatePresence>
-      {n ? (
+      {n && !hidden ? (
         <motion.div
           initial={{ y: 110, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -504,13 +508,13 @@ function MobileComboBar() {
         >
           <button
             type="button"
-            onClick={review}
-            aria-label={`Review your ${n}-leg combo`}
-            className="v5-glass relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-border p-2 pl-2.5 text-left shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+            onClick={onOpen}
+            aria-label={`Open your ${n}-leg combo`}
+            className="v5-glass relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-border p-2 pl-2.5 pr-3 text-left shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
           >
             <span className="relative inline-flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary">
               <ComboMark className="size-6" />
-              <span className="absolute -right-1.5 -top-1.5 inline-flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold tabular-nums text-primary-foreground">
+              <span className="absolute -right-1.5 -top-1.5 inline-flex size-5 items-center justify-center rounded-full bg-foreground text-[11px] font-bold tabular-nums text-background">
                 {n}
               </span>
             </span>
@@ -524,9 +528,9 @@ function MobileComboBar() {
                 <span className="v5-pay-shimmer text-lg font-bold leading-6 tabular-nums tracking-tight">{fmtUsd(10 * decimal)}</span>
               </span>
             </span>
-            <span className="inline-flex h-11 shrink-0 items-center gap-1 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground">
-              Review
-              <IconChevronUp className="size-4" stroke={2.25} aria-hidden />
+            {/* Same round control as the slip's minimise — it just points the other way. */}
+            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-foreground" aria-hidden>
+              <IconChevronUp className="size-4" stroke={2} />
             </span>
             {/* Boost progress — 12 legs at 1.50x+ is the max. */}
             <span className="absolute inset-x-4 bottom-0 h-0.5 overflow-hidden rounded-full bg-secondary" aria-hidden>
@@ -539,5 +543,74 @@ function MobileComboBar() {
         </motion.div>
       ) : null}
     </AnimatePresence>
+  )
+}
+
+/**
+ * Mobile: the combo slip as a sheet over the builder (same overlay as other modals). It stays
+ * mounted so stakes survive closing it; drag the handle down, tap the scrim or minimise to close.
+ */
+function MobileComboSheet({ open, onClose, picks }: { open: boolean; onClose: () => void; picks: SoccerSlipPick[] }) {
+  const drag = useDragControls()
+  return (
+    <>
+      <AnimatePresence>
+        {open ? (
+          <motion.button
+            key="combo-sheet-scrim"
+            type="button"
+            aria-label="Close betslip"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={onClose}
+            className="fixed inset-0 z-40 cursor-default bg-black/60 lg:hidden"
+          />
+        ) : null}
+      </AnimatePresence>
+      <motion.div
+        data-name="combo-builder-sheet"
+        aria-hidden={!open}
+        initial={false}
+        animate={{ y: open ? 0 : '105%' }}
+        transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+        drag="y"
+        dragControls={drag}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.7 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 90 || info.velocity.y > 600) onClose()
+        }}
+        className={cn(
+          'fixed inset-x-0 bottom-0 z-50 lg:hidden',
+          '[&>aside]:!max-h-[88dvh] [&>aside]:!rounded-b-none [&>aside]:!rounded-t-[20px] [&>aside]:!pt-6 [&>aside]:pb-[env(safe-area-inset-bottom)]',
+          !open && 'pointer-events-none',
+        )}
+      >
+        {/* Grab handle — drags the sheet; the slip itself still scrolls. */}
+        <div
+          onPointerDown={(e) => drag.start(e)}
+          className="absolute inset-x-0 top-0 z-10 flex h-6 cursor-grab touch-none justify-center pt-2"
+          aria-hidden
+        >
+          <span className="h-1 w-10 rounded-full bg-border" />
+        </div>
+        <SoccerBetslip
+          inline
+          variant="v5"
+          picks={picks}
+          onRemove={(id) => setSoccerSlip((prev) => prev.filter((p) => p.id !== id))}
+          onClear={() => setSoccerSlip([])}
+          onChange={setSoccerSlip}
+          onMinimize={onClose}
+          onClosedAfterPlace={(placed) => {
+            onClose()
+            showBetStack(placed)
+          }}
+        />
+      </motion.div>
+    </>
   )
 }

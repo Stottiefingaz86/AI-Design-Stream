@@ -13,6 +13,11 @@ type OnPick = (pick: SoccerSlipPick, el?: HTMLElement | null) => void
 
 const PREVIEW = 3
 
+/* Whole-card press: a stretched link sits under the content; the content lets presses fall
+ * through to it except on its own controls (Yes / No, line picker, league links, show more). */
+const OVER_LINK =
+  'pointer-events-none relative z-[1] [&_a]:pointer-events-auto [&_button]:pointer-events-auto [&_input]:pointer-events-auto'
+
 // ─── Market card ───────────────────────────────────────────────
 
 /** Uniform market card — header, rows (chance bar · multiplier · Yes / No), volume, view market. */
@@ -52,10 +57,22 @@ export function KMarketCard({ card, selected, onPick }: { card: KCard; selected:
     </>
   )
   return (
-    <article data-name="v5-market-card" className={cn(V5_CARD, V5_LIGHT_UP, V5_PRESS, 'relative flex flex-col overflow-hidden rounded-[14px]')}>
+    <article
+      data-name="v5-market-card"
+      className={cn(V5_CARD, V5_LIGHT_UP, V5_PRESS, 'relative flex flex-col overflow-hidden rounded-[14px]', card.href && 'cursor-pointer')}
+    >
+      {card.href ? (
+        <Link
+          href={card.href}
+          onClick={startPending}
+          aria-label={card.title}
+          tabIndex={-1}
+          className="absolute inset-0 z-0 rounded-[14px]"
+        />
+      ) : null}
       <PendingVeil on={pending} />
-      <div className="flex items-center gap-3 px-4 pt-4">{head}</div>
-      <div className="flex flex-col gap-3 px-4 py-4">
+      <div className={cn(OVER_LINK, 'flex items-center gap-3 px-4 pt-4')}>{head}</div>
+      <div className={cn(OVER_LINK, 'flex flex-col gap-3 px-4 py-4')}>
         {rows.map((r) => (
           <KRowView key={r.id} row={r} selected={selected} onPick={onPick} />
         ))}
@@ -70,7 +87,7 @@ export function KMarketCard({ card, selected, onPick }: { card: KCard; selected:
           </button>
         ) : null}
       </div>
-      <div className="mt-auto flex h-10 items-center border-t border-border px-4 text-xs text-muted-foreground">
+      <div className={cn(OVER_LINK, 'mt-auto flex h-10 items-center border-t border-border px-4 text-xs text-muted-foreground')}>
         <span>{fmtVol(card.volume)}</span>
         {card.href ? (
           <Link href={card.href} onClick={startPending} className="ml-auto inline-flex items-center gap-0.5 font-bold text-foreground hover:underline">

@@ -255,6 +255,7 @@ export function SoccerBetslip({
   variant,
   onClosedAfterPlace,
   inline = false,
+  onMinimize,
 }: {
   picks: SoccerSlipPick[]
   onRemove: (id: string) => void
@@ -272,6 +273,8 @@ export function SoccerBetslip({
   onClosedAfterPlace?: (placed: SportsBet[]) => void
   /** V5 combo builder — the same slip rendered in place (no drawer, no dock, no shell sync). */
   inline?: boolean
+  /** V5 combo builder on phones — the inline slip sits in a sheet; this closes it. */
+  onMinimize?: () => void
 }) {
   const router = useRouter()
   const v5 = variant === 'v5'
@@ -371,13 +374,15 @@ export function SoccerBetslip({
     setOpen(false)
     const placed = receiptRef.current?.placed ?? []
     if (placed.length && onClosedAfterPlaceRef.current) onClosedAfterPlaceRef.current(placed)
+    /* V5: the ticket went to the stack — next time the slip opens it shows the slip, not the old ticket. */
+    if (v5 && placed.length) window.setTimeout(() => setReceipt(null), 320)
     if (picksLenRef.current > 0) {
       dismissedRef.current = true
       setShowDesktopDock(true)
     } else {
       setShowDesktopDock(false)
     }
-  }, [])
+  }, [v5])
 
   const { mounted, shown } = useAnimatedOpen(open)
   const { sheetRef, offset, dragging, bind } = useDragToClose(open, closeDrawer)
@@ -457,8 +462,12 @@ export function SoccerBetslip({
     }
     if (addTick === addTickSeenRef.current) return
     addTickSeenRef.current = addTick
-    /* V5: picks build up in the Selections bar — the slip never pops open on its own. */
-    if (inline || v5) return
+    /* V5: picks build up in the Selections bar — the slip never pops open on its own. A new pick
+     * after a bet starts a new slip, so the old ticket goes (adding from the bet stack hit this). */
+    if (inline || v5) {
+      if (receiptRef.current && picks.length > 0) setReceipt(null)
+      return
+    }
     if (prevCountRef.current > 0 || picks.length === 0) return
     setShowDesktopDock(false)
     setReceipt(null)
@@ -685,6 +694,16 @@ export function SoccerBetslip({
     } else closeDrawer()
   }
 
+  /* Combo builder sheet (phones): closing after a bet hands the ticket to the stack, like the drawer does. */
+  const minimizeInline = () => {
+    const placed = receipt?.placed ?? []
+    if (placed.length) {
+      onClosedAfterPlaceRef.current?.(placed)
+      setReceipt(null)
+    }
+    onMinimize?.()
+  }
+
   /* V5 — share the ticket: native share sheet where there is one, otherwise copy the text. */
   const onShareReceipt = async () => {
     if (!receipt?.placed.length) return
@@ -786,10 +805,25 @@ export function SoccerBetslip({
                   transition={{ duration: 0.22, ease: LEG_EASE, layout: { duration: 0.22, ease: LEG_EASE } }}
                   className={cn('relative flex gap-3', !last && 'pb-4')}
                 >
-                  {!last ? <span className="absolute bottom-0 left-[7.5px] top-5 w-px bg-border" aria-hidden /> : null}
-                  <span className="relative mt-[3px] flex size-4 shrink-0 items-center justify-center rounded-full bg-primary" aria-hidden>
-                    <IconCheck className="size-2.5 text-primary-foreground" stroke={3.5} />
-                  </span>
+                  {!last ? (
+                    <span
+                      className={cn('absolute bottom-0 w-px bg-border', inline ? 'left-[9.5px] top-6' : 'left-[7.5px] top-5')}
+                      aria-hidden
+                    />
+                  ) : null}
+                  {inline ? (
+                    /* Combo builder: legs are a numbered chain — each one multiplies the next. */
+                    <span
+                      className="relative flex size-5 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-[11px] font-bold tabular-nums text-foreground"
+                      aria-hidden
+                    >
+                      {i + 1}
+                    </span>
+                  ) : (
+                    <span className="relative mt-[3px] flex size-4 shrink-0 items-center justify-center rounded-full bg-primary" aria-hidden>
+                      <IconCheck className="size-2.5 text-primary-foreground" stroke={3.5} />
+                    </span>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="text-[15px] font-bold leading-5 tracking-tight text-foreground">{pick.label}</p>
                     <p className="truncate text-xs leading-4 text-muted-foreground">
@@ -1019,7 +1053,9 @@ export function SoccerBetslip({
               : ['bg-success text-success-foreground', 'hover:bg-[color-mix(in_srgb,var(--success)_88%,transparent)]'],
           )}
         >
-          <span className="text-base font-bold leading-5 tracking-tight">{placeLabel}</span>
+          <span className="text-base font-bold leading-5 tracking-tight">
+            {inline && placeLabel.startsWith('Place ') ? `Place combo ${money(placeStake)}` : placeLabel}
+          </span>
           {loggedIn ? (
             <span className="text-xs font-medium leading-4 opacity-90">
               {needsDeposit
@@ -1046,17 +1082,25 @@ export function SoccerBetslip({
               {/* V5 — "Your combo" header: what it is, how far along, help. */}
               {v5 && !receipt ? (
                 <div className="flex shrink-0 items-center gap-2 px-4 pb-3">
+                  {inline ? (
+                    /* Combo builder slip — combos only, so it wears the combo mark and counts in multipliers. */
+                    <span className="v5-combo-sheen inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary" aria-hidden>
+                      <ComboMark className="size-6" />
+                    </span>
+                  ) : null}
                   <span data-betslip-fly-target="" className="min-w-0 flex-1">
-                    <span className="block text-xs font-semibold text-muted-foreground">Your combo</span>
+                    <span className="block text-xs font-semibold text-muted-foreground">{inline ? 'Combo builder' : 'Your combo'}</span>
                     <span className="block truncate text-xl font-bold leading-7 tracking-tight text-foreground">
                       {picks.length === 0
                         ? 'Pick 2+ markets'
                         : picks.length === 1
                           ? 'Add 1 more market'
-                          : `${units.length > 1 ? units.length : picks.length} legs${units.length > 1 && headerOdds ? ` · ${headerOdds}` : ''}`}
+                          : inline && units.length > 1
+                            ? `${units.length} legs · ${decimalOf(parlayOdds).toFixed(2)}x`
+                            : `${units.length > 1 ? units.length : picks.length} legs${units.length > 1 && headerOdds ? ` · ${headerOdds}` : ''}`}
                     </span>
                   </span>
-                  {betTypes.length > 1 ? (
+                  {betTypes.length > 1 && !inline ? (
                     <span className="relative">
                       <button
                         type="button"
@@ -1108,7 +1152,18 @@ export function SoccerBetslip({
                       <IconTrash className="size-4" stroke={1.75} />
                     </button>
                   ) : null}
-                  {inline ? null : (
+                  {inline ? (
+                    onMinimize ? (
+                      <button
+                        type="button"
+                        aria-label="Minimize betslip"
+                        onClick={minimizeInline}
+                        className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                      >
+                        <IconChevronDown className="size-4" stroke={1.75} />
+                      </button>
+                    ) : null
+                  ) : (
                     <button
                       type="button"
                       aria-label="Minimize betslip"
@@ -1143,12 +1198,15 @@ export function SoccerBetslip({
                       {receipt.placed.length} bet{receipt.placed.length === 1 ? '' : 's'} · {money(receiptStake)} to win {money(receiptWin)}
                     </span>
                   </span>
-                  {inline ? null : (
+                  {inline && !onMinimize ? null : (
                     <button
                       type="button"
                       aria-label="Minimize betslip"
-                      onClick={closeDrawer}
-                      className="hidden size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:inline-flex"
+                      onClick={inline ? minimizeInline : closeDrawer}
+                      className={cn(
+                        'size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                        inline ? 'inline-flex' : 'hidden lg:inline-flex',
+                      )}
                     >
                       <IconChevronDown className="size-4" stroke={1.75} />
                     </button>
