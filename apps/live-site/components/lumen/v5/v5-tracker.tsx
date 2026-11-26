@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { IconChartDots3, IconPlayerPlayFilled } from '@tabler/icons-react'
+import { IconChartBar, IconChartDots3, IconPlayerPlayFilled } from '@tabler/icons-react'
 import { useShell } from '@/components/site/shell-context'
 import { outcomeColor } from '@/components/lumen/markets/market-ui'
 import type { SportsMarket } from '@/lib/lumen/sports-markets'
@@ -79,7 +79,14 @@ export function hasGenTracker(game: SportsMarket): boolean {
   return Boolean(SURFACE[v5SportOf(game)])
 }
 
-export function GenTracker({ game }: { game: SportsMarket }) {
+export function GenTracker({
+  game,
+  statsSlot,
+}: {
+  game: SportsMarket
+  /** Phones: a Stats tab on the tracker (live bars + form, H2H, info) instead of cards at the page bottom. */
+  statsSlot?: ReactNode
+}) {
   const sport = v5SportOf(game)
   const surface = SURFACE[sport] ?? 'court'
   const sides = teamOutcomes(game).slice(0, 2)
@@ -116,7 +123,7 @@ export function GenTracker({ game }: { game: SportsMarket }) {
   const fight = surface === 'cage' || surface === 'ring'
   const us = ['nfl', 'basketball', 'hockey', 'baseball', 'lacrosse'].includes(sport)
   const stream = STREAM[sport]
-  const [media, setMedia] = useState<'stream' | 'tracker'>(stream ? 'stream' : 'tracker')
+  const [media, setMedia] = useState<'stream' | 'tracker' | 'stats'>(stream ? 'stream' : 'tracker')
   const { loggedIn, openAuth } = useShell()
   const trackerLabel = us ? 'Game tracker' : 'Match tracker'
   const score = game.score ?? [0, 0]
@@ -124,20 +131,23 @@ export function GenTracker({ game }: { game: SportsMarket }) {
   return (
     <section data-name="v5-gen-tracker" className={cn(V5_CARD, 'overflow-hidden rounded-[14px]')}>
       <div className="flex items-center gap-2 px-4 pb-2 pt-3">
-        <span className="text-sm font-semibold text-foreground">{media === 'stream' ? 'Live stream' : trackerLabel}</span>
+        <span className="text-sm font-semibold text-foreground">
+          {media === 'stream' ? 'Live stream' : media === 'stats' ? 'Stats' : trackerLabel}
+        </span>
         {game.live ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-destructive">
             <LiveDot />
             {game.when}
           </span>
         ) : null}
-        {stream ? (
+        {stream || statsSlot ? (
           <span role="tablist" aria-label="Live media" className="ml-auto flex items-center gap-1.5">
             {(
               [
-                { id: 'stream', label: 'Live stream', Icon: IconPlayerPlayFilled },
-                { id: 'tracker', label: trackerLabel, Icon: IconChartDots3 },
-              ] as const
+                ...(stream ? ([{ id: 'stream', label: 'Live stream', Icon: IconPlayerPlayFilled }] as const) : []),
+                { id: 'tracker', label: trackerLabel, Icon: IconChartDots3 } as const,
+                ...(statsSlot ? ([{ id: 'stats', label: 'Stats', Icon: IconChartBar }] as const) : []),
+              ]
             ).map(({ id, label, Icon }) => (
               <button
                 key={id}
@@ -192,7 +202,7 @@ export function GenTracker({ game }: { game: SportsMarket }) {
         </div>
       ) : null}
 
-      <div className={cn('px-3', stream && media === 'stream' && 'hidden')}>
+      <div className={cn('px-3', media !== 'tracker' && 'hidden')}>
         <svg viewBox="0 0 200 112" className="block w-full rounded-xl bg-secondary" role="img" aria-label={`${abbr[beat.side]}: ${beat.label}`}>
           {/* Side in possession — its attacking half lights up in its colour. */}
           {!fight ? (
@@ -236,7 +246,7 @@ export function GenTracker({ game }: { game: SportsMarket }) {
       </div>
 
       {/* Play-by-play — one line, the newest play slides in. */}
-      <div className={cn('relative h-11 overflow-hidden px-4', stream && media === 'stream' && 'hidden')}>
+      <div className={cn('relative h-11 overflow-hidden px-4', media !== 'tracker' && 'hidden')}>
         <AnimatePresence initial={false} mode="popLayout">
           <motion.p
             key={`${step}-${beat.label}`}
@@ -253,7 +263,13 @@ export function GenTracker({ game }: { game: SportsMarket }) {
         </AnimatePresence>
       </div>
 
-      <div className="flex flex-col gap-3 border-t border-border px-4 pb-4 pt-3">
+      {/* Live bars — always under the tracker on desktop; their own tab (with form, H2H) on phones. */}
+      <div
+        className={cn(
+          'flex flex-col gap-3 px-4 pb-4 pt-3',
+          statsSlot ? media !== 'stats' && 'hidden' : 'border-t border-border',
+        )}
+      >
         <div className="flex items-center justify-between text-xs font-semibold">
           {abbr.map((a, i) => (
             <span key={a + i} className="inline-flex items-center gap-1.5 text-muted-foreground">
@@ -279,6 +295,7 @@ export function GenTracker({ game }: { game: SportsMarket }) {
           )
         })}
       </div>
+      {statsSlot && media === 'stats' ? <div className="border-t border-border px-4 pb-1 pt-3">{statsSlot}</div> : null}
     </section>
   )
 }

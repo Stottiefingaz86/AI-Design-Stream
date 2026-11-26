@@ -2134,13 +2134,16 @@ function SideCard({
   title,
   children,
   action,
+  bare,
 }: {
   title: string
   children: ReactNode
   action?: ReactNode
+  /** No card chrome — a divided section inside another card (V5 phones). */
+  bare?: boolean
 }) {
   return (
-    <section className={cn(CARD, 'px-4 pb-4 pt-3.5')}>
+    <section className={bare ? 'border-t border-border py-3.5 first:border-t-0 first:pt-1' : cn(CARD, 'px-4 pb-4 pt-3.5')}>
       <div className="mb-3 flex items-center justify-between gap-2">
         <Typography as="h2" shape="small" weight="semibold">
           {title}
@@ -2153,7 +2156,7 @@ function SideCard({
 }
 
 /** Also used by V5 Combos. */
-export function WinProbabilityCard({ model }: { model: SportsEventModel }) {
+export function WinProbabilityCard({ model, bare }: { model: SportsEventModel; bare?: boolean }) {
   const { event, info } = model
   const [ph, pd, pa] = info.winProb
   const pct = (p: number) => Math.round(p * 100)
@@ -2169,7 +2172,7 @@ export function WinProbabilityCard({ model }: { model: SportsEventModel }) {
       ? [team(l), { label: 'Tie', value: pct(pd), color: 'var(--muted-foreground)' }, team(r)]
       : [team(l), team(r)]
   return (
-    <SideCard title={event.live ? 'Win probability' : 'Who wins?'}>
+    <SideCard bare={bare} title={event.live ? 'Win probability' : 'Who wins?'}>
       <div className="flex h-2 gap-1">
         {segments.map((s) => (
           <span
@@ -2234,7 +2237,7 @@ function FormRow({ team, form }: { team: string; form: FormResult[] }) {
 }
 
 /** Also used by V5 Combos. */
-export function PreMatchCards({ model }: { model: SportsEventModel }) {
+export function PreMatchCards({ model, bare }: { model: SportsEventModel; bare?: boolean }) {
   const { event, info } = model
   const noTies = model.sport === 'nfl'
   const tally = info.h2h.reduce(
@@ -2258,6 +2261,7 @@ export function PreMatchCards({ model }: { model: SportsEventModel }) {
   return (
     <>
       <SideCard
+        bare={bare}
         title="Form"
         action={
           <Typography as="span" shape="xs" variant="muted">
@@ -2276,7 +2280,7 @@ export function PreMatchCards({ model }: { model: SportsEventModel }) {
         </div>
       </SideCard>
 
-      <SideCard title="Head to head">
+      <SideCard bare={bare} title="Head to head">
         <div
           className={cn(
             'mb-3 grid rounded-lg bg-secondary py-2.5 text-center',
@@ -2315,7 +2319,7 @@ export function PreMatchCards({ model }: { model: SportsEventModel }) {
         </ul>
       </SideCard>
 
-      <SideCard title={model.sport === 'nfl' ? 'Game info' : 'Match info'}>
+      <SideCard bare={bare} title={model.sport === 'nfl' ? 'Game info' : 'Match info'}>
         <dl className="flex flex-col gap-2.5 text-sm">
           {info.rows.map(([k, v]) => (
             <div key={k} className="flex items-center justify-between gap-4">

@@ -212,9 +212,12 @@ export function ladderCards(sport: V5Sport, kind: 'spread' | 'total'): KCard[] {
     const picks = [at - 1, at, at + 1].filter((i) => i >= 0 && i < ladder.rungs.length)
     const rows: KRow[] = picks.map((i) => {
       const r = ladder.rungs[i]!
+      /* Line first — on phones a long "Team win by over…" truncated every row to the same text. */
+      const team = kind === 'spread' ? ladder.lead.replace(/\s+win by over$/i, '') : ''
       return {
         id: r.yes.id,
-        label: `${ladder.lead} ${r.line} ${ladder.unit}`,
+        label: team ? `Win by over ${r.line} ${ladder.unit}` : `${ladder.lead} ${r.line} ${ladder.unit}`,
+        sub: team || undefined,
         chance: r.chance,
         change: r.change,
         yes: r.yes,

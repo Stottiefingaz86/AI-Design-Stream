@@ -175,12 +175,13 @@ export function ComboEventPage({ sport, eventId }: { sport: V5SportId; eventId: 
 
           {/* Below lg the stream / tracker sit in-flow; lg+ they live in the rail. */}
           <div className="mt-4 lg:hidden">
+            {/* Phones: stats are always a tab on the top card — never cards at the page bottom. */}
             {field ? null : genLive ? (
-              <GenTracker game={ev.game} />
+              <GenTracker game={ev.game} statsSlot={<PreMatchCards model={model} bare />} />
             ) : model.live ? (
               desktop === false ? <MediaPanel model={model} statsSlot={<LiveStatsCard model={model} bare />} /> : null
             ) : (
-              <WinProbabilityCard model={model} />
+              <MobileInsights model={model} />
             )}
           </div>
 
@@ -206,10 +207,6 @@ export function ComboEventPage({ sport, eventId }: { sport: V5SportId; eventId: 
             <SportsActivity sport={v5SportOf(ev.game)} league={ev.game.leagueName} />
           </div>
 
-          <div className="mt-6 flex flex-col gap-4 lg:hidden">
-            {/* Phones: live stats are a tab on the stream / tracker card, not at the bottom. */}
-            {model.live ? null : <PreMatchCards model={model} />}
-          </div>
         </div>
 
         {/* Rail — stream, match tracker and stats: the part a prediction market can't give you. */}
@@ -250,6 +247,42 @@ export function ComboEventPage({ sport, eventId }: { sport: V5SportId; eventId: 
       <BetStackPopup />
       <CasinoMiniPlayer />
     </div>
+  )
+}
+
+// ─── Phones: pre-match insights ────────────────────────────────
+
+/** Who wins / Stats on one card at the top — the phone stand-in for the desktop rail. */
+function MobileInsights({ model }: { model: SportsEventModel }) {
+  const [tab, setTab] = useState<'chance' | 'stats'>('chance')
+  return (
+    <section data-name="v5-mobile-insights" className={cn(V5_CARD, 'rounded-[14px] px-4 pb-3 pt-3')}>
+      <div role="tablist" aria-label="Game insights" className="mb-1 flex gap-1 rounded-full bg-secondary p-1">
+        {(
+          [
+            { id: 'chance', label: 'Chance' },
+            { id: 'stats', label: 'Stats' },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={cn(
+              'h-8 flex-1 rounded-full text-sm font-semibold transition-colors',
+              tab === t.id ? 'bg-popover text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div className="pt-2">
+        {tab === 'chance' ? <WinProbabilityCard model={model} bare /> : <PreMatchCards model={model} bare />}
+      </div>
+    </section>
   )
 }
 

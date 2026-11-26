@@ -98,7 +98,7 @@ function KRowView({ row: initial, selected, onPick }: { row: KRow; selected: Set
         </span>
       ) : null}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[15px] font-bold leading-5 tracking-tight text-foreground">{row.label}</p>
+        <p className="line-clamp-2 text-[15px] font-bold leading-5 tracking-tight text-foreground sm:line-clamp-1">{row.label}</p>
         {row.sub ? <p className="truncate text-xs text-muted-foreground">{row.sub}</p> : null}
         <ProbBar value={row.chance} lead={row.chance >= 50} className="mt-1.5 max-w-[60%]" />
       </div>

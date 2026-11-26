@@ -3553,16 +3553,31 @@ body:has([data-name="combo-builder"]) [data-cashier-redirect] {
 .v5-stake-attn {
   border-color: transparent !important;
   background:
-    linear-gradient(var(--popover), var(--popover)) padding-box,
+    linear-gradient(
+      color-mix(in srgb, var(--foreground) 5%, var(--popover)),
+      color-mix(in srgb, var(--foreground) 5%, var(--popover))
+    ) padding-box,
     conic-gradient(
       from var(--v5-stake-angle),
-      var(--border) 0deg,
-      var(--border) 220deg,
-      var(--foreground) 300deg,
-      var(--border) 360deg
+      var(--input) 0deg,
+      var(--input) 190deg,
+      var(--foreground) 290deg,
+      var(--input) 360deg
     ) border-box;
   animation: v5-stake-sweep 2.6s linear infinite;
 }
+/* Fake text caret in an empty, unfocused stake field — "type here". */
+.v5-caret {
+  width: 2px;
+  height: 1.25rem;
+  border-radius: 1px;
+  background: var(--foreground);
+  animation: v5-caret-blink 1.06s steps(1, end) infinite;
+}
+@keyframes v5-caret-blink {
+  0%, 55% { opacity: 1; }
+  56%, 100% { opacity: 0; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .v5-stake-attn { animation: none; }
+  .v5-stake-attn, .v5-caret { animation: none; }
 }

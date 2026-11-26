@@ -763,6 +763,8 @@ export function SoccerBetslip({
         ? 'Pick 1 more market to make a combo'
         : 'Add a pick from another game to make a combo'
 
+  const dockSingle = onlyPick && !inline ? onlyPick : null
+
   const v5Body = (
     <>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-3 scrollbar-hide">
@@ -855,17 +857,8 @@ export function SoccerBetslip({
           </div>
         ) : null}
 
-        {onlyPick && inline ? null : onlyPick ? (
-          <V5StakeBox
-            value={straightStakes[onlyPick.id] ?? DEFAULT_STAKE}
-            onChange={(next) => setStraightStakes((st) => ({ ...st, [onlyPick.id]: next }))}
-            toWin={winForOdds(onlyPick.odds, parseStake(straightStakes[onlyPick.id] ?? ''))}
-            ariaLabel={`Stake for ${onlyPick.label}`}
-            error={!!errors[onlyPick.id]}
-            chance={100 / decimalOf(onlyPick.odds)}
-            note="If it wins"
-          />
-        ) : inline ? null : (
+        {/* One pick: its stake lives in the dock below. */}
+        {onlyPick || inline ? null : (
           <div data-name="betslip-v5-singles" className="mt-4 scroll-mt-3 rounded-lg border border-border">
             <button
               type="button"
@@ -956,9 +949,11 @@ export function SoccerBetslip({
         })}
       </div>
 
+      {/* Dock — the stake and the place button, pinned under the legs (same surface as the slip). */}
+      <div data-name="betslip-v5-dock" className="shrink-0 border-t border-border">
       {/* Combo — pinned at the bottom (2+ units; an SGP counts as one) */}
       {showParlay ? (
-        <div data-name="betslip-parlay" className="shrink-0 border-t border-border px-4 pt-2.5">
+        <div data-name="betslip-parlay" className="px-4 pt-3">
           {/* Compact pinned footer — the slip above keeps the room. */}
           <div className="flex items-center gap-1.5 text-sm leading-5">
             <ComboMark className="size-4" />
@@ -980,6 +975,26 @@ export function SoccerBetslip({
           />
           <RejectNote reason={errors.parlay} />
         </div>
+      ) : dockSingle ? (
+        <div data-name="betslip-single" className="px-4 pt-3">
+          <div className="flex items-center gap-1.5 text-sm leading-5">
+            <span className="font-bold tracking-tight text-foreground">Single</span>
+            <span className="min-w-0 truncate text-muted-foreground">
+              · {decimalOf(dockSingle.odds).toFixed(2)}x · {Math.max(1, Math.round(100 / decimalOf(dockSingle.odds)))}% chance
+            </span>
+            <span className="ml-auto font-bold tabular-nums text-foreground">{dockSingle.odds}</span>
+          </div>
+          <V5StakeBox
+            value={straightStakes[dockSingle.id] ?? DEFAULT_STAKE}
+            onChange={(next) => setStraightStakes((st) => ({ ...st, [dockSingle.id]: next }))}
+            toWin={winForOdds(dockSingle.odds, parseStake(straightStakes[dockSingle.id] ?? ''))}
+            ariaLabel={`Stake for ${dockSingle.label}`}
+            error={!!errors[dockSingle.id]}
+            chance={100 / decimalOf(dockSingle.odds)}
+            note="If it wins"
+          />
+          <RejectNote reason={errors[dockSingle.id]} />
+        </div>
       ) : null}
 
       {driftCount > 0 ? (
@@ -991,7 +1006,7 @@ export function SoccerBetslip({
         </div>
       ) : null}
 
-      <div className="shrink-0 px-4 pb-3 pt-2.5">
+      <div className="px-4 pb-3 pt-2.5">
         <Button
           type="button"
           disabled={loggedIn && placeStake <= 0}
@@ -1013,6 +1028,7 @@ export function SoccerBetslip({
             </span>
           ) : null}
         </Button>
+      </div>
       </div>
     </>
   )
@@ -1867,35 +1883,43 @@ function V5StakeBox({
 }) {
   const [focused, setFocused] = useState(false)
   const hasStake = parseStake(value) > 0
-  /* One left/right axis: stake field full width, then quick amounts left · to-win right. */
+  /* A filled field (a touch lighter than the slip, input-strength edge) with a blinking caret
+   * where the amount goes, so it reads as "type here". Quick amounts left · to-win right. */
+  const idle = !hasStake && !focused
   return (
     <div className="mt-2">
       <label
         className={cn(
-          'flex h-11 items-center gap-2 rounded-xl border bg-transparent px-3 transition-colors focus-within:border-foreground',
-          error ? 'border-destructive' : 'border-border',
-          /* Empty + not focused: the edge sweeps and the label shimmers — "your stake goes here". */
-          !error && !hasStake && !focused && 'v5-stake-attn',
+          'flex h-12 cursor-text items-center gap-1 rounded-xl border bg-[color-mix(in_srgb,var(--foreground)_5%,var(--popover))] px-3.5 transition-colors focus-within:border-foreground',
+          error ? 'border-destructive' : 'border-input',
+          /* Empty + not focused: the edge sweeps, the caret blinks and the hint shimmers. */
+          !error && idle && 'v5-stake-attn',
         )}
       >
-        <span className={cn('text-sm', hasStake ? 'text-muted-foreground' : 'v5-pay-shimmer font-semibold')}>
+        <span className={cn('text-lg font-bold', idle ? 'text-muted-foreground' : 'text-foreground')} aria-hidden>
+          $
+        </span>
+        <span className="relative flex min-w-0 flex-1 items-center">
+          {idle ? <span aria-hidden className="v5-caret pointer-events-none absolute left-0" /> : null}
+          <input
+            type="text"
+            inputMode="decimal"
+            aria-label={ariaLabel}
+            aria-invalid={error || undefined}
+            value={value && value !== DEFAULT_STAKE ? value : ''}
+            placeholder="0.00"
+            onChange={(e) => onChange(formatStakeInput(e.target.value.replace(/^\$/, '')))}
+            onFocus={(e) => {
+              setFocused(true)
+              e.target.select()
+            }}
+            onBlur={() => setFocused(false)}
+            className="min-w-0 flex-1 bg-transparent pl-1 text-left text-lg font-bold tabular-nums text-foreground outline-none placeholder:text-muted-foreground"
+          />
+        </span>
+        <span className={cn('shrink-0 text-sm', hasStake ? 'text-muted-foreground' : 'v5-pay-shimmer font-semibold')}>
           {hasStake ? 'Stake' : 'Enter stake'}
         </span>
-        <input
-          type="text"
-          inputMode="decimal"
-          aria-label={ariaLabel}
-          aria-invalid={error || undefined}
-          value={value && value !== DEFAULT_STAKE ? `$${value}` : ''}
-          placeholder="$0"
-          onChange={(e) => onChange(formatStakeInput(e.target.value.replace(/^\$/, '')))}
-          onFocus={(e) => {
-            setFocused(true)
-            e.target.select()
-          }}
-          onBlur={() => setFocused(false)}
-          className="min-w-0 flex-1 bg-transparent text-right text-lg font-bold tabular-nums text-foreground outline-none placeholder:text-muted-foreground"
-        />
       </label>
       <div className="mt-2 flex items-center gap-1.5">
         {['5.00', '10.00', '25.00', '50.00'].map((v) => (
@@ -1907,7 +1931,7 @@ function V5StakeBox({
               'inline-flex h-7 items-center justify-center rounded-full border px-2.5 text-xs font-semibold tabular-nums transition-colors',
               value === v
                 ? 'border-foreground bg-foreground text-background'
-                : 'border-border text-foreground hover:bg-accent',
+                : 'border-border bg-popover text-foreground hover:bg-accent',
             )}
           >
             ${Number(v)}
